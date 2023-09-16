@@ -37,6 +37,20 @@ public:
 		}
 	}
 
+	void put(const key_t& key, value_t&& value) {
+		_cache_items_list.emplace_front(key, std::move(value));
+
+		remove(key);
+		_cache_items_map[key] = _cache_items_list.begin();
+
+		if (_cache_items_map.size() > max_size) {
+			auto last = _cache_items_list.end();
+			--last;
+			_cache_items_map.erase(last->first);
+			_cache_items_list.pop_back();
+		}
+	}
+
 	const std::optional<value_t> get(const key_t& key) {
 		auto it = _cache_items_map.find(key);
 
