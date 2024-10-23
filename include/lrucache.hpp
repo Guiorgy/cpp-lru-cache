@@ -14,6 +14,8 @@
 
 template<typename key_t, typename value_t, const size_t max_size>
 class lru_cache {
+	static_assert(max_size > 0);
+
 public:
 	typedef typename std::pair<key_t, value_t> key_value_pair_t;
 	typedef typename std::list<key_value_pair_t>::iterator list_iterator_t;
