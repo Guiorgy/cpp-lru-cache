@@ -9,9 +9,8 @@
 #pragma once
 
 #include <unordered_map>
+#include <optional>
 #include <list>
-#include <cstddef>
-#include <stdexcept>
 
 template<typename key_t, typename value_t, const size_t max_size>
 class lru_cache {
@@ -42,10 +41,11 @@ public:
 		}
 	}
 
-	const value_t& get(const key_t& key) {
+	const std::optional<value_t> get(const key_t& key) {
 		auto it = _cache_items_map.find(key);
+
 		if (it == _cache_items_map.end()) {
-			throw std::range_error("There is no such key in cache");
+			return {};
 		} else {
 			_cache_items_list.splice(_cache_items_list.begin(), _cache_items_list, it->second);
 			return it->second->second;
