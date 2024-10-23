@@ -1,25 +1,28 @@
 #include "lrucache.hpp"
 #include "gtest/gtest.h"
 
-const int NUM_OF_TEST1_RECORDS = 100;
-const int NUM_OF_TEST2_RECORDS = 100;
-const int TEST2_CACHE_CAPACITY = 50;
+constexpr int NUM_OF_TEST1_RECORDS = 100;
+constexpr int NUM_OF_TEST2_RECORDS = 100;
+constexpr int TEST2_CACHE_CAPACITY = 50;
 
 TEST(CacheTest, SimplePut) {
-    cache::lru_cache<int, int> cache_lru(1);
+    lru_cache<int, int, 1> cache_lru;
     cache_lru.put(7, 777);
+
     EXPECT_TRUE(cache_lru.exists(7));
-    EXPECT_EQ(777, cache_lru.get(7));
+    EXPECT_EQ(777, cache_lru.get(7).value());
     EXPECT_EQ(1, cache_lru.size());
 }
 
 TEST(CacheTest, MissingValue) {
-    cache::lru_cache<int, int> cache_lru(1);
-    EXPECT_THROW(cache_lru.get(7), std::range_error);
+    lru_cache<int, int, 1> cache_lru;
+    auto cached = cache_lru.get(7);
+
+    EXPECT_FALSE(cached.has_value());
 }
 
 TEST(CacheTest1, KeepsAllValuesWithinCapacity) {
-    cache::lru_cache<int, int> cache_lru(TEST2_CACHE_CAPACITY);
+    lru_cache<int, int, TEST2_CACHE_CAPACITY> cache_lru;
 
     for (int i = 0; i < NUM_OF_TEST2_RECORDS; ++i) {
         cache_lru.put(i, i);
@@ -31,7 +34,10 @@ TEST(CacheTest1, KeepsAllValuesWithinCapacity) {
 
     for (int i = NUM_OF_TEST2_RECORDS - TEST2_CACHE_CAPACITY; i < NUM_OF_TEST2_RECORDS; ++i) {
         EXPECT_TRUE(cache_lru.exists(i));
-        EXPECT_EQ(i, cache_lru.get(i));
+
+        auto cached = cache_lru.get(i);
+        EXPECT_TRUE(cached.has_value());
+        EXPECT_EQ(i, cached.value());
     }
 
     size_t size = cache_lru.size();
