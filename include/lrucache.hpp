@@ -29,8 +29,7 @@ private:
 		_cache_items_map[key] = _cache_items_list.begin();
 
 		if (_cache_items_map.size() > max_size) {
-			auto last = _cache_items_list.end();
-			--last;
+			auto last = _cache_items_list.rbegin();
 			_cache_items_map.erase(last->first);
 			_cache_items_list.pop_back();
 		}
