@@ -21,6 +21,11 @@ public:
 	typedef typename std::pair<key_t, value_t> key_value_pair_t;
 	typedef typename std::list<key_value_pair_t>::iterator list_iterator_t;
 
+private:
+	std::list<key_value_pair_t> _cache_items_list;
+	std::unordered_map<key_t, list_iterator_t> _cache_items_map;
+
+public:
 	void put(const key_t& key, const value_t& value) {
 		auto it = _cache_items_map.find(key);
 		_cache_items_list.push_front(key_value_pair_t(key, value));
@@ -60,10 +65,6 @@ public:
 		_cache_items_map.clear();
 		_cache_items_list.clear();
 	}
-
-private:
-	std::list<key_value_pair_t> _cache_items_list;
-	std::unordered_map<key_t, list_iterator_t> _cache_items_map;
 };
 
 } // namespace cache
