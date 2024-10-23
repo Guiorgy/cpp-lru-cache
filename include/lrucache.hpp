@@ -13,8 +13,6 @@
 #include <cstddef>
 #include <stdexcept>
 
-namespace cache {
-
 template<typename key_t, typename value_t, const size_t max_size>
 class lru_cache {
 public:
@@ -67,5 +65,3 @@ public:
 		_cache_items_list.clear();
 	}
 };
-
-} // namespace cache
