@@ -1,4 +1,4 @@
-/* 
+/*
  * File:   lrucache.hpp
  * Authors: Alexander Ponomarev, Guiorgy
  *
@@ -20,7 +20,7 @@ class lru_cache {
 public:
 	typedef typename std::pair<key_t, value_t> key_value_pair_t;
 	typedef typename std::list<key_value_pair_t>::iterator list_iterator_t;
-	
+
 	void put(const key_t& key, const value_t& value) {
 		auto it = _cache_items_map.find(key);
 		_cache_items_list.push_front(key_value_pair_t(key, value));
@@ -29,7 +29,7 @@ public:
 			_cache_items_map.erase(it);
 		}
 		_cache_items_map[key] = _cache_items_list.begin();
-		
+
 		if (_cache_items_map.size() > max_size) {
 			auto last = _cache_items_list.end();
 			last--;
@@ -37,7 +37,7 @@ public:
 			_cache_items_list.pop_back();
 		}
 	}
-	
+
 	const value_t& get(const key_t& key) {
 		auto it = _cache_items_map.find(key);
 		if (it == _cache_items_map.end()) {
@@ -47,15 +47,15 @@ public:
 			return it->second->second;
 		}
 	}
-	
+
 	bool exists(const key_t& key) const {
 		return _cache_items_map.find(key) != _cache_items_map.end();
 	}
-	
+
 	size_t size() const noexcept {
 		return _cache_items_map.size();
 	}
-	
+
 	void clear() noexcept {
 		_cache_items_map.clear();
 		_cache_items_list.clear();
