@@ -5,8 +5,7 @@
  * Created on June 20, 2013, 5:09 PM
  */
 
-#ifndef _LRUCACHE_HPP_INCLUDED_
-#define	_LRUCACHE_HPP_INCLUDED_
+#pragma once
 
 #include <unordered_map>
 #include <list>
@@ -67,6 +66,3 @@ private:
 };
 
 } // namespace cache
-
-#endif	/* _LRUCACHE_HPP_INCLUDED_ */
-
