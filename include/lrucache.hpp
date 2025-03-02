@@ -26,6 +26,9 @@ private:
 	std::list<key_value_pair_t> _cache_items_list;
 	std::unordered_map<key_t, list_iterator_t> _cache_items_map;
 
+	lru_cache(const lru_cache&) = delete;
+	void operator=(const lru_cache&) = delete;
+
 	void put(const key_t& key) {
 		auto it = _cache_items_map.find(key);
 		if (it != _cache_items_map.end()) {
