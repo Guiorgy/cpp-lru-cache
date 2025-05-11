@@ -5,7 +5,7 @@ project(CPP-LRU-CACHE)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g3")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g3 -fsanitize=address -fsanitize=leak -DLD_PRELOAD")
 set(CMAKE_CSS_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -03 -g -DNDEBUG")
 
 include(FetchContent)
@@ -31,9 +31,22 @@ add_test(
     COMMAND cpp-lru-cache-test
 )
 
-add_custom_target(
-    check
-    COMMAND ${CMAKE_CTEST_COMMAND} --verbose
-    DEPENDS cpp-lru-cache-test
-    VERBATIM
-)
+find_program(VALGRIND_EXECUTABLE valgrind)
+if(VALGRIND_EXECUTABLE)
+    add_custom_target(
+        check
+        COMMAND ${VALGRIND_EXECUTABLE} --leak-check=full --leak-resolution=high --show-leak-kinds=all --track-origins=yes --show-error-list=yes "$<TARGET_FILE:cpp-lru-cache-test>"
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        DEPENDS cpp-lru-cache-test
+        VERBATIM
+    )
+else()
+    message(WARNING "Valgrind not found")
+
+    add_custom_target(
+        check
+        COMMAND ${CMAKE_CTEST_COMMAND} --verbose
+        DEPENDS cpp-lru-cache-test
+        VERBATIM
+    )
+endif()
