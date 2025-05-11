@@ -1,43 +1,39 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.5)
 
-project(CPP-LRU_CACHE)
+project(CPP-LRU-CACHE)
 
-find_package(Threads REQUIRED)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g3")
+set(CMAKE_CSS_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -03 -g -DNDEBUG")
 
-set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/ext)
-add_subdirectory(${EXT_PROJECTS_DIR}/gtest)
-
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG v1.17.0
+    CMAKE_ARGS -Dgtest_force_shared_crt=ON
+)
+FetchContent_MakeAvailable(googletest)
 enable_testing()
 
-include_directories(
-    ${GTEST_INCLUDE_DIRS}
-    ${PROJECT_SOURCE_DIR}/include)
+include_directories(${PROJECT_SOURCE_DIR}/include)
 
-add_executable(
-    cpp-lru-cache-test
-    src/test)
+file(GLOB TESTS ${PROJECT_SOURCE_DIR}/tests/*.cpp)
+add_executable(cpp-lru-cache-test ${TESTS})
 
-add_dependencies(cpp-lru-cache-test googletest)
+target_link_libraries(cpp-lru-cache-test gtest gtest_main)
 
-target_link_libraries(
-    cpp-lru-cache-test
-    ${GTEST_LIBS_DIR}/libgtest.a
-    ${GTEST_LIBS_DIR}/libgtest_main.a
-    ${CMAKE_THREAD_LIBS_INIT})
-
-set_target_properties(cpp-lru-cache-test PROPERTIES
-    PREFIX ""
-    SUFFIX ""
-    COMPILE_FLAGS "-std=c++0x -W -Wall -pedantic")
-
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3")
-set(CMAKE_CSS_FLAGS_RELEASE "-03 -g")
-
+include(GoogleTest)
 add_test(
     NAME cpp-lru-cache-test
     COMMAND cpp-lru-cache-test
 )
 
-add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --verbose
-    DEPENDS cpp-lru-cache-test)
+add_custom_target(
+    check
+    COMMAND ${CMAKE_CTEST_COMMAND} --verbose
+    DEPENDS cpp-lru-cache-test
+    VERBATIM
+)

@@ -23,7 +23,6 @@ const std::string& from_cache = cache.get("two").value();
 How to run tests:
 
 ```shell
-mkdir build
 cd build
 cmake ..
 make check

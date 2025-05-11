@@ -1,5 +1,5 @@
 /*
- * File:   lrucache.hpp
+ * File: lrucache.hpp
  * Authors: Alexander Ponomarev, Guiorgy
  *
  * Created on June 20, 2013, 5:09 PM
