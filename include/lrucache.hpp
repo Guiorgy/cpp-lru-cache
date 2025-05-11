@@ -26,8 +26,13 @@ private:
 	std::unordered_map<key_t, list_iterator_t> _cache_items_map;
 
 	void put(const key_t& key) {
-		remove(key);
-		_cache_items_map[key] = _cache_items_list.begin();
+		auto it = _cache_items_map.find(key);
+		if (it != _cache_items_map.end()) {
+			_cache_items_list.erase(it->second);
+			it->second = _cache_items_list.begin();
+		} else {
+			_cache_items_map[key] = _cache_items_list.begin();
+		}
 
 		if (_cache_items_map.size() > max_size) {
 			auto last = _cache_items_list.rbegin();
