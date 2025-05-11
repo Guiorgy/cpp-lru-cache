@@ -19,6 +19,7 @@ class lru_cache final {
 public:
 	typedef typename std::pair<key_t, value_t> key_value_pair_t;
 	typedef typename std::list<key_value_pair_t>::iterator list_iterator_t;
+	typedef typename std::list<key_value_pair_t>::reverse_iterator list_reverse_iterator_t;
 	typedef typename std::list<key_value_pair_t>::const_iterator list_const_iterator_t;
 	typedef typename std::list<key_value_pair_t>::const_reverse_iterator list_const_reverse_iterator_t;
 
@@ -26,31 +27,55 @@ private:
 	std::list<key_value_pair_t> _cache_items_list;
 	std::unordered_map<key_t, list_iterator_t> _cache_items_map;
 
-	void put(const key_t& key) {
-		auto it = _cache_items_map.find(key);
-		if (it != _cache_items_map.end()) {
-			_cache_items_list.erase(it->second);
-			it->second = _cache_items_list.begin();
-		} else {
-			_cache_items_map[key] = _cache_items_list.begin();
+	void bring_to_front(list_iterator_t it) {
+		if (it != _cache_items_list.begin()) {
+			_cache_items_list.splice(_cache_items_list.begin(), _cache_items_list, it);
 		}
+	}
 
-		if (_cache_items_map.size() > max_size) {
-			auto last = _cache_items_list.rbegin();
-			_cache_items_map.erase(last->first);
-			_cache_items_list.pop_back();
-		}
+	void bring_to_front(list_reverse_iterator_t it) {
+		bring_to_front(std::next(it).base());
 	}
 
 public:
 	void put(const key_t& key, const value_t& value) {
-		_cache_items_list.push_front(key_value_pair_t(key, value));
-		put(key);
+		auto it = _cache_items_map.find(key);
+		if (it != _cache_items_map.end()) {
+			it->second->second = value;
+			bring_to_front(it->second);
+		} else {
+			if (_cache_items_map.size() < max_size) {
+				_cache_items_list.push_front(key_value_pair_t(key, value));
+			} else {
+				auto last = _cache_items_list.rbegin();
+				_cache_items_map.erase(last->first);
+				last->first = key;
+				last->second = value;
+				bring_to_front(last);
+			}
+
+			_cache_items_map[key] = _cache_items_list.begin();
+		}
 	}
 
 	void put(const key_t& key, value_t&& value) {
-		_cache_items_list.emplace_front(key, std::move(value));
-		put(key);
+		auto it = _cache_items_map.find(key);
+		if (it != _cache_items_map.end()) {
+			it->second->second = std::move(value);
+			bring_to_front(it->second);
+		} else {
+			if (_cache_items_map.size() < max_size) {
+				_cache_items_list.emplace_front(key, std::move(value));
+			} else {
+				auto last = _cache_items_list.rbegin();
+				_cache_items_map.erase(last->first);
+				last->first = key;
+				last->second = std::move(value);
+				bring_to_front(last);
+			}
+
+			_cache_items_map[key] = _cache_items_list.begin();
+		}
 	}
 
 	const std::optional<value_t> get(const key_t& key) {
@@ -59,9 +84,7 @@ public:
 		if (it == _cache_items_map.end()) {
 			return {};
 		} else {
-			if (it->second != _cache_items_list.begin()) {
-				_cache_items_list.splice(_cache_items_list.begin(), _cache_items_list, it->second);
-			}
+			bring_to_front(it->second);
 			return it->second->second;
 		}
 	}
