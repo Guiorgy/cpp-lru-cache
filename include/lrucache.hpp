@@ -20,6 +20,7 @@ public:
 	typedef typename std::pair<key_t, value_t> key_value_pair_t;
 	typedef typename std::list<key_value_pair_t>::iterator list_iterator_t;
 	typedef typename std::list<key_value_pair_t>::const_iterator list_const_iterator_t;
+	typedef typename std::list<key_value_pair_t>::const_reverse_iterator list_const_reverse_iterator_t;
 
 private:
 	std::list<key_value_pair_t> _cache_items_list;
@@ -92,5 +93,13 @@ public:
 
 	list_const_iterator_t end() const noexcept {
 		return _cache_items_list.cend();
+	}
+
+	list_const_reverse_iterator_t rbegin() const noexcept {
+		return _cache_items_list.crbegin();
+	}
+
+	list_const_reverse_iterator_t rend() const noexcept {
+		return _cache_items_list.crend();
 	}
 };
