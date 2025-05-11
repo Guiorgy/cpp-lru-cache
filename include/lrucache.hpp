@@ -13,7 +13,7 @@
 #include <list>
 
 template<typename key_t, typename value_t, const size_t max_size>
-class lru_cache {
+class lru_cache final {
 	static_assert(max_size > 0);
 
 public:
