@@ -58,7 +58,9 @@ public:
 		if (it == _cache_items_map.end()) {
 			return {};
 		} else {
-			_cache_items_list.splice(_cache_items_list.begin(), _cache_items_list, it->second);
+			if (it->second != _cache_items_list.begin()) {
+				_cache_items_list.splice(_cache_items_list.begin(), _cache_items_list, it->second);
+			}
 			return it->second->second;
 		}
 	}
