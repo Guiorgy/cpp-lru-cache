@@ -43,6 +43,31 @@ TEST(CacheTest2, KeepsAllValuesWithinCapacity) {
 	EXPECT_EQ(test_capacity, size);
 }
 
+TEST(CacheTest2, HandlesOverwrites) {
+	constexpr int test_capacity = 50;
+
+	lru_cache<int, int, test_capacity> cache_lru;
+
+	for (int i = 0; i < test_capacity; ++i) {
+		cache_lru.put(i, i);
+	}
+
+	for (int i = 0; i < test_capacity; ++i) {
+		cache_lru.put(i, -i);
+	}
+
+	for (int i = 0; i < test_capacity; ++i) {
+		EXPECT_TRUE(cache_lru.exists(i));
+
+		auto cached = cache_lru.get(i);
+		EXPECT_TRUE(cached.has_value());
+		EXPECT_EQ(-i, cached.value());
+	}
+
+	size_t size = cache_lru.size();
+	EXPECT_EQ(test_capacity, size);
+}
+
 int main(int argc, char **argv) {
 	::testing::InitGoogleTest(&argc, argv);
 	int ret = RUN_ALL_TESTS();
