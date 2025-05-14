@@ -12,7 +12,7 @@
 #include <optional>
 #include <list>
 
-template<typename key_t, typename value_t, const size_t max_size>
+template<typename key_t, typename value_t, const std::size_t max_size>
 class lru_cache final {
 	static_assert(max_size > 0);
 
@@ -78,7 +78,7 @@ public:
 		return _cache_items_map.find(key) != _cache_items_map.end();
 	}
 
-	size_t size() const noexcept {
+	std::size_t size() const noexcept {
 		return _cache_items_map.size();
 	}
 
