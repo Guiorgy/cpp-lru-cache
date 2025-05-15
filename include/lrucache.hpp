@@ -9,11 +9,13 @@
 #pragma once
 
 #include <unordered_map>
+#include <type_traits>
 #include <functional>
 #include <optional>
 #include <cassert>
 #include <cstdint>
 #include <cstddef>
+#include <utility>
 #include <limits>
 #include <vector>
 
