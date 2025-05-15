@@ -16,11 +16,12 @@ template<typename key_t, typename value_t, const std::size_t max_size>
 class lru_cache final {
 	static_assert(max_size > 0);
 
-public:
 	typedef typename std::pair<key_t, value_t> key_value_pair_t;
 	typedef typename std::list<key_value_pair_t>::iterator list_iterator_t;
-	typedef typename std::list<key_value_pair_t>::const_iterator list_const_iterator_t;
-	typedef typename std::list<key_value_pair_t>::const_reverse_iterator list_const_reverse_iterator_t;
+
+public:
+	typedef typename std::list<key_value_pair_t>::const_iterator const_iterator;
+	typedef typename std::list<key_value_pair_t>::const_reverse_iterator const_reverse_iterator;
 
 private:
 	std::list<key_value_pair_t> _cache_items_list;
@@ -112,19 +113,19 @@ public:
 		_cache_items_list.clear();
 	}
 
-	list_const_iterator_t begin() const noexcept {
+	const_iterator begin() const noexcept {
 		return _cache_items_list.cbegin();
 	}
 
-	list_const_iterator_t end() const noexcept {
+	const_iterator end() const noexcept {
 		return _cache_items_list.cend();
 	}
 
-	list_const_reverse_iterator_t rbegin() const noexcept {
+	const_reverse_iterator rbegin() const noexcept {
 		return _cache_items_list.crbegin();
 	}
 
-	list_const_reverse_iterator_t rend() const noexcept {
+	const_reverse_iterator rend() const noexcept {
 		return _cache_items_list.crend();
 	}
 };
