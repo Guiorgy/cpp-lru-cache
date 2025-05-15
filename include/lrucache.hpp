@@ -712,8 +712,8 @@ namespace guiorgy {
 			typedef typename std::pair<key_t, value_t> key_value_pair_t;
 
 		public:
-			typedef typename vector_list<key_value_pair_t, max_size>::const_iterator list_const_iterator_t;
-			typedef typename vector_list<key_value_pair_t, max_size>::const_reverse_iterator list_const_reverse_iterator_t;
+			typedef typename vector_list<key_value_pair_t, max_size>::const_iterator const_iterator;
+			typedef typename vector_list<key_value_pair_t, max_size>::const_reverse_iterator const_reverse_iterator;
 
 		protected:
 			using list_index_t = uint_fit_t<max_size>;
@@ -756,8 +756,8 @@ namespace guiorgy {
 		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::key_value_pair_t key_value_pair_t;
 
 	public:
-		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::list_const_iterator_t list_const_iterator_t;
-		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::list_const_reverse_iterator_t list_const_reverse_iterator_t;
+		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::const_iterator const_iterator;
+		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::const_reverse_iterator const_reverse_iterator;
 
 		void put(const key_t& key, const value_t& value) {
 			auto it = this->_cache_items_map.find(key);
@@ -868,19 +868,19 @@ namespace guiorgy {
 			this->_cache_items_list.reserve(max_size);
 		}
 
-		list_const_iterator_t begin() const noexcept {
+		const_iterator begin() const noexcept {
 			return this->_cache_items_list.cbegin();
 		}
 
-		list_const_iterator_t end() const noexcept {
+		const_iterator end() const noexcept {
 			return this->_cache_items_list.cend();
 		}
 
-		list_const_reverse_iterator_t rbegin() const noexcept {
+		const_reverse_iterator rbegin() const noexcept {
 			return this->_cache_items_list.crbegin();
 		}
 
-		list_const_reverse_iterator_t rend() const noexcept {
+		const_reverse_iterator rend() const noexcept {
 			return this->_cache_items_list.crend();
 		}
 	};
