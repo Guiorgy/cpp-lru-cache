@@ -83,7 +83,7 @@ public:
 		auto it = _cache_items_map.find(key);
 
 		if (it == _cache_items_map.end()) {
-			return {};
+			return std::nullopt;
 		} else {
 			if (it->second != _cache_items_list.begin()) {
 				_cache_items_list.splice(_cache_items_list.begin(), _cache_items_list, it->second);
