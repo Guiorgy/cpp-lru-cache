@@ -106,6 +106,35 @@ public:
 		}
 	}
 
+	bool try_get(const key_t& key, value_t& value_out) {
+		auto it = _cache_items_map.find(key);
+
+		if (it == _cache_items_map.end()) {
+			return false;
+		} else {
+			if (it->second != _cache_items_list.begin()) {
+				_cache_items_list.splice(_cache_items_list.begin(), _cache_items_list, it->second);
+			}
+			value_out = it->second->second;
+			return true;
+		}
+	}
+
+	bool try_get(const key_t& key, const value_t*& value_out) {
+		auto it = _cache_items_map.find(key);
+
+		if (it == _cache_items_map.end()) {
+			value_out = nullptr;
+			return false;
+		} else {
+			if (it->second != _cache_items_list.begin()) {
+				_cache_items_list.splice(_cache_items_list.begin(), _cache_items_list, it->second);
+			}
+			value_out = &(it->second->second);
+			return true;
+		}
+	}
+
 	void remove(const key_t& key) {
 		auto it = _cache_items_map.find(key);
 		if (it != _cache_items_map.end()) {
