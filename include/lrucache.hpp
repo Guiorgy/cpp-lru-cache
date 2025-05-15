@@ -26,9 +26,31 @@ private:
 	std::list<key_value_pair_t> _cache_items_list;
 	std::unordered_map<key_t, list_iterator_t> _cache_items_map;
 
-	lru_cache(const lru_cache&) = delete;
-	void operator=(const lru_cache&) = delete;
+public:
+	lru_cache() = default;
+	~lru_cache() = default;
+	lru_cache(const lru_cache& other) {
+		_cache_items_list = other._cache_items_list;
 
+		_cache_items_map.reserve(_cache_items_list.size());
+		for (auto it = _cache_items_list.begin(); it != _cache_items_list.end(); ++it) {
+			_cache_items_map[it->first] = it;
+		}
+	}
+	lru_cache(lru_cache&&) = default;
+	lru_cache& operator=(lru_cache const& other) {
+		_cache_items_list = other._cache_items_list;
+
+		_cache_items_map.reserve(_cache_items_list.size());
+		for (auto it = _cache_items_list.begin(); it != _cache_items_list.end(); ++it) {
+			_cache_items_map[it->first] = it;
+		}
+
+		return *this;
+	}
+	lru_cache& operator=(lru_cache &&) = default;
+
+private:
 	void put(const key_t& key) {
 		auto it = _cache_items_map.find(key);
 		if (it != _cache_items_map.end()) {
