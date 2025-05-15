@@ -803,7 +803,7 @@ namespace guiorgy {
 		}
 
 		template<typename... ValueArgs>
-		value_t& emplace(const key_t& key, ValueArgs&&... value_args) {
+		const value_t& emplace(const key_t& key, ValueArgs&&... value_args) {
 			auto it = this->_cache_items_map.find(key);
 			if (it != this->_cache_items_map.end()) {
 				value_t& value = this->_cache_items_list._get_value_at(it->second).second;
