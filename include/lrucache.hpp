@@ -769,7 +769,7 @@ namespace guiorgy {
 				this->_cache_items_list._move_value_at_to_front(it->second);
 			} else {
 				if (this->_cache_items_map.size() < max_size) {
-					this->_cache_items_list.push_front(key_value_pair_t(key, value));
+					this->_cache_items_list.emplace_front(key, value);
 				} else {
 					key_value_pair_t& last = this->_cache_items_list.back();
 					this->_cache_items_map.erase(last.first);
