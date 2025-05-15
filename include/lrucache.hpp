@@ -1,9 +1,11 @@
 /*
  * File: lrucache.hpp
- * Authors: Alexander Ponomarev, Guiorgy
  *
+ * Author: Alexander Ponomarev
  * Created on June 20, 2013, 5:09 PM
- * Updated on October 23, 2024
+ *
+ * Author: Guiorgy
+ * Forked on October 23, 2024
  */
 
 #pragma once
