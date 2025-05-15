@@ -854,6 +854,31 @@ namespace guiorgy {
 			}
 		}
 
+		bool try_get(const key_t& key, value_t& value_out) {
+			auto it = this->_cache_items_map.find(key);
+
+			if (it == this->_cache_items_map.end()) {
+				return false;
+			} else {
+				this->_cache_items_list._move_value_at_to_front(it->second);
+				value_out = this->_cache_items_list._get_value_at(it->second).second;
+				return true;
+			}
+		}
+
+		bool try_get(const key_t& key, const value_t*& value_out) {
+			auto it = this->_cache_items_map.find(key);
+
+			if (it == this->_cache_items_map.end()) {
+				value_out = nullptr;
+				return false;
+			} else {
+				this->_cache_items_list._move_value_at_to_front(it->second);
+				value_out = &(this->_cache_items_list._get_value_at(it->second).second);
+				return true;
+			}
+		}
+
 		void remove(const key_t& key) {
 			auto it = this->_cache_items_map.find(key);
 			if (it != this->_cache_items_map.end()) {
