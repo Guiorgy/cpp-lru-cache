@@ -9,6 +9,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <functional>
 #include <optional>
 #include <list>
 
@@ -89,6 +90,19 @@ public:
 				_cache_items_list.splice(_cache_items_list.begin(), _cache_items_list, it->second);
 			}
 			return it->second->second;
+		}
+	}
+
+	const std::optional<std::reference_wrapper<const value_t>> get_ref(const key_t& key) {
+		auto it = _cache_items_map.find(key);
+
+		if (it == _cache_items_map.end()) {
+			return std::nullopt;
+		} else {
+			if (it->second != _cache_items_list.begin()) {
+				_cache_items_list.splice(_cache_items_list.begin(), _cache_items_list, it->second);
+			}
+			return std::make_optional(std::cref(it->second->second));
 		}
 	}
 
