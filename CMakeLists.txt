@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.29)
 
 project(CPP-LRU-CACHE)
 
@@ -16,7 +16,11 @@ FetchContent_Declare(
     CMAKE_ARGS -Dgtest_force_shared_crt=ON
 )
 FetchContent_MakeAvailable(googletest)
+
 enable_testing()
+include(CTest)
+list(APPEND CMAKE_CTEST_ARGUMENTS "--verbose")
+set(CMAKE_SKIP_TEST_ALL_DEPENDENCY FALSE)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
@@ -28,25 +32,19 @@ target_link_libraries(cpp-lru-cache-test gtest gtest_main)
 include(GoogleTest)
 add_test(
     NAME cpp-lru-cache-test
-    COMMAND cpp-lru-cache-test
+    COMMAND cpp-lru-cache-test --verbose --gtest_color=yes
 )
 
 find_program(VALGRIND_EXECUTABLE valgrind)
 if(VALGRIND_EXECUTABLE)
     add_custom_target(
-        check
-        COMMAND ${VALGRIND_EXECUTABLE} --leak-check=full --leak-resolution=high --show-leak-kinds=all --track-origins=yes --show-error-list=yes "$<TARGET_FILE:cpp-lru-cache-test>"
+        valgrind
+        COMMAND ${VALGRIND_EXECUTABLE} --verbose --tool=memcheck --leak-check=full --leak-resolution=high --show-leak-kinds=all --track-origins=yes --show-error-list=yes --error-exitcode=1 "$<TARGET_FILE:cpp-lru-cache-test>" --verbose --gtest_color=yes
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         DEPENDS cpp-lru-cache-test
+        USES_TERMINAL
         VERBATIM
     )
 else()
     message(WARNING "Valgrind not found")
-
-    add_custom_target(
-        check
-        COMMAND ${CMAKE_CTEST_COMMAND} --verbose
-        DEPENDS cpp-lru-cache-test
-        VERBATIM
-    )
 endif()
