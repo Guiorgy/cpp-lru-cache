@@ -17,11 +17,11 @@
 #include <vector>
 
 namespace guiorgy {
-	template<typename key_t, typename value_t, const size_t max_size, const bool preallocate>
+	template<typename key_t, typename value_t, const std::size_t max_size, const bool preallocate>
 	class lru_cache;
 
 	namespace detail {
-		template <const size_t max_value>
+		template <const std::size_t max_value>
 		struct uint_fit final {
 			static_assert(max_value >= 0ull);
 
@@ -40,10 +40,10 @@ namespace guiorgy {
 			>;
 		};
 
-		template <const size_t max_value>
+		template <const std::size_t max_value>
 		using uint_fit_t = typename uint_fit<max_value>::type;
 
-		template<typename T, typename index_t = size_t>
+		template<typename T, typename index_t = std::size_t>
 		class vector_set final {
 			std::vector<T> queue;
 			index_t head = 0u;
@@ -51,11 +51,11 @@ namespace guiorgy {
 			bool _empty = true;
 
 			index_t next_index(const index_t index) const noexcept {
-				return (size_t)index + 1u < queue.size() ? index + 1u : 0u;
+				return (std::size_t)index + 1u < queue.size() ? index + 1u : 0u;
 			}
 
 		public:
-			void reserve(const size_t capacity) {
+			void reserve(const std::size_t capacity) {
 				assert(capacity == 0 || capacity - 1 <= std::numeric_limits<index_t>::max());
 
 				queue.reserve(capacity);
@@ -65,11 +65,11 @@ namespace guiorgy {
 				return _empty;
 			}
 
-			size_t size() const noexcept {
+			std::size_t size() const noexcept {
 				if (_empty) {
 					return 0u;
 				} else {
-					return tail <= head ? (size_t)head - tail + 1u : (size_t)head + 1u + (queue.size() - tail);
+					return tail <= head ? (std::size_t)head - tail + 1u : (std::size_t)head + 1u + (queue.size() - tail);
 				}
 			}
 
@@ -135,7 +135,7 @@ namespace guiorgy {
 			}
 		};
 
-		template<typename T, const size_t max_size = std::numeric_limits<size_t>::max() - 1u>
+		template<typename T, const std::size_t max_size = std::numeric_limits<std::size_t>::max() - 1u>
 		class vector_list final {
 			using index_t = uint_fit_t<max_size>;
 			static constexpr const index_t null_index = std::numeric_limits<index_t>::max();
@@ -288,14 +288,14 @@ namespace guiorgy {
 			}
 
 		public:
-			void reserve(const size_t capacity = max_size) {
+			void reserve(const std::size_t capacity = max_size) {
 				assert(capacity <= max_size);
 
 				list.reserve(capacity);
 				free_indices.reserve(capacity);
 			}
 
-			size_t size() const noexcept {
+			std::size_t size() const noexcept {
 				return list.size() - free_indices.size();
 			}
 
@@ -666,7 +666,7 @@ namespace guiorgy {
 			};
 
 		public:
-			template<typename kt, typename vt, const size_t ms, const bool p>
+			template<typename kt, typename vt, const std::size_t ms, const bool p>
 			friend class guiorgy::lru_cache;
 
 			T& _move_value_at_to_front(const index_t position) {
@@ -706,7 +706,7 @@ namespace guiorgy {
 			}
 		};
 
-		template<typename key_t, typename value_t, const size_t max_size>
+		template<typename key_t, typename value_t, const std::size_t max_size>
 		class lru_cache_storage_base {
 		protected:
 			typedef typename std::pair<key_t, value_t> key_value_pair_t;
@@ -723,7 +723,7 @@ namespace guiorgy {
 			std::unordered_map<key_t, list_index_t> _cache_items_map;
 		};
 
-		template<typename key_t, typename value_t, const size_t max_size, const bool preallocate = false>
+		template<typename key_t, typename value_t, const std::size_t max_size, const bool preallocate = false>
 		class lru_cache_base : protected lru_cache_storage_base<key_t, value_t, max_size> {
 		public:
 			lru_cache_base() = default;
@@ -734,7 +734,7 @@ namespace guiorgy {
 			lru_cache_base& operator=(lru_cache_base &&) = default;
 		};
 
-		template<typename key_t, typename value_t, const size_t max_size>
+		template<typename key_t, typename value_t, const std::size_t max_size>
 		class lru_cache_base<key_t, value_t, max_size, true> : protected lru_cache_storage_base<key_t, value_t, max_size> {
 		public:
 			typedef typename lru_cache_storage_base<key_t, value_t, max_size>::key_value_pair_t key_value_pair_t;
@@ -751,7 +751,7 @@ namespace guiorgy {
 		};
 	}
 
-	template<typename key_t, typename value_t, const size_t max_size, const bool preallocate = false>
+	template<typename key_t, typename value_t, const std::size_t max_size, const bool preallocate = false>
 	class lru_cache final : private detail::lru_cache_base<key_t, value_t, max_size, preallocate> {
 		static_assert(max_size > 0u);
 
@@ -858,7 +858,7 @@ namespace guiorgy {
 			return this->_cache_items_map.find(key) != this->_cache_items_map.end();
 		}
 
-		size_t size() const noexcept {
+		std::size_t size() const noexcept {
 			return this->_cache_items_map.size();
 		}
 
