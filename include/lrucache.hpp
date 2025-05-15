@@ -473,7 +473,7 @@ namespace guiorgy {
 				return list[head].value;
 			}
 
-			T pop_front() {
+			T& pop_front_ref() {
 				assert(head != null_index);
 				assert(size() != 0u);
 
@@ -489,6 +489,10 @@ namespace guiorgy {
 				return _front;
 			}
 
+			T pop_front() {
+				return pop_front_ref();
+			}
+
 			T& back() {
 				assert(tail != null_index);
 				assert(size() != 0u);
@@ -496,7 +500,7 @@ namespace guiorgy {
 				return list[tail].value;
 			}
 
-			T pop_back() {
+			T& pop_back_ref() {
 				assert(tail != null_index);
 				assert(size() != 0u);
 
@@ -510,6 +514,10 @@ namespace guiorgy {
 				if (tail == null_index) head = null_index;
 				else list[tail].next = null_index;
 				return _back;
+			}
+
+			T pop_back() {
+				return pop_back_ref();
 			}
 
 			template<const bool reverse>
