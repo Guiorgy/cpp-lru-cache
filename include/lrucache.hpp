@@ -868,20 +868,36 @@ namespace guiorgy {
 			this->_cache_items_list.reserve(max_size);
 		}
 
-		const_iterator begin() const noexcept {
+		const_iterator cbegin() const noexcept {
 			return this->_cache_items_list.cbegin();
 		}
 
-		const_iterator end() const noexcept {
+		const_iterator begin() const noexcept {
+			return cbegin();
+		}
+
+		const_iterator cend() const noexcept {
 			return this->_cache_items_list.cend();
 		}
 
-		const_reverse_iterator rbegin() const noexcept {
+		const_iterator end() const noexcept {
+			return cend();
+		}
+
+		const_reverse_iterator crbegin() const noexcept {
 			return this->_cache_items_list.crbegin();
 		}
 
-		const_reverse_iterator rend() const noexcept {
+		const_iterator rbegin() const noexcept {
+			return crbegin();
+		}
+
+		const_reverse_iterator crend() const noexcept {
 			return this->_cache_items_list.crend();
+		}
+
+		const_iterator rend() const noexcept {
+			return crend();
 		}
 	};
 }
