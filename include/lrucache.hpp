@@ -9,6 +9,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <functional>
 #include <optional>
 #include <cassert>
 #include <cstdint>
@@ -839,6 +840,17 @@ namespace guiorgy {
 			} else {
 				this->_cache_items_list._move_value_at_to_front(it->second);
 				return this->_cache_items_list._get_value_at(it->second).second;
+			}
+		}
+
+		const std::optional<std::reference_wrapper<const value_t>> get_ref(const key_t& key) {
+			auto it = this->_cache_items_map.find(key);
+
+			if (it == this->_cache_items_map.end()) {
+				return std::nullopt;
+			} else {
+				this->_cache_items_list._move_value_at_to_front(it->second);
+				return std::make_optional(std::cref(this->_cache_items_list._get_value_at(it->second).second));
 			}
 		}
 

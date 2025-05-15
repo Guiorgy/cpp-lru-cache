@@ -22,7 +22,13 @@ cache.reserve();
 cache.put("one", "one");
 cache.put("two", "two");
 
-const std::string& from_cache = cache.get("two").value();
+const std::string& from_cache_1 = cache.get("two").value();
+
+/**For objects too expensive or impossible to copy
+   you can get them by reference, however, no guarantees
+   are given about the underlying object lifetime
+   when modifying the cache, so use with caution */
+const std::string& from_cache_2 = cache.get_ref("two")->get();
 ```
 
 How to run tests:
