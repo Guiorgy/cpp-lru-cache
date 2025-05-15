@@ -11,6 +11,8 @@
 #include <unordered_map>
 #include <functional>
 #include <optional>
+#include <utility>
+#include <tuple>
 #include <list>
 
 template<typename key_t, typename value_t, const std::size_t max_size>
@@ -71,13 +73,24 @@ private:
 
 public:
 	void put(const key_t& key, const value_t& value) {
-		_cache_items_list.push_front(key_value_pair_t(key, value));
+		_cache_items_list.emplace_front(key, value);
 		put(key);
 	}
 
 	void put(const key_t& key, value_t&& value) {
 		_cache_items_list.emplace_front(key, std::move(value));
 		put(key);
+	}
+
+	template<typename... ValueArgs>
+	const value_t& emplace(const key_t& key, ValueArgs&&... value_args) {
+		const value_t& value = _cache_items_list.emplace_front(
+			std::piecewise_construct,
+			std::forward_as_tuple(key),
+			std::forward_as_tuple(std::forward<ValueArgs>(value_args)...)
+		).second;
+		put(key);
+		return value;
 	}
 
 	const std::optional<value_t> get(const key_t& key) {
