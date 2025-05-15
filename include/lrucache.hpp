@@ -50,20 +50,20 @@ namespace guiorgy {
 
 		template<typename T, typename index_t = std::size_t>
 		class vector_set final {
-			std::vector<T> queue;
+			std::vector<T> set;
 			index_t head = 0u;
 			index_t tail = 0u;
 			bool _empty = true;
 
 			index_t next_index(const index_t index) const noexcept {
-				return (std::size_t)index + 1u < queue.size() ? index + 1u : 0u;
+				return (std::size_t)index + 1u < set.size() ? index + 1u : 0u;
 			}
 
 		public:
 			void reserve(const std::size_t capacity) {
 				assert(capacity == 0 || capacity - 1 <= std::numeric_limits<index_t>::max());
 
-				queue.reserve(capacity);
+				set.reserve(capacity);
 			}
 
 			bool empty() const noexcept {
@@ -74,7 +74,7 @@ namespace guiorgy {
 				if (_empty) {
 					return 0u;
 				} else {
-					return tail <= head ? (std::size_t)head - tail + 1u : (std::size_t)head + 1u + (queue.size() - tail);
+					return tail <= head ? (std::size_t)head - tail + 1u : (std::size_t)head + 1u + (set.size() - tail);
 				}
 			}
 
@@ -82,58 +82,58 @@ namespace guiorgy {
 				if (_empty) {
 					_empty = false;
 
-					if (queue.size() == 0u) {
-						queue.push_back(value);
+					if (set.size() == 0u) {
+						set.push_back(value);
 					} else {
-						queue[head] = value;
+						set[head] = value;
 					}
 				} else {
 					index_t next_head = next_index(head);
 
 					if (next_head == tail) {
-						queue.push_back(value);
+						set.push_back(value);
 					} else {
 						head = next_head;
-						queue[head] = value;
+						set[head] = value;
 					}
 				}
 
-				assert(queue.size() == 0 || queue.size() - 1 <= std::numeric_limits<index_t>::max());
+				assert(set.size() == 0 || set.size() - 1 <= std::numeric_limits<index_t>::max());
 			}
 
 			void put(T&& value) {
 				if (_empty) {
 					_empty = false;
 
-					if (queue.size() == 0u) {
-						queue.push_back(std::move(value));
+					if (set.size() == 0u) {
+						set.push_back(std::move(value));
 					} else {
-						queue[head] = value;
+						set[head] = value;
 					}
 				} else {
 					index_t next_head = next_index(head);
 
 					if (next_head == tail) {
-						queue.push_back(std::move(value));
+						set.push_back(std::move(value));
 					} else {
 						head = next_head;
-						queue[head] = value;
+						set[head] = value;
 					}
 				}
 
-				assert(queue.size() == 0 || queue.size() - 1 <= std::numeric_limits<index_t>::max());
+				assert(set.size() == 0 || set.size() - 1 <= std::numeric_limits<index_t>::max());
 			}
 
 			T& peek() const {
 				assert(!_empty);
 
-				return queue[tail];
+				return set[tail];
 			}
 
 			T take() {
 				assert(!_empty);
 
-				T _front = queue[tail];
+				T _front = set[tail];
 				tail = next_index(tail);
 				if (tail == head) _empty = true;
 				return _front;
