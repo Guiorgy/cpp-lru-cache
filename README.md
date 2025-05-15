@@ -36,5 +36,6 @@ How to run tests:
 ```shell
 cd build
 cmake ..
-make check
+make test
+# make valgrind
 ```
