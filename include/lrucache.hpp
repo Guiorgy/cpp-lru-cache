@@ -712,8 +712,6 @@ namespace guiorgy {
 			typedef typename std::pair<key_t, value_t> key_value_pair_t;
 
 		public:
-			typedef typename vector_list<key_value_pair_t, max_size>::iterator list_iterator_t;
-			typedef typename vector_list<key_value_pair_t, max_size>::reverse_iterator list_reverse_iterator_t;
 			typedef typename vector_list<key_value_pair_t, max_size>::const_iterator list_const_iterator_t;
 			typedef typename vector_list<key_value_pair_t, max_size>::const_reverse_iterator list_const_reverse_iterator_t;
 
@@ -758,8 +756,6 @@ namespace guiorgy {
 		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::key_value_pair_t key_value_pair_t;
 
 	public:
-		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::list_iterator_t list_iterator_t;
-		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::list_reverse_iterator_t list_reverse_iterator_t;
 		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::list_const_iterator_t list_const_iterator_t;
 		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::list_const_reverse_iterator_t list_const_reverse_iterator_t;
 
