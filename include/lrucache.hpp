@@ -28,7 +28,7 @@ namespace guiorgy {
 	namespace detail {
 		template <const std::size_t max_value>
 		struct uint_fit final {
-			static_assert(max_value >= 0ull);
+			static_assert(max_value >= 0ull, "std::size_t is less than 0?!");
 
 			using type = std::conditional_t<
 				max_value <= 255ull,
@@ -144,7 +144,7 @@ namespace guiorgy {
 		class vector_list final {
 			using index_t = uint_fit_t<max_size>;
 			static constexpr const index_t null_index = std::numeric_limits<index_t>::max();
-			static_assert(max_size <= null_index);
+			static_assert(max_size <= null_index, "null_index can not be less than max_size, since those are valid indeces");
 
 			struct list_node final {
 				T value;
@@ -756,7 +756,7 @@ namespace guiorgy {
 
 	template<typename key_t, typename value_t, const std::size_t max_size, const bool preallocate = false>
 	class lru_cache final : private detail::lru_cache_base<key_t, value_t, max_size, preallocate> {
-		static_assert(max_size > 0u);
+		static_assert(max_size != 0u, "max_size can not be 0");
 
 		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::key_value_pair_t key_value_pair_t;
 
