@@ -2,7 +2,7 @@
 #include "gtest/gtest.h"
 
 TEST(CacheTest1, SimplePut) {
-	lru_cache<int, int, 1> cache_lru;
+	guiorgy::lru_cache<int, int, 1> cache_lru;
 	cache_lru.put(7, 777);
 
 	EXPECT_TRUE(cache_lru.exists(7));
@@ -11,7 +11,7 @@ TEST(CacheTest1, SimplePut) {
 }
 
 TEST(CacheTest1, MissingValue) {
-	lru_cache<int, int, 1> cache_lru;
+	guiorgy::lru_cache<int, int, 1> cache_lru;
 	auto cached = cache_lru.get(7);
 
 	EXPECT_FALSE(cached.has_value());
@@ -21,7 +21,7 @@ TEST(CacheTest2, KeepsAllValuesWithinCapacity) {
 	constexpr int record_count = 100;
 	constexpr int test_capacity = 50;
 
-	lru_cache<int, int, test_capacity> cache_lru;
+	guiorgy::lru_cache<int, int, test_capacity> cache_lru;
 
 	for (int i = 0; i < record_count; ++i) {
 		cache_lru.put(i, i);
@@ -46,7 +46,7 @@ TEST(CacheTest2, KeepsAllValuesWithinCapacity) {
 TEST(CacheTest2, HandlesOverwrites) {
 	constexpr int test_capacity = 50;
 
-	lru_cache<int, int, test_capacity> cache_lru;
+	guiorgy::lru_cache<int, int, test_capacity> cache_lru;
 
 	for (int i = 0; i < test_capacity; ++i) {
 		cache_lru.put(i, i);
