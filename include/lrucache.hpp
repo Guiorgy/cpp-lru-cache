@@ -922,13 +922,13 @@ namespace guiorgy {
 		template<typename key_t, typename value_t, const std::size_t max_size>
 		class lru_cache_storage_base {
 		protected:
-			typedef typename std::pair<key_t, value_t> key_value_pair_t;
-			typedef typename vector_list<key_value_pair_t, max_size>::index_t list_index_t;
-			typedef typename std::unordered_map<key_t, list_index_t>::iterator map_iterator_t;
+			using key_value_pair_t = std::pair<key_t, value_t>;
+			using list_index_t = typename vector_list<key_value_pair_t, max_size>::index_t;
+			using map_iterator_t = typename std::unordered_map<key_t, list_index_t>::iterator;
 
 		public:
-			typedef typename vector_list<key_value_pair_t, max_size>::const_iterator const_iterator;
-			typedef typename vector_list<key_value_pair_t, max_size>::const_reverse_iterator const_reverse_iterator;
+			using const_iterator = typename vector_list<key_value_pair_t, max_size>::const_iterator;
+			using const_reverse_iterator = typename vector_list<key_value_pair_t, max_size>::const_reverse_iterator;
 
 		protected:
 			vector_list<key_value_pair_t, max_size> _cache_items_list;
@@ -951,7 +951,7 @@ namespace guiorgy {
 		template<typename key_t, typename value_t, const std::size_t max_size>
 		class lru_cache_base<key_t, value_t, max_size, true> : protected lru_cache_storage_base<key_t, value_t, max_size> {
 		public:
-			typedef typename lru_cache_storage_base<key_t, value_t, max_size>::key_value_pair_t key_value_pair_t;
+			using key_value_pair_t = typename lru_cache_storage_base<key_t, value_t, max_size>::key_value_pair_t;
 
 			lru_cache_base() {
 				this->_cache_items_list.reserve(max_size);
@@ -987,13 +987,13 @@ namespace guiorgy {
 	class lru_cache final : private detail::lru_cache_base<key_t, value_t, max_size, preallocate> {
 		static_assert(max_size != 0u, "max_size can not be 0");
 
-		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::key_value_pair_t key_value_pair_t;
-		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::list_index_t list_index_t;
-		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::map_iterator_t map_iterator_t;
+		using key_value_pair_t = typename detail::lru_cache_storage_base<key_t, value_t, max_size>::key_value_pair_t;
+		using list_index_t = typename detail::lru_cache_storage_base<key_t, value_t, max_size>::list_index_t;
+		using map_iterator_t = typename detail::lru_cache_storage_base<key_t, value_t, max_size>::map_iterator_t;
 
 	public:
-		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::const_iterator const_iterator;
-		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::const_reverse_iterator const_reverse_iterator;
+		using const_iterator = typename detail::lru_cache_storage_base<key_t, value_t, max_size>::const_iterator;
+		using const_reverse_iterator = typename detail::lru_cache_storage_base<key_t, value_t, max_size>::const_reverse_iterator;
 
 		// If the key already exists in the container, copies value to the mapped value inside the container.
 		// If the key doesn't exist in the container, inserts a copy of value into the container.
