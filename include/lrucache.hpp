@@ -78,6 +78,10 @@ namespace guiorgy {
 				}
 			}
 
+			std::size_t capacity() const noexcept {
+				return set.capacity();
+			}
+
 			void put(const T& value) {
 				if (_empty) {
 					_empty = false;
@@ -351,6 +355,10 @@ namespace guiorgy {
 
 			std::size_t size() const noexcept {
 				return list.size() - free_indices.size();
+			}
+
+			std::size_t capacity() const noexcept {
+				return list.capacity();
 			}
 
 			void push_front(const T& value) {
