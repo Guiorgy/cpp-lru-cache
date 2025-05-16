@@ -606,7 +606,7 @@ namespace guiorgy {
 			}
 
 			iterator begin() const noexcept {
-				return iterator(list, tail);
+				return iterator(list, head);
 			}
 
 			iterator end() const noexcept {
@@ -614,7 +614,7 @@ namespace guiorgy {
 			}
 
 			const_iterator cbegin() const noexcept {
-				return const_iterator(list, tail);
+				return const_iterator(list, head);
 			}
 
 			const_iterator cend() const noexcept {
@@ -626,7 +626,7 @@ namespace guiorgy {
 			}
 
 			reverse_iterator rend() const noexcept {
-				return reverse_iterator(list, tail);
+				return reverse_iterator(list, head);
 			}
 
 			const_reverse_iterator crbegin() const noexcept {
@@ -634,7 +634,7 @@ namespace guiorgy {
 			}
 
 			const_reverse_iterator crend() const noexcept {
-				return const_reverse_iterator(list, tail);
+				return const_reverse_iterator(list, head);
 			}
 
 		private:
@@ -661,10 +661,10 @@ namespace guiorgy {
 				_iterator(const _iterator<true, reverse>& it) = delete;
 
 				template<const bool this_reverse = reverse, typename = typename std::enable_if_t<this_reverse>>
-				_iterator(const _iterator<constant, false>& it) : list(it.list), current_index(current_index != null_index ? list[current_index].next : null_index) {}
+				_iterator(const _iterator<constant, false>& it) : list(it.list), current_index(current_index != null_index ? list[current_index].prior : null_index) {}
 
 				template<const bool this_reverse = reverse, typename = typename std::enable_if_t<!this_reverse>>
-				_iterator(const _iterator<constant, true>& it) : list(it.list), current_index(current_index == null_index ? list.head : list[current_index].prior) {}
+				_iterator(const _iterator<constant, true>& it) : list(it.list), current_index(current_index == null_index ? list.tail : list[current_index].next) {}
 
 				_iterator() = delete;
 				~_iterator() = default;
@@ -678,7 +678,7 @@ namespace guiorgy {
 					if constexpr (!reverse) {
 						return current_index;
 					} else {
-						return current_index == null_index ? list.head : list[current_index].prior;
+						return current_index == null_index ? list.tail : list[current_index].next;
 					}
 				}
 
@@ -693,9 +693,9 @@ namespace guiorgy {
 
 				_iterator& operator++() {
 					if constexpr (!reverse) {
-						if (current_index != null_index) current_index = list[current_index].next;
+						if (current_index != null_index) current_index = list[current_index].prior;
 					} else {
-						if (current_index != list.tail) current_index = current_index == null_index ? list.head : list[current_index].prior;
+						if (current_index != list.head) current_index = current_index == null_index ? list.tail : list[current_index].next;
 					}
 
 					return *this;
@@ -709,9 +709,9 @@ namespace guiorgy {
 
 				_iterator& operator--() {
 					if constexpr (!reverse) {
-						if (current_index != list.tail) current_index = current_index == null_index ? list.head : list[current_index].prior;
+						if (current_index != list.head) current_index = current_index == null_index ? list.tail : list[current_index].next;
 					} else {
-						if (current_index != null_index) current_index = list[current_index].next;
+						if (current_index != null_index) current_index = list[current_index].prior;
 					}
 
 					return *this;
