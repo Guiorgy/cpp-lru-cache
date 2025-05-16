@@ -1,12 +1,13 @@
 cmake_minimum_required(VERSION 3.29)
 
-project(CPP-LRU-CACHE)
+project(CPP-LRU-CACHE-TEST LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g3 -fsanitize=address -fsanitize=leak -DLD_PRELOAD")
-set(CMAKE_CSS_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -03 -g -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -g -flto=auto -DNDEBUG")
+set(CMAKE_LINK_FLAGS_RELEASE "${CMAKE_LINK_FLAGS_RELEASE} -flto=auto")
 
 include(FetchContent)
 FetchContent_Declare(
@@ -46,5 +47,5 @@ if(VALGRIND_EXECUTABLE)
         VERBATIM
     )
 else()
-    message(WARNING "Valgrind not found")
+    message(WARNING "Valgrind not found. Disabling the 'valgrind' target")
 endif()
