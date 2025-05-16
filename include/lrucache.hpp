@@ -21,6 +21,8 @@ class lru_cache final {
 
 	typedef typename std::pair<key_t, value_t> key_value_pair_t;
 	typedef typename std::list<key_value_pair_t>::iterator list_iterator_t;
+	typedef typename std::list<key_value_pair_t>::reverse_iterator list_reverse_iterator_t;
+	typedef typename std::unordered_map<key_t, list_iterator_t>::iterator map_iterator_t;
 
 public:
 	typedef typename std::list<key_value_pair_t>::const_iterator const_iterator;
@@ -37,7 +39,7 @@ public:
 		_cache_items_list = other._cache_items_list;
 
 		_cache_items_map.reserve(_cache_items_list.size());
-		for (auto it = _cache_items_list.begin(); it != _cache_items_list.end(); ++it) {
+		for (list_iterator_t it = _cache_items_list.begin(); it != _cache_items_list.end(); ++it) {
 			_cache_items_map[it->first] = it;
 		}
 	}
@@ -46,7 +48,7 @@ public:
 		_cache_items_list = other._cache_items_list;
 
 		_cache_items_map.reserve(_cache_items_list.size());
-		for (auto it = _cache_items_list.begin(); it != _cache_items_list.end(); ++it) {
+		for (list_iterator_t it = _cache_items_list.begin(); it != _cache_items_list.end(); ++it) {
 			_cache_items_map[it->first] = it;
 		}
 
@@ -56,7 +58,8 @@ public:
 
 private:
 	void put(const key_t& key) {
-		auto it = _cache_items_map.find(key);
+		map_iterator_t it = _cache_items_map.find(key);
+
 		if (it != _cache_items_map.end()) {
 			_cache_items_list.erase(it->second);
 			it->second = _cache_items_list.begin();
@@ -65,7 +68,7 @@ private:
 		}
 
 		if (_cache_items_map.size() > max_size) {
-			auto last = _cache_items_list.rbegin();
+			list_reverse_iterator_t last = _cache_items_list.rbegin();
 			_cache_items_map.erase(last->first);
 			_cache_items_list.pop_back();
 		}
@@ -94,7 +97,7 @@ public:
 	}
 
 	const std::optional<value_t> get(const key_t& key) {
-		auto it = _cache_items_map.find(key);
+		map_iterator_t it = _cache_items_map.find(key);
 
 		if (it == _cache_items_map.end()) {
 			return std::nullopt;
@@ -107,7 +110,7 @@ public:
 	}
 
 	const std::optional<std::reference_wrapper<const value_t>> get_ref(const key_t& key) {
-		auto it = _cache_items_map.find(key);
+		map_iterator_t it = _cache_items_map.find(key);
 
 		if (it == _cache_items_map.end()) {
 			return std::nullopt;
@@ -120,7 +123,7 @@ public:
 	}
 
 	bool try_get(const key_t& key, value_t& value_out) {
-		auto it = _cache_items_map.find(key);
+		map_iterator_t it = _cache_items_map.find(key);
 
 		if (it == _cache_items_map.end()) {
 			return false;
@@ -134,7 +137,7 @@ public:
 	}
 
 	bool try_get_ref(const key_t& key, const value_t*& value_out) {
-		auto it = _cache_items_map.find(key);
+		map_iterator_t it = _cache_items_map.find(key);
 
 		if (it == _cache_items_map.end()) {
 			value_out = nullptr;
@@ -149,7 +152,8 @@ public:
 	}
 
 	void remove(const key_t& key) {
-		auto it = _cache_items_map.find(key);
+		map_iterator_t it = _cache_items_map.find(key);
+
 		if (it != _cache_items_map.end()) {
 			_cache_items_list.erase(it->second);
 			_cache_items_map.erase(it);
