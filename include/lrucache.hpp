@@ -787,6 +787,7 @@ namespace guiorgy {
 		protected:
 			typedef typename std::pair<key_t, value_t> key_value_pair_t;
 			typedef typename vector_list<key_value_pair_t, max_size>::index_t list_index_t;
+			typedef typename std::unordered_map<key_t, list_index_t>::iterator map_iterator_t;
 
 		public:
 			typedef typename vector_list<key_value_pair_t, max_size>::const_iterator const_iterator;
@@ -831,13 +832,15 @@ namespace guiorgy {
 
 		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::key_value_pair_t key_value_pair_t;
 		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::list_index_t list_index_t;
+		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::map_iterator_t map_iterator_t;
 
 	public:
 		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::const_iterator const_iterator;
 		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::const_reverse_iterator const_reverse_iterator;
 
 		void put(const key_t& key, const value_t& value) {
-			auto it = this->_cache_items_map.find(key);
+			map_iterator_t it = this->_cache_items_map.find(key);
+
 			if (it != this->_cache_items_map.end()) {
 				this->_cache_items_list._get_value_at(it->second).second = value;
 				this->_cache_items_list._move_value_at_to_front(it->second);
@@ -857,7 +860,8 @@ namespace guiorgy {
 		}
 
 		void put(const key_t& key, value_t&& value) {
-			auto it = this->_cache_items_map.find(key);
+			map_iterator_t it = this->_cache_items_map.find(key);
+
 			if (it != this->_cache_items_map.end()) {
 				this->_cache_items_list._get_value_at(it->second).second = std::move(value);
 				this->_cache_items_list._move_value_at_to_front(it->second);
@@ -878,7 +882,8 @@ namespace guiorgy {
 
 		template<typename... ValueArgs>
 		const value_t& emplace(const key_t& key, ValueArgs&&... value_args) {
-			auto it = this->_cache_items_map.find(key);
+			map_iterator_t it = this->_cache_items_map.find(key);
+
 			if (it != this->_cache_items_map.end()) {
 				value_t& value = this->_cache_items_list._get_value_at(it->second).second;
 				value.~value_t();
@@ -909,7 +914,7 @@ namespace guiorgy {
 		}
 
 		const std::optional<value_t> get(const key_t& key) {
-			auto it = this->_cache_items_map.find(key);
+			map_iterator_t it = this->_cache_items_map.find(key);
 
 			if (it == this->_cache_items_map.end()) {
 				return std::nullopt;
@@ -919,7 +924,7 @@ namespace guiorgy {
 		}
 
 		const std::optional<std::reference_wrapper<const value_t>> get_ref(const key_t& key) {
-			auto it = this->_cache_items_map.find(key);
+			map_iterator_t it = this->_cache_items_map.find(key);
 
 			if (it == this->_cache_items_map.end()) {
 				return std::nullopt;
@@ -929,7 +934,7 @@ namespace guiorgy {
 		}
 
 		bool try_get(const key_t& key, value_t& value_out) {
-			auto it = this->_cache_items_map.find(key);
+			map_iterator_t it = this->_cache_items_map.find(key);
 
 			if (it == this->_cache_items_map.end()) {
 				return false;
@@ -940,7 +945,7 @@ namespace guiorgy {
 		}
 
 		bool try_get_ref(const key_t& key, const value_t*& value_out) {
-			auto it = this->_cache_items_map.find(key);
+			map_iterator_t it = this->_cache_items_map.find(key);
 
 			if (it == this->_cache_items_map.end()) {
 				value_out = nullptr;
@@ -952,7 +957,7 @@ namespace guiorgy {
 		}
 
 		std::optional<value_t> remove(const key_t& key) {
-			auto it = this->_cache_items_map.find(key);
+			map_iterator_t it = this->_cache_items_map.find(key);
 
 			if (it != this->_cache_items_map.end()) {
 				value_t& value = this->_cache_items_list._erase_value_at(it->second).second;
@@ -964,7 +969,7 @@ namespace guiorgy {
 		}
 
 		std::optional<std::reference_wrapper<value_t>> remove_ref(const key_t& key) {
-			auto it = this->_cache_items_map.find(key);
+			map_iterator_t it = this->_cache_items_map.find(key);
 
 			if (it != this->_cache_items_map.end()) {
 				value_t& value = this->_cache_items_list._erase_value_at(it->second).second;
@@ -976,7 +981,7 @@ namespace guiorgy {
 		}
 
 		bool try_remove(const key_t& key, value_t& value_out) {
-			map_iterator it = this->_cache_items_map.find(key);
+			map_iterator_t it = this->_cache_items_map.find(key);
 
 			if (it != this->_cache_items_map.end()) {
 				value_out = this->_cache_items_list._erase_value_at(it->second).second;
@@ -988,7 +993,7 @@ namespace guiorgy {
 		}
 
 		bool try_remove_ref(const key_t& key, const value_t*& value_out) {
-			map_iterator it = this->_cache_items_map.find(key);
+			map_iterator_t it = this->_cache_items_map.find(key);
 
 			if (it != this->_cache_items_map.end()) {
 				value_out = &(this->_cache_items_list._erase_value_at(it->second).second);
