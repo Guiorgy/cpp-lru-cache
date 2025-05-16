@@ -1,5 +1,6 @@
 #include "lrucache.hpp"
 #include "gtest/gtest.h"
+#include <iostream>
 
 TEST(CacheTest1, SimplePut) {
 	guiorgy::lru_cache<int, int, 1> cache_lru;
@@ -69,6 +70,12 @@ TEST(CacheTest2, HandlesOverwrites) {
 }
 
 int main(int argc, char **argv) {
+#ifdef NDEBUG
+	std::cout << "Running tets in Release configuration\n";
+#else
+	std::cout << "Running tets in Debug configuration\n";
+#endif
+
 	::testing::InitGoogleTest(&argc, argv);
 	int ret = RUN_ALL_TESTS();
 	return ret;
