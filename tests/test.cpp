@@ -2,6 +2,40 @@
 #include "gtest/gtest.h"
 #include <iostream>
 
+// preallocate = false (default)
+static_assert(std::is_constructible_v<guiorgy::lru_cache<int, int, 1>> == true);
+static_assert(std::is_trivially_constructible_v<guiorgy::lru_cache<int, int, 1>> == false);
+static_assert(std::is_nothrow_constructible_v<guiorgy::lru_cache<int, int, 1>> == true);
+
+static_assert(std::is_default_constructible_v<guiorgy::lru_cache<int, int, 1>> == true);
+static_assert(std::is_trivially_default_constructible_v<guiorgy::lru_cache<int, int, 1>> == false);
+static_assert(std::is_nothrow_default_constructible_v<guiorgy::lru_cache<int, int, 1>> == true);
+
+static_assert(std::is_copy_constructible_v<guiorgy::lru_cache<int, int, 1>> == true);
+static_assert(std::is_trivially_copy_constructible_v<guiorgy::lru_cache<int, int, 1>> == false);
+static_assert(std::is_nothrow_copy_constructible_v<guiorgy::lru_cache<int, int, 1>> == false);
+
+static_assert(std::is_move_constructible_v<guiorgy::lru_cache<int, int, 1>> == true);
+static_assert(std::is_trivially_move_constructible_v<guiorgy::lru_cache<int, int, 1>> == false);
+static_assert(std::is_nothrow_move_constructible_v<guiorgy::lru_cache<int, int, 1>> == true);
+
+// preallocate = true
+static_assert(std::is_constructible_v<guiorgy::lru_cache<int, int, 1, true>> == true);
+static_assert(std::is_trivially_constructible_v<guiorgy::lru_cache<int, int, 1, true>> == false);
+static_assert(std::is_nothrow_constructible_v<guiorgy::lru_cache<int, int, 1, true>> == false);
+
+// static_assert(std::is_default_constructible_v<guiorgy::lru_cache<int, int, 1, true>> == false); // This fails?!
+static_assert(std::is_trivially_default_constructible_v<guiorgy::lru_cache<int, int, 1, true>> == false);
+static_assert(std::is_nothrow_default_constructible_v<guiorgy::lru_cache<int, int, 1, true>> == false);
+
+static_assert(std::is_copy_constructible_v<guiorgy::lru_cache<int, int, 1, true>> == true);
+static_assert(std::is_trivially_copy_constructible_v<guiorgy::lru_cache<int, int, 1, true>> == false);
+static_assert(std::is_nothrow_copy_constructible_v<guiorgy::lru_cache<int, int, 1, true>> == false);
+
+static_assert(std::is_move_constructible_v<guiorgy::lru_cache<int, int, 1, true>> == true);
+static_assert(std::is_trivially_move_constructible_v<guiorgy::lru_cache<int, int, 1, true>> == false);
+static_assert(std::is_nothrow_move_constructible_v<guiorgy::lru_cache<int, int, 1, true>> == true);
+
 TEST(CacheTest1, SimplePut) {
 	guiorgy::lru_cache<int, int, 1> cache_lru;
 	cache_lru.put(7, 777);

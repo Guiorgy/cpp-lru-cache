@@ -22,13 +22,16 @@
 #include <vector>
 
 namespace guiorgy {
+	// Forward declaration of lru_cache.
 	template<typename key_t, typename value_t, const std::size_t max_size, const bool preallocate>
 	class lru_cache;
 
 	namespace detail {
+		// Forward declaration of lru_cache_storage_base.
 		template<typename key_t, typename value_t, const std::size_t max_size>
 		class lru_cache_storage_base;
 
+		// Determine the smallest unsigned integer type that can fit the specified value.
 		template <const std::size_t max_value>
 		struct uint_fit final {
 			static_assert(max_value >= 0ull, "std::size_t is less than 0?!");
@@ -48,9 +51,14 @@ namespace guiorgy {
 			>;
 		};
 
+		// Helper for uint_fit.
 		template <const std::size_t max_value>
 		using uint_fit_t = typename uint_fit<max_value>::type;
 
+		// A container where you can store elements and then take them out in an unspecified order.
+		// Remarks:
+		//   - The size of the container must not exceed the maximum value representable by index_t plus one.
+		//   - The size limitation is not enforced within the container, the user must ensure that this condition is not violated.
 		template<typename T, typename index_t = std::size_t>
 		class vector_set final {
 			std::vector<T> set;
@@ -58,21 +66,25 @@ namespace guiorgy {
 			index_t tail = 0u;
 			bool _empty = true;
 
+			// Returns the index of the next element to take.
 			index_t next_index(const index_t index) const noexcept {
 				return (std::size_t)index + 1u < set.size() ? index + 1u : 0u;
 			}
 
 		public:
+			// Increases the capacity of the set (the total number of elements that the set can hold without requiring a reallocation) to a value that's greater or equal to capacity.
 			void reserve(const std::size_t capacity) {
 				assert(capacity == 0 || capacity - 1 <= std::numeric_limits<index_t>::max());
 
 				set.reserve(capacity);
 			}
 
+			// Checks whether the set is empty.
 			bool empty() const noexcept {
 				return _empty;
 			}
 
+			// Returns the number of elements in the set.
 			std::size_t size() const noexcept {
 				if (_empty) {
 					return 0u;
@@ -81,10 +93,12 @@ namespace guiorgy {
 				}
 			}
 
+			// Returns the number of elements that the set has currently allocated space for.
 			std::size_t capacity() const noexcept {
 				return set.capacity();
 			}
 
+			// Puts the given element into the set.
 			void put(const T& value) {
 				if (_empty) {
 					_empty = false;
@@ -108,6 +122,7 @@ namespace guiorgy {
 				assert(set.size() == 0 || set.size() - 1 <= std::numeric_limits<index_t>::max());
 			}
 
+			// Puts the given element into the set.
 			void put(T&& value) {
 				if (_empty) {
 					_empty = false;
@@ -131,12 +146,14 @@ namespace guiorgy {
 				assert(set.size() == 0 || set.size() - 1 <= std::numeric_limits<index_t>::max());
 			}
 
+			// Returns a reference to the next element in the set.
 			T& peek() const {
 				assert(!_empty);
 
 				return set[tail];
 			}
 
+			// Removes the next element in the set and returns it.
 			T take() {
 				assert(!_empty);
 
@@ -147,18 +164,26 @@ namespace guiorgy {
 			}
 		};
 
+		// A doubly linked list backed by a sdt::vector, whos nodes refer to each other by indeces instead of pointers.
+		// This allows their reallocation, keeping them close to each other in memory as the list grows.
+		// It also allows the preallocation of the necessay memory to hold the desired number of elements without additional allocations.
+		// Remarks:
+		//   - The size of the list must not exceed max_size.
+		//   - The size limitation is not enforced within the container, the user must ensure that this condition is not violated.
+		//   - The removed elements are not deleted immediately, instead they are marked as free and replaced when new elements are pushed into the container.
 		template<typename T, const std::size_t max_size = std::numeric_limits<std::size_t>::max() - 1u>
 		class vector_list final {
 			using index_t = uint_fit_t<max_size>;
 			static constexpr const index_t null_index = std::numeric_limits<index_t>::max();
 			static_assert(max_size <= null_index, "null_index can not be less than max_size, since those are valid indeces");
 
+			// The internal node structure of the list.
 			struct list_node final {
 				T value;
 				index_t prior;
 				index_t next;
 #ifndef NDEBUG
-				bool removed;
+				bool removed; // For debug assertions to check the correctness of the list.
 #endif
 
 				list_node(const T& value, const index_t prior, const index_t next) :
@@ -204,6 +229,7 @@ namespace guiorgy {
 				list_node& operator=(list_node &&) = default;
 			};
 
+			// Forward declaration of _iterator.
 			template<const bool constant, const bool reverse>
 			class _iterator;
 
@@ -219,6 +245,7 @@ namespace guiorgy {
 			index_t tail = null_index;
 			vector_set<index_t, index_t> free_indices;
 
+			// Returns a reference to the node at the specified location.
 			list_node& get_node(const index_t at) {
 				assert(at < list.size());
 #ifndef NDEBUG
@@ -228,6 +255,11 @@ namespace guiorgy {
 				return list[at];
 			}
 
+			// Removes the node at the specified location and returns a reference to the removed node.
+			// References to the removed node are not invalidated, since the node is just marked as removed and added to the free_indices set.
+			// Iterators to the removed node are invalidated. Other iterators are not affected.
+			// If mark_removed is false, then the removed node is not marked as removed and is not added to the free_indices set.
+			// Set mark_removed to false only if the node is to be reincluded back into the list at a different location immediately after the removal.
 			list_node& remove_node(const index_t at, const bool mark_removed = true) {
 				assert(at < list.size());
 #ifndef NDEBUG
@@ -261,6 +293,10 @@ namespace guiorgy {
 				return _at;
 			}
 
+			// Moves the node at the specified location to before/after another node and returns a reference to the moved node.
+			// References to the moved/destination node are not invalidated, since only the prior and next members of the node are updated.
+			// Iterators to the moved node are invalidated. Other iterators, including the iterators to the node at the movement destination, are not affected.
+			// If before is true, then the node is moved before the node at the destination, otherwise, the node is moved after the destination.
 			list_node& move_node(const index_t from, const index_t to, const bool before = true) {
 				assert(head != null_index);
 				assert(from < list.size());
@@ -306,6 +342,9 @@ namespace guiorgy {
 				return _from;
 			}
 
+			// Moves the node at the specified location to the front of the list and returns a reference to the moved node.
+			// References to the moved/head node are not invalidated, since only the prior and next members of the node are updated.
+			// Iterators to the moved node are invalidated. Other iterators, including the iterators to the head node, are not affected.
 			list_node& move_node_to_front(const index_t from) {
 				assert(head != null_index);
 				assert(from < list.size());
@@ -325,6 +364,9 @@ namespace guiorgy {
 				return _from;
 			}
 
+			// Moves the node at the specified location to the back of the list and returns a reference to the moved node.
+			// References to the moved/tail node are not invalidated, since only the prior and next members of the node are updated.
+			// Iterators to the moved node are invalidated. Other iterators, including the iterators to the tail node, are not affected.
 			list_node& move_node_to_back(const index_t from) {
 				assert(tail != null_index);
 				assert(from < list.size());
@@ -345,6 +387,7 @@ namespace guiorgy {
 			}
 
 		public:
+			// Increases the capacity of the list (the total number of elements that the list can hold without requiring a reallocation) to a value that's greater or equal to capacity.
 			void reserve(const std::size_t capacity = max_size) {
 				assert(capacity <= max_size);
 
@@ -352,18 +395,24 @@ namespace guiorgy {
 				free_indices.reserve(capacity);
 			}
 
+			// Checks whether the list is empty.
 			bool empty() const noexcept {
 				return list.size() == free_indices.size();
 			}
 
+			// Returns the number of elements in the list.
 			std::size_t size() const noexcept {
 				return list.size() - free_indices.size();
 			}
 
+			// Returns the number of elements that the list has currently allocated space for.
 			std::size_t capacity() const noexcept {
 				return list.capacity();
 			}
 
+			// Prepends a copy of value to the beginning of the list.
+			// If after the operation the new size() is greater than old capacity() a reallocation takes place, in which case all references are invalidated.
+			// No iterators are invalidated.
 			void push_front(const T& value) {
 				if (!free_indices.empty()) {
 					index_t index = free_indices.take();
@@ -390,6 +439,9 @@ namespace guiorgy {
 				}
 			}
 
+			// Prepends value to the beginning of the list.
+			// If after the operation the new size() is greater than old capacity() a reallocation takes place, in which case all references are invalidated.
+			// No iterators are invalidated.
 			void push_front(T&& value) {
 				if (!free_indices.empty()) {
 					index_t index = free_indices.take();
@@ -416,6 +468,11 @@ namespace guiorgy {
 				}
 			}
 
+			// Prepends a new element to the beginning of the list.
+			// The element is constructed in-place.
+			// The arguments args... are forwarded to the constructor.
+			// If after the operation the new size() is greater than old capacity() a reallocation takes place, in which case all references are invalidated.
+			// No iterators are invalidated.
 			template<typename... ValueArgs>
 			T& emplace_front(ValueArgs&&... value_args) {
 				if (!free_indices.empty()) {
@@ -445,6 +502,9 @@ namespace guiorgy {
 				}
 			}
 
+			// Appends a copy of value to the end of the list.
+			// If after the operation the new size() is greater than old capacity() a reallocation takes place, in which case all references are invalidated.
+			// No iterators are invalidated.
 			void push_back(const T& value) {
 				if (!free_indices.empty()) {
 					index_t index = free_indices.take();
@@ -471,6 +531,9 @@ namespace guiorgy {
 				}
 			}
 
+			// Appends value to the end of the list.
+			// If after the operation the new size() is greater than old capacity() a reallocation takes place, in which case all references are invalidated.
+			// No iterators are invalidated.
 			void push_back(T&& value) {
 				if (!free_indices.empty()) {
 					index_t index = free_indices.take();
@@ -497,6 +560,11 @@ namespace guiorgy {
 				}
 			}
 
+			// Appends a new element to the end of the list.
+			// The element is constructed in-place.
+			// The arguments args... are forwarded to the constructor.
+			// If after the operation the new size() is greater than old capacity() a reallocation takes place, in which case all references are invalidated.
+			// No iterators are invalidated.
 			template<typename... ValueArgs>
 			T& emplace_back(ValueArgs&&... value_args) {
 				if (!free_indices.empty()) {
@@ -526,6 +594,7 @@ namespace guiorgy {
 				}
 			}
 
+			// Returns a reference to the first element in the list.
 			T& front() {
 				assert(head != null_index);
 				assert(size() != 0u);
@@ -533,6 +602,9 @@ namespace guiorgy {
 				return list[head].value;
 			}
 
+			// Removes the first element of the list and returns a reference to the removed element.
+			// References to the removed element are not invalidated, since the element is deleted lazily.
+			// Iterators to the removed element are invalidated. Other iterators are not affected.
 			T& pop_front_ref() {
 				assert(head != null_index);
 				assert(size() != 0u);
@@ -549,10 +621,14 @@ namespace guiorgy {
 				return _front;
 			}
 
+			// Removes the first element of the list and returns a copy of ithe removed element.
+			// References to the removed element are not invalidated, since the element is deleted lazily.
+			// Iterators to the removed element are invalidated. Other iterators are not affected.
 			T pop_front() {
 				return pop_front_ref();
 			}
 
+			// Returns a reference to the last element in the list.
 			T& back() {
 				assert(tail != null_index);
 				assert(size() != 0u);
@@ -560,6 +636,9 @@ namespace guiorgy {
 				return list[tail].value;
 			}
 
+			// Removes the last element of the list and returns a reference to the removed element.
+			// References to the removed element are not invalidated, since the element is deleted lazily.
+			// Iterators to the removed element are invalidated. Other iterators are not affected.
 			T& pop_back_ref() {
 				assert(tail != null_index);
 				assert(size() != 0u);
@@ -576,25 +655,40 @@ namespace guiorgy {
 				return _back;
 			}
 
+			// Removes the last element of the list and returns a copy of ithe removed element.
+			// References to the removed element are not invalidated, since the element is deleted lazily.
+			// Iterators to the removed element are invalidated. Other iterators are not affected.
 			T pop_back() {
 				return pop_back_ref();
 			}
 
+			// Moves the element at the specified location to the front of the list and returns a reference to the moved element.
+			// References to the moved/front element are not invalidated.
+			// Iterators to the moved element are invalidated. Other iterators, including the iterators to the front element, are not affected.
 			template<const bool reverse>
 			T& move_to_front(const _iterator<false, reverse> it) {
 				return move_node_to_front(it.forward_index()).value;
 			}
 
+			// Moves the element at the specified location to the back of the list and returns a reference to the moved element.
+			// References to the moved/back element are not invalidated.
+			// Iterators to the moved element are invalidated. Other iterators, including the iterators to the back element, are not affected.
 			template<const bool reverse>
 			T& move_to_back(const _iterator<false, reverse> it) {
 				return move_node_to_back(it.forward_index()).value;
 			}
 
+			// Removes the element at the specified location and returns a reference to the removed element.
+			// References to the removed element are not invalidated, since the element is deleted lazily.
+			// Iterators to the removed element are invalidated. Other iterators are not affected.
 			template<const bool reverse>
 			T& erase(const _iterator<false, reverse> it) {
 				remove_node(it.forward_index()).value;
 			}
 
+			// Erases all elements from the list. After this call, size() returns zero.
+			// References referring to contained elements are not invalidated, since the elements are deleted lazily.
+			// Invalidates any iterators referring to contained elements.
 			void clear() {
 				free_indices.reserve(list.size());
 				for (index_t index = tail; index != null_index; index = list[index].next) {
@@ -608,39 +702,56 @@ namespace guiorgy {
 				tail = null_index;
 			}
 
+			// Returns an iterator to the front element of the list.
 			iterator begin() const noexcept {
 				return iterator(list, head);
 			}
 
+			// Returns an iterator to an invalid element of the list.
+			// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
 			iterator end() const noexcept {
 				return iterator(list, null_index);
 			}
 
+			// Returns a const iterator to the front element of the list.
 			const_iterator cbegin() const noexcept {
 				return const_iterator(list, head);
 			}
 
+			// Returns a const iterator to an invalid element of the list.
+			// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
 			const_iterator cend() const noexcept {
 				return const_iterator(list, null_index);
 			}
 
+			// Returns a reverse iterator to the front element of the reversed list.
+			// It corresponds to the back element of the non-reversed list.
 			reverse_iterator rbegin() const noexcept {
 				return reverse_iterator(list, null_index);
 			}
 
+			// Returns a reverse iterator to an invalid element of the list.
+			// It corresponds to the element preceding the first element of the non-reversed list.
+			// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
 			reverse_iterator rend() const noexcept {
 				return reverse_iterator(list, head);
 			}
 
+			// Returns a const reverse iterator to the front element of the reversed list.
+			// It corresponds to the back element of the non-reversed list.
 			const_reverse_iterator crbegin() const noexcept {
 				return const_reverse_iterator(list, null_index);
 			}
 
+			// Returns a const reverse iterator to an invalid element of the list.
+			// It corresponds to the element preceding the first element of the non-reversed list.
+			// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
 			const_reverse_iterator crend() const noexcept {
 				return const_reverse_iterator(list, head);
 			}
 
 		private:
+			// Template for iterator, const_iterator, reverse_iterator and const_reverse_iterator iterators of vector_list.
 			template<const bool constant, const bool reverse>
 			class _iterator final {
 			public:
@@ -657,15 +768,20 @@ namespace guiorgy {
 				_iterator(const vector_list<T, max_size>& list, const index_t index) : list(list), current_index(index) {}
 
 			public:
+				// Copy constructor from (reverse_)iterator to const_(reverse_)iterator.
 				template<const bool this_constant = constant, typename = typename std::enable_if_t<this_constant>>
 				_iterator(const _iterator<false, reverse>& it) : list(it.list), current_index(it.current_index) {}
 
+				// Copy constructor from const_(reverse_)iterator to (reverse_)iterator.
+				// Explicitly deleted, since this would violate the const constraint.
 				template<const bool this_constant = constant, typename = typename std::enable_if_t<!this_constant>>
 				_iterator(const _iterator<true, reverse>& it) = delete;
 
+				// Copy constructor from (const_)iterator to (const_)reverse_iterator.
 				template<const bool this_reverse = reverse, typename = typename std::enable_if_t<this_reverse>>
 				_iterator(const _iterator<constant, false>& it) : list(it.list), current_index(current_index != null_index ? list[current_index].prior : null_index) {}
 
+				// Copy constructor from (const_)reverse_iterator to (const_)iterator.
 				template<const bool this_reverse = reverse, typename = typename std::enable_if_t<!this_reverse>>
 				_iterator(const _iterator<constant, true>& it) : list(it.list), current_index(current_index == null_index ? list.tail : list[current_index].next) {}
 
@@ -677,6 +793,8 @@ namespace guiorgy {
 				_iterator& operator=(_iterator &&) = default;
 
 			private:
+				// Normalizes the index to the one used in forward iteration.
+				// In other words, if the current iterator is a (const_)reverse_iterator this returns the index to the list node this iterator actually refers to.
 				index_t forward_index() const noexcept {
 					if constexpr (!reverse) {
 						return current_index;
@@ -739,42 +857,56 @@ namespace guiorgy {
 			};
 
 		private:
+			// Declare lru_cache_storage_base as a friend to allow access to index_t.
 			template<typename kt, typename vt, const std::size_t ms>
 			friend class lru_cache_storage_base;
 
+			// Declare lru_cache as a friend to give access to the dangerous member functions below.
 			template<typename kt, typename vt, const std::size_t ms, const bool p>
 			friend class guiorgy::lru_cache;
 
+			// The functions below expose and operate internal indeces instead of using public iterators.
+			// They are only indtended to be used by lru_cache to avoid the overhead of using iterators.
+			// Use them with caution.
+
+			// See move_node_to_front for details.
 			T& _move_value_at_to_front(const index_t position) {
 				return move_node_to_front(position).value;
 			}
 
+			// See move_node_to_back for details.
 			T& _move_value_at_to_back(const index_t position) {
 				return move_node_to_back(position).value;
 			}
 
+			// See get_node for details.
 			T& _get_value_at(const index_t position) {
 				return get_node(position).value;
 			}
 
+			// See remove_node for details.
 			T& _erase_value_at(const index_t position) {
 				return remove_node(position);
 			}
 
+			// See move_node_to_front for details.
 			T& _move_last_value_to_front() {
 				return _move_value_at_to_front(tail);
 			}
 
+			// See move_node_to_back for details.
 			T& _move_first_value_to_back() {
 				return _move_value_at_to_back(head);
 			}
 
+			// Returns the index to the first element in the list, or null_index if the list is empty.
 			index_t _first_value_index() const noexcept {
 				assert(head != null_index);
 
 				return head;
 			}
 
+			// Returns the index to the last element in the list, or null_index if the list is empty.
 			index_t _last_value_index() const noexcept {
 				assert(tail != null_index);
 
@@ -782,6 +914,11 @@ namespace guiorgy {
 			}
 		};
 
+		// lru_cache_storage_base and lru_cache_base(<key_t, value_t, max_size>) are used
+		// to allow the conditional declaration of a default or custom constructor in C++ 17.
+		// For more details see: https://devblogs.microsoft.com/cppblog/conditionally-trivial-special-member-functions/
+
+		// The base class of lru_cache that defines the data members.
 		template<typename key_t, typename value_t, const std::size_t max_size>
 		class lru_cache_storage_base {
 		protected:
@@ -798,6 +935,7 @@ namespace guiorgy {
 			std::unordered_map<key_t, list_index_t> _cache_items_map;
 		};
 
+		// The base class of lru_cache that defines the default constructors, destructor and assignments.
 		template<typename key_t, typename value_t, const std::size_t max_size, const bool preallocate = false>
 		class lru_cache_base : protected lru_cache_storage_base<key_t, value_t, max_size> {
 		public:
@@ -809,6 +947,7 @@ namespace guiorgy {
 			lru_cache_base& operator=(lru_cache_base &&) = default;
 		};
 
+		// The base class of lru_cache that defines the custom empty constructor and other default constructors, destructor and assignments.
 		template<typename key_t, typename value_t, const std::size_t max_size>
 		class lru_cache_base<key_t, value_t, max_size, true> : protected lru_cache_storage_base<key_t, value_t, max_size> {
 		public:
@@ -826,6 +965,24 @@ namespace guiorgy {
 		};
 	}
 
+	// A fixed size (if preallocate is true) or bounded (if preallocate is false) container that
+	// contains key-value pairs with unique keys. Search, insertion, and removal of elements have
+	// average constant-time complexity. Two keys are considered equivalent if the std::equal_to<Key>
+	// predicate returns true when passed those keys. If two keys are equivalent, the std::hash<Key>
+	// hash function must return the same value for both keys. lru_cache is not be create and used
+	// in the evaluation of a constant expression (constexpr).
+	// When filled, the container uses the Least Recently Used replacement policy to store subsequent elements.
+	// Remarks:
+	//   - The removed elements are not deleted immediately, instead they are replaced when new elements are put into the container.
+	//   - lru_cache is default constructible only if preallocate is false.
+	//   - lru_cache is not trivially (default) constructible.
+	//   - lru_cache is nothrow (default) constructible only if preallocate is false.
+	//   - lru_cache is copy constructible.
+	//   - lru_cache is not trivially copy constructible.
+	//   - lru_cache is not nothrow copy constructible.
+	//   - lru_cache is move constructible.
+	//   - lru_cache is not trivially move constructible.
+	//   - lru_cache is nothrow move constructible.
 	template<typename key_t, typename value_t, const std::size_t max_size, const bool preallocate = false>
 	class lru_cache final : private detail::lru_cache_base<key_t, value_t, max_size, preallocate> {
 		static_assert(max_size != 0u, "max_size can not be 0");
@@ -838,6 +995,10 @@ namespace guiorgy {
 		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::const_iterator const_iterator;
 		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::const_reverse_iterator const_reverse_iterator;
 
+		// If the key already exists in the container, copies value to the mapped value inside the container.
+		// If the key doesn't exist in the container, inserts a copy of value into the container.
+		// If a reallocation takes place after the operation, or the container size is already at max_size,
+		// all references and iterators are invalidated.
 		void put(const key_t& key, const value_t& value) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
@@ -859,6 +1020,10 @@ namespace guiorgy {
 			}
 		}
 
+		// If the key already exists in the container, moves value to the mapped value inside the container.
+		// If the key doesn't exist in the container, inserts value into the container.
+		// If a reallocation takes place after the operation, or the container size is already at max_size,
+		// all references and iterators are invalidated.
 		void put(const key_t& key, value_t&& value) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
@@ -880,6 +1045,10 @@ namespace guiorgy {
 			}
 		}
 
+		// If the key already exists in the container, constructs a new element in-place with the given value_args into the mapped value inside the container.
+		// If the key doesn't exist in the container, constructs a new element in-place with the given value_args into the container.
+		// If a reallocation takes place after the operation, or the container size is already at max_size,
+		// all references and iterators are invalidated.
 		template<typename... ValueArgs>
 		const value_t& emplace(const key_t& key, ValueArgs&&... value_args) {
 			map_iterator_t it = this->_cache_items_map.find(key);
@@ -913,6 +1082,8 @@ namespace guiorgy {
 			}
 		}
 
+		// Returns a std::optional with the value that is mapped to the given key,
+		// or an empty optional if such key does not already exist.
 		const std::optional<value_t> get(const key_t& key) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
@@ -923,6 +1094,11 @@ namespace guiorgy {
 			}
 		}
 
+		// Returns a std::optional with a reference to the value that is mapped to
+		// the given key, or an empty optional if such key does not already exist.
+		// Remarks:
+		//   - No guarantees are given about the underlying object lifetime when
+		//     modifying the cache (inserting/removing elements), so use with caution.
 		const std::optional<std::reference_wrapper<const value_t>> get_ref(const key_t& key) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
@@ -933,6 +1109,8 @@ namespace guiorgy {
 			}
 		}
 
+		// Returns true and copies the value that is mapped to the given key into
+		// the given value_out reference, or false if such key does not already exist.
 		bool try_get(const key_t& key, value_t& value_out) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
@@ -944,6 +1122,12 @@ namespace guiorgy {
 			}
 		}
 
+		// Returns true and assigns the address to the value that is mapped to the
+		// given key into the given value_out pointer reference, or false if such
+		// key does not already exist.
+		// Remarks:
+		//   - No guarantees are given about the underlying object lifetime when
+		//     modifying the cache (inserting/removing elements), so use with caution.
 		bool try_get_ref(const key_t& key, const value_t*& value_out) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
@@ -956,6 +1140,9 @@ namespace guiorgy {
 			}
 		}
 
+		// If the key exists in the container, removes the value that is mapped to the
+		// given key and returns a std::optional with the removed value,
+		// otherwise, returns an empty optional.
 		std::optional<value_t> remove(const key_t& key) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
@@ -968,6 +1155,12 @@ namespace guiorgy {
 			}
 		}
 
+		// If the key exists in the container, removes the value that is mapped to the
+		// given key and returns a std::optional with a reference to the removed value,
+		// otherwise, returns an empty optional.
+		// Remarks:
+		//   - No guarantees are given about the underlying object lifetime when
+		//     modifying the cache (inserting/removing elements), so use with caution.
 		std::optional<std::reference_wrapper<value_t>> remove_ref(const key_t& key) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
@@ -980,6 +1173,9 @@ namespace guiorgy {
 			}
 		}
 
+		// If the key exists in the container, removes the value that is mapped to the
+		// given key, returns true and copies the value that is mapped to the given key
+		// into the given value_out reference, or false if such key does not exist.
 		bool try_remove(const key_t& key, value_t& value_out) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
@@ -992,6 +1188,13 @@ namespace guiorgy {
 			}
 		}
 
+		// If the key exists in the container, removes the value that is mapped to the
+		// given key, returns true and assigns the address to the value that is mapped
+		// to the given key into the given value_out pointer reference, or false if
+		// such key does not exist.
+		// Remarks:
+		//   - No guarantees are given about the underlying object lifetime when
+		//     modifying the cache (inserting/removing elements), so use with caution.
 		bool try_remove_ref(const key_t& key, const value_t*& value_out) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
@@ -1004,52 +1207,97 @@ namespace guiorgy {
 			}
 		}
 
+		// Checks if the container contains an element with the given key.
 		bool exists(const key_t& key) const {
 			return this->_cache_items_map.find(key) != this->_cache_items_map.end();
 		}
 
+		// Returns the number of elements in the container.
 		std::size_t size() const noexcept {
 			return this->_cache_items_map.size();
 		}
 
+		// Erases all elements from the container. After this call, size() returns zero.
+		// References referring to contained elements are not invalidated, since the elements are deleted lazily.
+		// Invalidates any iterators referring to contained elements.
 		void clear() noexcept {
 			this->_cache_items_map.clear();
 			this->_cache_items_list.clear();
 		}
 
+		// Preallocates memory for max_size elements.
+		// Remarks:
+		//   - The internally used std::unordered_map only reserves capacity for the buckets. Element insertions will still cause some allocations.
+		// TODO: Use alternative hash-map implementations.
 		void reserve() {
 			this->_cache_items_map.reserve(max_size);
 			this->_cache_items_list.reserve(max_size);
 		}
 
+		// Returns a const iterator to the first (most recently used) element of the container.
+		// Remarks:
+		//   - Accessing elements through iterators does not change their order of replacement.
 		const_iterator cbegin() const noexcept {
 			return this->_cache_items_list.cbegin();
 		}
 
+		// Returns a const iterator to the first (most recently used) element of the container.
+		// Remarks:
+		//   - Equivalent to cbegin().
+		//   - Accessing elements through iterators does not change their order of replacement.
 		const_iterator begin() const noexcept {
 			return cbegin();
 		}
 
+		// Returns a const iterator to an invalid element of the container.
+		// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
+		// Remarks:
+		//   - Accessing elements through iterators does not change their order of replacement.
 		const_iterator cend() const noexcept {
 			return this->_cache_items_list.cend();
 		}
 
+		// Returns a const iterator to an invalid element of the container.
+		// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
+		// Remarks:
+		//   - Equivalent to cend().
+		//   - Accessing elements through iterators does not change their order of replacement.
 		const_iterator end() const noexcept {
 			return cend();
 		}
 
+		// Returns a const reverse iterator to the first element of the reversed container.
+		// It corresponds to the last (least recently used) element of the non-reversed container.
+		// Remarks:
+		//   - Accessing elements through iterators does not change their order of replacement.
 		const_reverse_iterator crbegin() const noexcept {
 			return this->_cache_items_list.crbegin();
 		}
 
+		// Returns a const reverse iterator to the first element of the reversed container.
+		// It corresponds to the last (least recently used) element of the non-reversed container.
+		// Remarks:
+		//   - Equivalent to crbegin().
+		//   - Accessing elements through iterators does not change their order of replacement.
 		const_iterator rbegin() const noexcept {
 			return crbegin();
 		}
 
+		// Returns a const reverse iterator to an invalid element of the container.
+		// It corresponds to the element preceding the first element of the non-reversed container.
+		// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
+		// Remarks:
+		//   - Accessing elements through iterators does not change their order of replacement.
 		const_reverse_iterator crend() const noexcept {
 			return this->_cache_items_list.crend();
 		}
 
+		// Returns a const reverse iterator to an invalid element of the container.
+		// It corresponds to the element preceding the first element of the non-reversed container.
+		// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
+		// Remarks:
+		//   - Equivalent to crbegin().
+		//   - Accessing elements through iterators does not change their order of replacement.
 		const_iterator rend() const noexcept {
 			return crend();
 		}
