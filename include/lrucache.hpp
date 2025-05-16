@@ -26,6 +26,9 @@ namespace guiorgy {
 	class lru_cache;
 
 	namespace detail {
+		template<typename key_t, typename value_t, const std::size_t max_size>
+		class lru_cache_storage_base;
+
 		template <const std::size_t max_value>
 		struct uint_fit final {
 			static_assert(max_value >= 0ull, "std::size_t is less than 0?!");
@@ -735,7 +738,10 @@ namespace guiorgy {
 				friend class vector_list<T, max_size>;
 			};
 
-		public:
+		private:
+			template<typename kt, typename vt, const std::size_t ms>
+			friend class lru_cache_storage_base;
+
 			template<typename kt, typename vt, const std::size_t ms, const bool p>
 			friend class guiorgy::lru_cache;
 
@@ -780,13 +786,13 @@ namespace guiorgy {
 		class lru_cache_storage_base {
 		protected:
 			typedef typename std::pair<key_t, value_t> key_value_pair_t;
+			typedef typename vector_list<key_value_pair_t, max_size>::index_t list_index_t;
 
 		public:
 			typedef typename vector_list<key_value_pair_t, max_size>::const_iterator const_iterator;
 			typedef typename vector_list<key_value_pair_t, max_size>::const_reverse_iterator const_reverse_iterator;
 
 		protected:
-			using list_index_t = uint_fit_t<max_size>;
 			vector_list<key_value_pair_t, max_size> _cache_items_list;
 			std::unordered_map<key_t, list_index_t> _cache_items_map;
 		};
@@ -824,6 +830,7 @@ namespace guiorgy {
 		static_assert(max_size != 0u, "max_size can not be 0");
 
 		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::key_value_pair_t key_value_pair_t;
+		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::list_index_t list_index_t;
 
 	public:
 		typedef typename detail::lru_cache_storage_base<key_t, value_t, max_size>::const_iterator const_iterator;
