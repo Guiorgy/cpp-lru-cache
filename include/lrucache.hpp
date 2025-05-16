@@ -951,11 +951,51 @@ namespace guiorgy {
 			}
 		}
 
-		void remove(const key_t& key) {
+		std::optional<value_t> remove(const key_t& key) {
 			auto it = this->_cache_items_map.find(key);
+
 			if (it != this->_cache_items_map.end()) {
-				this->_cache_items_list._erase_value_at(it->second);
+				value_t& value = this->_cache_items_list._erase_value_at(it->second).second;
 				this->_cache_items_map.erase(it);
+				return value;
+			} else {
+				return std::nullopt;
+			}
+		}
+
+		std::optional<std::reference_wrapper<value_t>> remove_ref(const key_t& key) {
+			auto it = this->_cache_items_map.find(key);
+
+			if (it != this->_cache_items_map.end()) {
+				value_t& value = this->_cache_items_list._erase_value_at(it->second).second;
+				this->_cache_items_map.erase(it);
+				return std::make_optional(std::ref(value));
+			} else {
+				return std::nullopt;
+			}
+		}
+
+		bool try_remove(const key_t& key, value_t& value_out) {
+			map_iterator it = this->_cache_items_map.find(key);
+
+			if (it != this->_cache_items_map.end()) {
+				value_out = this->_cache_items_list._erase_value_at(it->second).second;
+				this->_cache_items_map.erase(it);
+				return true;
+			} else {
+				return false;
+			}
+		}
+
+		bool try_remove_ref(const key_t& key, const value_t*& value_out) {
+			map_iterator it = this->_cache_items_map.find(key);
+
+			if (it != this->_cache_items_map.end()) {
+				value_out = &(this->_cache_items_list._erase_value_at(it->second).second);
+				this->_cache_items_map.erase(it);
+				return true;
+			} else {
+				return false;
 			}
 		}
 
