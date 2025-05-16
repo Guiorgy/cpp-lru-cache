@@ -254,6 +254,51 @@ namespace guiorgy {
 				return _at;
 			}
 
+			list_node& move_node(const index_t from, const index_t to, const bool before = true) {
+				assert(head != null_index);
+				assert(from < list.size());
+				assert(to < list.size());
+#ifndef NDEBUG
+				assert(!list[from].removed);
+				assert(!list[to].removed);
+#endif
+
+				if (from == to) return list[from];
+
+				list_node& _from = remove_node(from, false);
+				list_node& _to = list[to];
+
+				if (before) {
+					_from.prior = _to.prior;
+					_from.next = to;
+					_to.prior = from;
+					if (to != tail) {
+						assert(_to.prior != null_index);
+
+						list[_to.prior].next = from;
+					} else {
+						assert(_to.prior == null_index);
+
+						tail = from;
+					}
+				} else {
+					_from.prior = to;
+					_from.next = _to.next;
+					_to.next = from;
+					if (to != head) {
+						assert(_to.next != null_index);
+
+						list[_to.next].prior = from;
+					} else {
+						assert(_to.next == null_index);
+
+						head = from;
+					}
+				}
+
+				return _from;
+			}
+
 			list_node& move_node_to_front(const index_t from) {
 				assert(head != null_index);
 				assert(from < list.size());
@@ -298,6 +343,10 @@ namespace guiorgy {
 
 				list.reserve(capacity);
 				free_indices.reserve(capacity);
+			}
+
+			bool empty() const noexcept {
+				return list.size() == free_indices.size();
 			}
 
 			std::size_t size() const noexcept {
