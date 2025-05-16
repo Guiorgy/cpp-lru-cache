@@ -133,7 +133,7 @@ public:
 		}
 	}
 
-	bool try_get(const key_t& key, const value_t*& value_out) {
+	bool try_get_ref(const key_t& key, const value_t*& value_out) {
 		auto it = _cache_items_map.find(key);
 
 		if (it == _cache_items_map.end()) {
