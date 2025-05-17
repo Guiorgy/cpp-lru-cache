@@ -917,6 +917,7 @@ namespace guiorgy {
 		// lru_cache_storage_base and lru_cache_base(<key_t, value_t, max_size>) are used
 		// to allow the conditional declaration of a default or custom constructor in C++ 17.
 		// For more details see: https://devblogs.microsoft.com/cppblog/conditionally-trivial-special-member-functions/
+		// Although, turns out std::vector is not trivially (default) constructible anyway, so this is actually pointless :P
 
 		// The base class of lru_cache that defines the data members.
 		template<typename key_t, typename value_t, const std::size_t max_size>
