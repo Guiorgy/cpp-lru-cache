@@ -5,7 +5,7 @@ project(CPP-LRU-CACHE-TEST LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g3 -fsanitize=address -fsanitize=leak -DLD_PRELOAD")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g3 -fno-omit-frame-pointer")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -g -flto=auto -DNDEBUG")
 set(CMAKE_LINK_FLAGS_RELEASE "${CMAKE_LINK_FLAGS_RELEASE} -flto=auto")
 
@@ -48,8 +48,25 @@ add_test(
 
 find_program(VALGRIND_EXECUTABLE valgrind)
 if(VALGRIND_EXECUTABLE)
+    add_compile_options(
+        -fsanitize=address -fsanitize-address-use-after-scope
+        -fsanitize=leak
+        -fsanitize=memory -fsanitize-memory-track-origins -fno-optimize-sibling-calls
+        -fsanitize=undefined -fno-sanitize-recover=all
+    )
+    add_link_options(
+        -fsanitize=address -fsanitize-address-use-after-scope
+        -fsanitize=leak
+        -fsanitize=memory -fsanitize-memory-track-origins -fno-optimize-sibling-calls
+        -fsanitize=undefined -fno-sanitize-recover=all
+    )
+    if(CMAKE_C_COMPILER_ID MATCHES "GNU")
+        add_compile_options(-static-libasan -static-libmsan -static-libubsan)
+        add_link_options(-static-libasan -static-libmsan -static-libubsan)
+    endif()
+
     add_custom_target(
-        valgrind
+        sanitize
         COMMAND ${VALGRIND_EXECUTABLE} --verbose --tool=memcheck --leak-check=full --leak-resolution=high --show-leak-kinds=all --track-origins=yes --show-error-list=yes --error-exitcode=1 "$<TARGET_FILE:cpp-lru-cache-test>" --verbose --gtest_color=yes
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         DEPENDS cpp-lru-cache-test
@@ -57,5 +74,5 @@ if(VALGRIND_EXECUTABLE)
         VERBATIM
     )
 else()
-    message(WARNING "Valgrind not found. Disabling the 'valgrind' target")
+    message(WARNING "Valgrind not found. Disabling the 'sanitize' target")
 endif()
