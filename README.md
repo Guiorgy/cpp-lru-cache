@@ -37,5 +37,5 @@ How to run tests:
 cd build
 cmake ..
 make test
-# make valgrind
+# make sanitize
 ```
