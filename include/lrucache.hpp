@@ -10,7 +10,42 @@
 
 #pragma once
 
-#include <unordered_map>
+// Define possible implementation and store old definitions to restore later in case of a conflict
+	// STL std::unordered_map
+	#ifdef STL_UNORDERED_MAP
+		#define GUIORGY_LRU_CACHE_STL_UNORDERED_MAP_BEFORE STL_UNORDERED_MAP
+	#endif
+	#define STL_UNORDERED_MAP 10
+
+	// Abseil absl::flat_hash_map
+	#ifdef ABSEIL_FLAT_HASH_MAP
+		#define GUIORGY_LRU_CACHE_ABSEIL_FLAT_HASH_MAP_BEFORE ABSEIL_FLAT_HASH_MAP
+	#endif
+	#define ABSEIL_FLAT_HASH_MAP 20
+
+// Set the default implementation
+#ifndef LRU_CACHE_HASH_MAP_IMPLEMENTATION
+	#define LRU_CACHE_HASH_MAP_IMPLEMENTATION STL_UNORDERED_MAP
+#endif
+
+// Use the correct headers for the selected implementation
+#if LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_UNORDERED_MAP
+	#include <unordered_map>
+
+	#pragma message("Using std::unordered_map as the hash-map inside the LRU cache")
+#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ABSEIL_FLAT_HASH_MAP
+	#include "absl/container/flat_hash_map.h"
+
+	#pragma message("Using absl::flat_hash_map as the hash-map inside the LRU cache")
+#else
+	#define VALUE_TO_STRING(x) #x
+	#define VALUE(x) VALUE_TO_STRING(x)
+
+	#pragma message("LRU_CACHE_HASH_MAP_IMPLEMENTATION is set to " VALUE(LRU_CACHE_HASH_MAP_IMPLEMENTATION))
+	#pragma message("Possible valiues are STL_UNORDERED_MAP(std::unordered_map), ABSEIL_FLAT_HASH_MAP(absl::flat_hash_map)")
+	#error "Unexpected value of LRU_CACHE_HASH_MAP_IMPLEMENTATION"
+#endif
+
 #include <type_traits>
 #include <functional>
 #include <optional>
@@ -921,10 +956,18 @@ namespace guiorgy {
 		// The base class of lru_cache that defines the data members.
 		template<typename key_t, typename value_t, const std::size_t max_size>
 		class lru_cache_storage_base {
+			#if LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_UNORDERED_MAP
+				template<typename kt, typename vt>
+				using map_t = std::unordered_map<kt, vt>;
+			#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ABSEIL_FLAT_HASH_MAP
+				template<typename kt, typename vt>
+				using map_t = absl::flat_hash_map<kt, vt>;
+			#endif
+
 		protected:
 			using key_value_pair_t = std::pair<key_t, value_t>;
 			using list_index_t = typename vector_list<key_value_pair_t, max_size>::index_t;
-			using map_iterator_t = typename std::unordered_map<key_t, list_index_t>::iterator;
+			using map_iterator_t = typename map_t<key_t, list_index_t>::iterator;
 
 		public:
 			using const_iterator = typename vector_list<key_value_pair_t, max_size>::const_iterator;
@@ -932,7 +975,7 @@ namespace guiorgy {
 
 		protected:
 			vector_list<key_value_pair_t, max_size> _cache_items_list;
-			std::unordered_map<key_t, list_index_t> _cache_items_map;
+			map_t<key_t, list_index_t> _cache_items_map;
 		};
 
 		// The base class of lru_cache that defines the default constructors, destructor and assignments.
@@ -1303,3 +1346,16 @@ namespace guiorgy {
 		}
 	};
 }
+
+// Restore old definitions if they were already defined
+	// STL std::unordered_map
+	#ifdef GUIORGY_LRU_CACHE_STL_UNORDERED_MAP_BEFORE
+		#define STL_UNORDERED_MAP GUIORGY_LRU_CACHE_STL_UNORDERED_MAP_BEFORE
+		#undef GUIORGY_LRU_CACHE_STL_UNORDERED_MAP_BEFORE
+	#endif
+
+	// STL std::unordered_map
+	#ifdef GUIORGY_LRU_CACHE_ABSEIL_FLAT_HASH_MAP_BEFORE
+		#define ABSEIL_FLAT_HASH_MAP GUIORGY_LRU_CACHE_ABSEIL_FLAT_HASH_MAP_BEFORE
+		#undef GUIORGY_LRU_CACHE_ABSEIL_FLAT_HASH_MAP_BEFORE
+	#endif

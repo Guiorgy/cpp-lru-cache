@@ -40,6 +40,23 @@ add_executable(cpp-lru-cache-test ${TESTS})
 
 target_link_libraries(cpp-lru-cache-test gtest gtest_main)
 
+option(ABSEIL "Use Abseil flat_hash_map instead of stl::unordered_map" OFF)
+if (ABSEIL)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DLRU_CACHE_HASH_MAP_IMPLEMENTATION=ABSEIL_FLAT_HASH_MAP")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DLRU_CACHE_HASH_MAP_IMPLEMENTATION=ABSEIL_FLAT_HASH_MAP")
+
+    include(FetchContent)
+    FetchContent_Declare(
+        abseil
+        GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
+        GIT_TAG 20250512.0
+        CMAKE_ARGS -DCMAKE_CXX_STANDARD=17 -DABSL_ENABLE_INSTALL=OFF
+    )
+    FetchContent_MakeAvailable(abseil)
+
+    target_link_libraries(cpp-lru-cache-test absl::container)
+endif()
+
 include(GoogleTest)
 add_test(
     NAME cpp-lru-cache-test
