@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.29)
+cmake_minimum_required(VERSION 3.10...3.29)
 
 project(CPP-LRU-CACHE-TEST LANGUAGES CXX)
 
@@ -21,7 +21,17 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 include(CTest)
 list(APPEND CMAKE_CTEST_ARGUMENTS "--verbose")
-set(CMAKE_SKIP_TEST_ALL_DEPENDENCY FALSE)
+
+if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.29)
+    set(CMAKE_SKIP_TEST_ALL_DEPENDENCY FALSE)
+else()
+    message(WARNING "CMake version < 3.29, adding a bogus test that executes 'cmake --build .' as the first test")
+
+    add_test(
+        NAME cmake-build
+        COMMAND cmake --build .
+    )
+endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
