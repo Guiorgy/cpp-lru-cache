@@ -18,6 +18,44 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
+set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES "")
+
+option(ABSEIL "Use absl::flat_hash_map instead of stl::unordered_map" OFF)
+if (ABSEIL)
+    message(STATUS "Using absl::flat_hash_map instead of stl::unordered_map")
+
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DLRU_CACHE_HASH_MAP_IMPLEMENTATION=ABSEIL_FLAT_HASH_MAP")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DLRU_CACHE_HASH_MAP_IMPLEMENTATION=ABSEIL_FLAT_HASH_MAP")
+
+    FetchContent_Declare(
+        abseil
+        GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
+        GIT_TAG 20250512.0
+        CMAKE_ARGS -DCMAKE_CXX_STANDARD=17 -DABSL_ENABLE_INSTALL=OFF
+        SYSTEM
+    )
+    FetchContent_MakeAvailable(abseil)
+
+    set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES absl::flat_hash_map)
+endif()
+
+include_directories(${PROJECT_SOURCE_DIR}/include)
+
+file(GLOB TESTS ${PROJECT_SOURCE_DIR}/tests/*.cpp)
+add_executable(cpp-lru-cache-test ${TESTS})
+
+target_link_libraries(
+    cpp-lru-cache-test
+    ${HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES}
+    gtest gtest_main
+)
+
+include(GoogleTest)
+add_test(
+    NAME cpp-lru-cache-test
+    COMMAND cpp-lru-cache-test --verbose --gtest_color=yes
+)
+
 enable_testing()
 include(CTest)
 list(APPEND CMAKE_CTEST_ARGUMENTS "--verbose")
@@ -32,19 +70,6 @@ else()
         COMMAND cmake --build .
     )
 endif()
-
-include_directories(${PROJECT_SOURCE_DIR}/include)
-
-file(GLOB TESTS ${PROJECT_SOURCE_DIR}/tests/*.cpp)
-add_executable(cpp-lru-cache-test ${TESTS})
-
-target_link_libraries(cpp-lru-cache-test gtest gtest_main)
-
-include(GoogleTest)
-add_test(
-    NAME cpp-lru-cache-test
-    COMMAND cpp-lru-cache-test --verbose --gtest_color=yes
-)
 
 find_program(VALGRIND_EXECUTABLE valgrind)
 if(VALGRIND_EXECUTABLE)

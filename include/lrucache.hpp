@@ -10,7 +10,42 @@
 
 #pragma once
 
-#include <unordered_map>
+// Define possible implementation and store old definitions to restore later in case of a conflict
+	// STL std::unordered_map
+	#ifdef STL_UNORDERED_MAP
+		#define GUIORGY_LRU_CACHE_STL_UNORDERED_MAP_BEFORE STL_UNORDERED_MAP
+	#endif
+	#define STL_UNORDERED_MAP 10
+
+	// Abseil absl::flat_hash_map
+	#ifdef ABSEIL_FLAT_HASH_MAP
+		#define GUIORGY_LRU_CACHE_ABSEIL_FLAT_HASH_MAP_BEFORE ABSEIL_FLAT_HASH_MAP
+	#endif
+	#define ABSEIL_FLAT_HASH_MAP 20
+
+// Set the default implementation
+#ifndef LRU_CACHE_HASH_MAP_IMPLEMENTATION
+	#define LRU_CACHE_HASH_MAP_IMPLEMENTATION STL_UNORDERED_MAP
+#endif
+
+// Use the correct headers for the selected implementation
+#if LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_UNORDERED_MAP
+	#include <unordered_map>
+
+	#pragma message("Using std::unordered_map as the hashmap for the LRU cache")
+#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ABSEIL_FLAT_HASH_MAP
+	#include "absl/container/flat_hash_map.h"
+
+	#pragma message("Using absl::flat_hash_map as the hashmap for the LRU cache")
+#else
+	#define VALUE_TO_STRING(x) #x
+	#define VALUE(x) VALUE_TO_STRING(x)
+
+	#pragma message("LRU_CACHE_HASH_MAP_IMPLEMENTATION is set to " VALUE(LRU_CACHE_HASH_MAP_IMPLEMENTATION))
+	#pragma message("Possible valiues are STL_UNORDERED_MAP(std::unordered_map), ABSEIL_FLAT_HASH_MAP(absl::flat_hash_map)")
+	#error "Unexpected value of LRU_CACHE_HASH_MAP_IMPLEMENTATION"
+#endif
+
 #include <type_traits>
 #include <functional>
 #include <optional>
@@ -922,10 +957,18 @@ namespace guiorgy {
 		// The base class of lru_cache that defines the data members.
 		template<typename key_t, typename value_t, const std::size_t max_size>
 		class lru_cache_storage_base {
+			#if LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_UNORDERED_MAP
+				template<typename kt, typename vt>
+				using map_t = std::unordered_map<kt, vt>;
+			#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ABSEIL_FLAT_HASH_MAP
+				template<typename kt, typename vt>
+				using map_t = absl::flat_hash_map<kt, vt>;
+			#endif
+
 		protected:
 			using key_value_pair_t = std::pair<key_t, value_t>;
 			using list_index_t = typename vector_list<key_value_pair_t, max_size>::index_t;
-			using map_iterator_t = typename std::unordered_map<key_t, list_index_t>::iterator;
+			using map_iterator_t = typename map_t<key_t, list_index_t>::iterator;
 
 		public:
 			using const_iterator = typename vector_list<key_value_pair_t, max_size>::const_iterator;
@@ -933,7 +976,7 @@ namespace guiorgy {
 
 		protected:
 			vector_list<key_value_pair_t, max_size> _cache_items_list;
-			std::unordered_map<key_t, list_index_t> _cache_items_map;
+			map_t<key_t, list_index_t> _cache_items_map;
 		};
 
 		// The base class of lru_cache that defines the default constructors, destructor and assignments.
@@ -968,22 +1011,33 @@ namespace guiorgy {
 
 	// A fixed size (if preallocate is true) or bounded (if preallocate is false) container that
 	// contains key-value pairs with unique keys. Search, insertion, and removal of elements have
-	// average constant-time complexity. Two keys are considered equivalent if the std::equal_to<Key>
-	// predicate returns true when passed those keys. If two keys are equivalent, the std::hash<Key>
-	// hash function must return the same value for both keys. lru_cache is not be create and used
-	// in the evaluation of a constant expression (constexpr).
+	// average constant-time complexity. Two keys are considered equivalent if the KeyEqual<key_t>
+	// predicate returns true when passed those keys. If two keys are equivalent, the Hash<key_t>
+	// hash function must return the same value for both keys. lru_cache can not be created and
+	// used in the evaluation of a constant expression (constexpr).
 	// When filled, the container uses the Least Recently Used replacement policy to store subsequent elements.
 	// Remarks:
 	//   - The removed elements are not deleted immediately, instead they are replaced when new elements are put into the container.
-	//   - lru_cache is default constructible only if preallocate is false.
-	//   - lru_cache is not trivially (default) constructible.
-	//   - lru_cache is nothrow (default) constructible only if preallocate is false.
-	//   - lru_cache is copy constructible.
-	//   - lru_cache is not trivially copy constructible.
-	//   - lru_cache is not nothrow copy constructible.
-	//   - lru_cache is move constructible.
-	//   - lru_cache is not trivially move constructible.
-	//   - lru_cache is nothrow move constructible.
+	//   - When using std::unordered_map:
+	//     - lru_cache is default constructible only if preallocate is false.
+	//     - lru_cache is not trivially (default) constructible.
+	//     - lru_cache is nothrow (default) constructible only if preallocate is false.
+	//     - lru_cache is copy constructible.
+	//     - lru_cache is not trivially copy constructible.
+	//     - lru_cache is not nothrow copy constructible.
+	//     - lru_cache is move constructible.
+	//     - lru_cache is not trivially move constructible.
+	//     - lru_cache is nothrow move constructible.
+	//   - When using absl::flat_hash_map:
+	//     - lru_cache is default constructible only if preallocate is false.
+	//     - lru_cache is not trivially (default) constructible.
+	//     - lru_cache is not nothrow (default) constructible.
+	//     - lru_cache is copy constructible.
+	//     - lru_cache is not trivially copy constructible.
+	//     - lru_cache is not nothrow copy constructible.
+	//     - lru_cache is move constructible.
+	//     - lru_cache is not trivially move constructible.
+	//     - lru_cache is nothrow move constructible.
 	template<typename key_t, typename value_t, const std::size_t max_size, const bool preallocate = false>
 	class lru_cache final : private detail::lru_cache_base<key_t, value_t, max_size, preallocate> {
 		static_assert(max_size != 0u, "max_size can not be 0");
@@ -1228,8 +1282,8 @@ namespace guiorgy {
 
 		// Preallocates memory for max_size elements.
 		// Remarks:
-		//   - The internally used std::unordered_map only reserves capacity for the buckets. Element insertions will still cause some allocations.
-		// TODO: Use alternative hash-map implementations.
+		//   - If std::unordered_map is used, only reserves capacity for the buckets. Element insertions will still cause some allocations.
+		//   - If absl::flat_hash_map is used, this should prevent reallocations.
 		void reserve() {
 			this->_cache_items_map.reserve(max_size);
 			this->_cache_items_list.reserve(max_size);
@@ -1304,3 +1358,16 @@ namespace guiorgy {
 		}
 	};
 }
+
+// Restore old definitions if they were already defined
+	// STL std::unordered_map
+	#ifdef GUIORGY_LRU_CACHE_STL_UNORDERED_MAP_BEFORE
+		#define STL_UNORDERED_MAP GUIORGY_LRU_CACHE_STL_UNORDERED_MAP_BEFORE
+		#undef GUIORGY_LRU_CACHE_STL_UNORDERED_MAP_BEFORE
+	#endif
+
+	// STL std::unordered_map
+	#ifdef GUIORGY_LRU_CACHE_ABSEIL_FLAT_HASH_MAP_BEFORE
+		#define ABSEIL_FLAT_HASH_MAP GUIORGY_LRU_CACHE_ABSEIL_FLAT_HASH_MAP_BEFORE
+		#undef GUIORGY_LRU_CACHE_ABSEIL_FLAT_HASH_MAP_BEFORE
+	#endif

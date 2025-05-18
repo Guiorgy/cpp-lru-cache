@@ -5,11 +5,19 @@
 // preallocate = false (default)
 static_assert(std::is_constructible_v<guiorgy::lru_cache<int, int, 1>> == true);
 static_assert(std::is_trivially_constructible_v<guiorgy::lru_cache<int, int, 1>> == false);
-static_assert(std::is_nothrow_constructible_v<guiorgy::lru_cache<int, int, 1>> == true);
+#if LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_UNORDERED_MAP
+	static_assert(std::is_nothrow_constructible_v<guiorgy::lru_cache<int, int, 1>> == true);
+#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ABSEIL_FLAT_HASH_MAP
+	static_assert(std::is_nothrow_constructible_v<guiorgy::lru_cache<int, int, 1>> == false);
+#endif
 
 static_assert(std::is_default_constructible_v<guiorgy::lru_cache<int, int, 1>> == true);
 static_assert(std::is_trivially_default_constructible_v<guiorgy::lru_cache<int, int, 1>> == false);
-static_assert(std::is_nothrow_default_constructible_v<guiorgy::lru_cache<int, int, 1>> == true);
+#if LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_UNORDERED_MAP
+	static_assert(std::is_nothrow_default_constructible_v<guiorgy::lru_cache<int, int, 1>> == true);
+#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ABSEIL_FLAT_HASH_MAP
+	static_assert(std::is_nothrow_default_constructible_v<guiorgy::lru_cache<int, int, 1>> == false);
+#endif
 
 static_assert(std::is_copy_constructible_v<guiorgy::lru_cache<int, int, 1>> == true);
 static_assert(std::is_trivially_copy_constructible_v<guiorgy::lru_cache<int, int, 1>> == false);
