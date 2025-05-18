@@ -32,11 +32,15 @@
 #if LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_UNORDERED_MAP
 	#include <unordered_map>
 
-	#pragma message("Using std::unordered_map as the hashmap for the LRU cache")
+	#ifdef LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION
+		#pragma message("Using std::unordered_map as the hashmap for the LRU cache")
+	#endif
 #elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ABSEIL_FLAT_HASH_MAP
 	#include "absl/container/flat_hash_map.h"
 
-	#pragma message("Using absl::flat_hash_map as the hashmap for the LRU cache")
+	#ifdef LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION
+		#pragma message("Using absl::flat_hash_map as the hashmap for the LRU cache")
+	#endif
 #else
 	#define VALUE_TO_STRING(x) #x
 	#define VALUE(x) VALUE_TO_STRING(x)
