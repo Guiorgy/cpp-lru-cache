@@ -22,9 +22,9 @@ FetchContent_MakeAvailable(googletest)
 set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "")
 set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES "")
 
-option(ABSEIL "Use absl::flat_hash_map instead of stl::unordered_map" OFF)
+option(ABSEIL "Use absl::flat_hash_map instead of std::unordered_map" OFF)
 if (ABSEIL)
-    message(STATUS "Using absl::flat_hash_map instead of stl::unordered_map")
+    message(STATUS "Using absl::flat_hash_map instead of std::unordered_map")
 
     add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=ABSEIL_FLAT_HASH_MAP)
 
@@ -40,9 +40,9 @@ if (ABSEIL)
     set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES absl::flat_hash_map)
 endif()
 
-option(TESSIL "Use tsl::sparse_map instead of stl::unordered_map" OFF)
+option(TESSIL "Use tsl::sparse_map instead of std::unordered_map" OFF)
 if (TESSIL)
-    message(STATUS "Using tsl::sparse_map instead of stl::unordered_map")
+    message(STATUS "Using tsl::sparse_map instead of std::unordered_map")
 
     add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=TESSIL_SPARSE_MAP)
 
