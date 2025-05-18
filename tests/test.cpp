@@ -64,6 +64,23 @@ TEST(CacheTest1, MissingValue) {
 	EXPECT_FALSE(cached.has_value());
 }
 
+TEST(CacheTest1, ClearReturnsSize0) {
+	constexpr int test_capacity = 50;
+
+	guiorgy::lru_cache<int, int, test_capacity> cache_lru;
+
+	for (int i = 0; i < test_capacity; ++i) {
+		cache_lru.put(i, i);
+	}
+
+	size_t size = cache_lru.size();
+	EXPECT_EQ(test_capacity, size);
+
+	cache_lru.clear();
+	size = cache_lru.size();
+	EXPECT_EQ(0, size);
+}
+
 TEST(CacheTest2, KeepsAllValuesWithinCapacity) {
 	constexpr int record_count = 100;
 	constexpr int test_capacity = 50;
