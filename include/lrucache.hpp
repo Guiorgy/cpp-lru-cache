@@ -58,12 +58,12 @@
 
 namespace guiorgy {
 	// Forward declaration of lru_cache.
-	template<typename key_t, typename value_t, const std::size_t max_size, const bool preallocate>
+	template<typename key_t, typename value_t, const std::size_t max_size, const bool preallocate, typename hash_function, typename key_equality_predicate>
 	class lru_cache;
 
 	namespace detail {
 		// Forward declaration of lru_cache_storage_base.
-		template<typename key_t, typename value_t, const std::size_t max_size>
+		template<typename key_t, typename value_t, const std::size_t max_size, typename hash_function, typename key_equality_predicate>
 		class lru_cache_storage_base;
 
 		// Forward declaration of vector_list.
@@ -91,7 +91,7 @@ namespace guiorgy {
 		};
 
 		// Helper for uint_fit.
-		template <const std::size_t max_value>
+		template<const std::size_t max_value>
 		using uint_fit_t = typename uint_fit<max_value>::type;
 
 		// A container where you can store elements and then take them out in an unspecified order.
@@ -942,11 +942,11 @@ namespace guiorgy {
 
 		private:
 			// Declare lru_cache_storage_base as a friend to allow access to index_t.
-			template<typename kt, typename vt, const std::size_t ms>
+			template<typename kt, typename vt, const std::size_t ms, typename hf, typename kep>
 			friend class lru_cache_storage_base;
 
 			// Declare lru_cache as a friend to give access to the dangerous member functions below.
-			template<typename kt, typename vt, const std::size_t ms, const bool p>
+			template<typename kt, typename vt, const std::size_t ms, const bool p, typename hf, typename kep>
 			friend class guiorgy::lru_cache;
 
 			// The functions below expose and operate internal indeces instead of using public iterators.
@@ -998,20 +998,44 @@ namespace guiorgy {
 			}
 		};
 
+		// Placeholders to indicate that the underlying hashmap should use its default hash function and key equality predicate.
+		template<typename key_t>
+		class DefaultHashFunction final {};
+		template<typename key_t>
+		class DefaultKeyEqualityPredicate final {};
+
 		// lru_cache_storage_base and lru_cache_base(<key_t, value_t, max_size>) are used
 		// to allow the conditional declaration of a default or custom constructor in C++ 17.
 		// For more details see: https://devblogs.microsoft.com/cppblog/conditionally-trivial-special-member-functions/
 		// Although, turns out std::vector is not trivially (default) constructible anyway, so this is actually pointless :P
 
 		// The base class of lru_cache that defines the data members.
-		template<typename key_t, typename value_t, const std::size_t max_size>
+		template<typename key_t, typename value_t, const std::size_t max_size, typename hash_function, typename key_equality_predicate>
 		class lru_cache_storage_base {
+			static_assert(std::is_same_v<key_equality_predicate, DefaultKeyEqualityPredicate<key_t>> || !std::is_same_v<hash_function, DefaultHashFunction<key_t>>, "hash_function can't be default if key_equality_predicate is not default");
+
 			#if LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_UNORDERED_MAP
 				template<typename kt, typename vt>
-				using map_t = std::unordered_map<kt, vt>;
+				using map_t = typename std::conditional_t<
+					std::is_same_v<hash_function, DefaultHashFunction<kt>>,
+					std::unordered_map<kt, vt>,
+					typename std::conditional_t<
+						std::is_same_v<key_equality_predicate, DefaultKeyEqualityPredicate<kt>>,
+						std::unordered_map<kt, vt, hash_function>,
+						std::unordered_map<kt, vt, hash_function, key_equality_predicate>
+					>
+				>;
 			#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ABSEIL_FLAT_HASH_MAP
 				template<typename kt, typename vt>
-				using map_t = absl::flat_hash_map<kt, vt>;
+				using map_t = typename std::conditional_t<
+					std::is_same_v<hash_function, DefaultHashFunction<kt>>,
+					absl::flat_hash_map<kt, vt>,
+					typename std::conditional_t<
+						std::is_same_v<key_equality_predicate, DefaultKeyEqualityPredicate<kt>>,
+						absl::flat_hash_map<kt, vt, hash_function>,
+						absl::flat_hash_map<kt, vt, hash_function, key_equality_predicate>
+					>
+				>;
 			#endif
 
 		protected:
@@ -1029,8 +1053,8 @@ namespace guiorgy {
 		};
 
 		// The base class of lru_cache that defines the default constructors, destructor and assignments.
-		template<typename key_t, typename value_t, const std::size_t max_size, const bool preallocate = false>
-		class lru_cache_base : protected lru_cache_storage_base<key_t, value_t, max_size> {
+		template<typename key_t, typename value_t, const std::size_t max_size, const bool preallocate = false, typename hash_function = DefaultHashFunction<key_t>, typename key_equality_predicate = DefaultKeyEqualityPredicate<key_t>>
+		class lru_cache_base : protected lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate> {
 		public:
 			lru_cache_base() = default;
 			~lru_cache_base() = default;
@@ -1041,10 +1065,10 @@ namespace guiorgy {
 		};
 
 		// The base class of lru_cache that defines the custom empty constructor and other default constructors, destructor and assignments.
-		template<typename key_t, typename value_t, const std::size_t max_size>
-		class lru_cache_base<key_t, value_t, max_size, true> : protected lru_cache_storage_base<key_t, value_t, max_size> {
+		template<typename key_t, typename value_t, const std::size_t max_size, typename hash_function, typename key_equality_predicate>
+		class lru_cache_base<key_t, value_t, max_size, true, hash_function, key_equality_predicate> : protected lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate> {
 		public:
-			using key_value_pair_t = typename lru_cache_storage_base<key_t, value_t, max_size>::key_value_pair_t;
+			using key_value_pair_t = typename lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::key_value_pair_t;
 
 			lru_cache_base() {
 				this->_cache_items_list.reserve(max_size);
@@ -1060,8 +1084,8 @@ namespace guiorgy {
 
 	// A fixed size (if preallocate is true) or bounded (if preallocate is false) container that
 	// contains key-value pairs with unique keys. Search, insertion, and removal of elements have
-	// average constant-time complexity. Two keys are considered equivalent if the KeyEqual<key_t>
-	// predicate returns true when passed those keys. If two keys are equivalent, the Hash<key_t>
+	// average constant-time complexity. Two keys are considered equivalent if key_equality_predicate
+	// predicate returns true when passed those keys. If two keys are equivalent, the hash_function
 	// hash function must return the same value for both keys. lru_cache can not be created and
 	// used in the evaluation of a constant expression (constexpr).
 	// When filled, the container uses the Least Recently Used replacement policy to store subsequent elements.
@@ -1087,17 +1111,17 @@ namespace guiorgy {
 	//     - lru_cache is move constructible.
 	//     - lru_cache is not trivially move constructible.
 	//     - lru_cache is nothrow move constructible.
-	template<typename key_t, typename value_t, const std::size_t max_size, const bool preallocate = false>
-	class lru_cache final : private detail::lru_cache_base<key_t, value_t, max_size, preallocate> {
+	template<typename key_t, typename value_t, const std::size_t max_size, const bool preallocate = false, typename hash_function = detail::DefaultHashFunction<key_t>, typename key_equality_predicate = detail::DefaultKeyEqualityPredicate<key_t>>
+	class lru_cache final : private detail::lru_cache_base<key_t, value_t, max_size, preallocate, hash_function, key_equality_predicate> {
 		static_assert(max_size != 0u, "max_size can not be 0");
 
-		using key_value_pair_t = typename detail::lru_cache_storage_base<key_t, value_t, max_size>::key_value_pair_t;
-		using list_index_t = typename detail::lru_cache_storage_base<key_t, value_t, max_size>::list_index_t;
-		using map_iterator_t = typename detail::lru_cache_storage_base<key_t, value_t, max_size>::map_iterator_t;
+		using key_value_pair_t = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::key_value_pair_t;
+		using list_index_t = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::list_index_t;
+		using map_iterator_t = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::map_iterator_t;
 
 	public:
-		using const_iterator = typename detail::lru_cache_storage_base<key_t, value_t, max_size>::const_iterator;
-		using const_reverse_iterator = typename detail::lru_cache_storage_base<key_t, value_t, max_size>::const_reverse_iterator;
+		using const_iterator = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::const_iterator;
+		using const_reverse_iterator = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::const_reverse_iterator;
 
 		// If the key already exists in the container, copies value to the mapped value inside the container.
 		// If the key doesn't exist in the container, inserts a copy of value into the container.
