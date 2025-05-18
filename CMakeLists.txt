@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11...3.29)
+cmake_minimum_required(VERSION 3.12...3.29)
 
 project(CPP-LRU-CACHE-TEST LANGUAGES CXX)
 
@@ -24,8 +24,7 @@ option(ABSEIL "Use absl::flat_hash_map instead of stl::unordered_map" OFF)
 if (ABSEIL)
     message(STATUS "Using absl::flat_hash_map instead of stl::unordered_map")
 
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DLRU_CACHE_HASH_MAP_IMPLEMENTATION=ABSEIL_FLAT_HASH_MAP")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DLRU_CACHE_HASH_MAP_IMPLEMENTATION=ABSEIL_FLAT_HASH_MAP")
+    add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=ABSEIL_FLAT_HASH_MAP)
 
     FetchContent_Declare(
         abseil
