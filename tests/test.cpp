@@ -115,6 +115,64 @@ TEST(CacheTest2, HandlesOverwrites) {
 	EXPECT_EQ(test_capacity, size);
 }
 
+TEST(CacheTest3, HandlesRemovals) {
+	constexpr int test_capacity = 50;
+
+	guiorgy::lru_cache<int, int, test_capacity> cache_lru;
+
+	for (int i = 0; i < test_capacity; ++i) {
+		cache_lru.put(i, i);
+	}
+
+	for (int i = 0; i < test_capacity / 2; ++i) {
+		cache_lru.remove(i);
+	}
+
+	for (int i = 0; i < test_capacity / 2; ++i) {
+		EXPECT_FALSE(cache_lru.exists(i));
+	}
+
+	for (int i = test_capacity / 2 + 1; i < test_capacity; ++i) {
+		EXPECT_TRUE(cache_lru.exists(i));
+
+		auto cached = cache_lru.get(i);
+		EXPECT_TRUE(cached.has_value());
+		EXPECT_EQ(i, cached.value());
+	}
+
+	size_t size = cache_lru.size();
+	EXPECT_EQ(test_capacity / 2, size);
+}
+
+TEST(CacheTest3, HandlesPutsAfterRemoval) {
+	constexpr int test_capacity = 50;
+
+	guiorgy::lru_cache<int, int, test_capacity> cache_lru;
+
+	for (int i = 0; i < test_capacity; ++i) {
+		cache_lru.put(i, i);
+	}
+
+	for (int i = 0; i < test_capacity / 2; ++i) {
+		cache_lru.remove(i);
+	}
+
+	for (int i = test_capacity; i < 2 * test_capacity; ++i) {
+		cache_lru.put(i, i);
+	}
+
+	for (int i = test_capacity; i < 2 * test_capacity; ++i) {
+		EXPECT_TRUE(cache_lru.exists(i));
+
+		auto cached = cache_lru.get(i);
+		EXPECT_TRUE(cached.has_value());
+		EXPECT_EQ(i, cached.value());
+	}
+
+	size_t size = cache_lru.size();
+	EXPECT_EQ(test_capacity, size);
+}
+
 int main(int argc, char **argv) {
 #ifdef NDEBUG
 	std::cout << "Running tets in Release configuration\n";
