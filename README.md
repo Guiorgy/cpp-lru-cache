@@ -1,5 +1,7 @@
 # cpp-lru-cache
 
+## ⚠️⚠️⚠️ Currently WIP and experimental ⚠️⚠️⚠️
+
 > ⚠️ **This implementation is NOT thread safe!**
 
 An LRU (Least Recently Used) cache for C++ 17 based on hashmap and a packed linkedlist based on vector. The library is header only, a simple test and example are included.
