@@ -109,7 +109,7 @@ namespace guiorgy {
 		public:
 			// Increases the capacity of the set (the total number of elements that the set can hold without requiring a reallocation) to a value that's greater or equal to capacity.
 			void reserve(const std::size_t capacity) {
-				assert(capacity == 0 || capacity - 1 <= std::numeric_limits<index_t>::max());
+				assert(capacity == 0u || capacity - 1u <= std::numeric_limits<index_t>::max());
 
 				set.reserve(capacity);
 			}
@@ -154,7 +154,7 @@ namespace guiorgy {
 					}
 				}
 
-				assert(set.size() == 0 || set.size() - 1 <= std::numeric_limits<index_t>::max());
+				assert(set.size() == 0u || set.size() - 1u <= std::numeric_limits<index_t>::max());
 			}
 
 			// Puts the given element into the set.
@@ -178,7 +178,7 @@ namespace guiorgy {
 					}
 				}
 
-				assert(set.size() == 0 || set.size() - 1 <= std::numeric_limits<index_t>::max());
+				assert(set.size() == 0u || set.size() - 1u <= std::numeric_limits<index_t>::max());
 			}
 
 			// Returns a reference to the next element in the set.
