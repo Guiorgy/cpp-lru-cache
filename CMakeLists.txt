@@ -21,45 +21,61 @@ FetchContent_MakeAvailable(googletest)
 
 set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "")
 set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES "")
+set(HASH_MAP_IMPLEMENTATION_OPTIONS_ON "")
+set(NUM_HASH_MAP_IMPLEMENTATIONS_ON 0)
 
 option(ABSEIL "Use absl::flat_hash_map instead of std::unordered_map" OFF)
 if (ABSEIL)
-    message(STATUS "Using absl::flat_hash_map instead of std::unordered_map")
+    if (NUM_HASH_MAP_IMPLEMENTATIONS_ON EQUAL 0)
+        message(STATUS "Using absl::flat_hash_map instead of std::unordered_map")
 
-    add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=ABSEIL_FLAT_HASH_MAP)
+        add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=ABSEIL_FLAT_HASH_MAP)
 
-    FetchContent_Declare(
-        abseil
-        GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
-        GIT_TAG 20250512.0
-        CMAKE_ARGS -DCMAKE_CXX_STANDARD=17 -DABSL_ENABLE_INSTALL=OFF
-        SYSTEM
-    )
-    FetchContent_MakeAvailable(abseil)
+        FetchContent_Declare(
+            abseil
+            GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
+            GIT_TAG 20250512.0
+            CMAKE_ARGS -DCMAKE_CXX_STANDARD=17 -DABSL_ENABLE_INSTALL=OFF
+            SYSTEM
+        )
+        FetchContent_MakeAvailable(abseil)
 
-    set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES absl::flat_hash_map)
+        set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES absl::flat_hash_map)
+    endif()
+
+    list(APPEND HASH_MAP_IMPLEMENTATION_OPTIONS_ON ABSEIL)
+    list(LENGTH HASH_MAP_IMPLEMENTATION_OPTIONS_ON NUM_HASH_MAP_IMPLEMENTATIONS_ON)
 endif()
 
 option(TESSIL "Use tsl::sparse_map instead of std::unordered_map" OFF)
 if (TESSIL)
-    message(STATUS "Using tsl::sparse_map instead of std::unordered_map")
+    if (NUM_HASH_MAP_IMPLEMENTATIONS_ON EQUAL 0)
+        message(STATUS "Using tsl::sparse_map instead of std::unordered_map")
 
-    add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=TESSIL_SPARSE_MAP)
+        add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=TESSIL_SPARSE_MAP)
 
-    include(ExternalProject)
-    ExternalProject_Add(
-        tessil
-        GIT_REPOSITORY https://github.com/Tessil/sparse-map.git
-        GIT_TAG v0.6.2
-        SOURCE_DIR "${CMAKE_BINARY_DIR}/tessil-src"
-        BINARY_DIR "${CMAKE_BINARY_DIR}/tessil-bin"
-        CONFIGURE_COMMAND ""
-        BUILD_COMMAND ""
-        INSTALL_COMMAND ""
-        UPDATE_COMMAND ""
-    )
+        include(ExternalProject)
+        ExternalProject_Add(
+            tessil
+            GIT_REPOSITORY https://github.com/Tessil/sparse-map.git
+            GIT_TAG v0.6.2
+            SOURCE_DIR "${CMAKE_BINARY_DIR}/tessil-src"
+            BINARY_DIR "${CMAKE_BINARY_DIR}/tessil-bin"
+            CONFIGURE_COMMAND ""
+            BUILD_COMMAND ""
+            INSTALL_COMMAND ""
+            UPDATE_COMMAND ""
+        )
 
-    set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "${CMAKE_BINARY_DIR}/tessil-src/include")
+        set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "${CMAKE_BINARY_DIR}/tessil-src/include")
+    endif()
+
+    list(APPEND HASH_MAP_IMPLEMENTATION_OPTIONS_ON TESSIL)
+    list(LENGTH HASH_MAP_IMPLEMENTATION_OPTIONS_ON NUM_HASH_MAP_IMPLEMENTATIONS_ON)
+endif()
+
+if(NUM_HASH_MAP_IMPLEMENTATIONS_ON GREATER 1)
+    message(FATAL_ERROR "At most only one implementation of the hashmap can be enabled. The following options are mutually exclusive: ${HASH_MAP_IMPLEMENTATION_OPTIONS_ON}")
 endif()
 
 include_directories(
