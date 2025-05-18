@@ -66,6 +66,10 @@ namespace guiorgy {
 		template<typename key_t, typename value_t, const std::size_t max_size>
 		class lru_cache_storage_base;
 
+		// Forward declaration of vector_list.
+		template<typename T, const std::size_t max_size>
+		class vector_list;
+
 		// Determine the smallest unsigned integer type that can fit the specified value.
 		template <const std::size_t max_value>
 		struct uint_fit final {
@@ -196,6 +200,48 @@ namespace guiorgy {
 				tail = next_index(tail);
 				if (tail == head) _empty = true;
 				return _front;
+			}
+
+			// Erases all elements from the set. After this call, size() returns zero.
+			// References referring to contained elements are not invalidated, since the elements are deleted lazily.
+			void clear() {
+				_empty = true;
+				head = 0u;
+				tail = 0u;
+			}
+
+		private:
+			// Declare vector_list as a friend to allow access to _clear_and_fill_range.
+			template<typename t, const std::size_t ms>
+			friend class vector_list;
+
+			// Equivalent to calling clear() and then putting values 0 to count into the set.
+			// This assumes T is an unsigned integer.
+			// Only meant to be used by vector_list.
+			void _clear_and_fill_range(const std::size_t count) {
+				if (count == 0) {
+					clear();
+					return;
+				}
+
+				const std::size_t _size = set.size();
+				if (count <= _size) {
+					for (std::size_t i = 0u; i < count; ++i) {
+						set[i] = i;
+					}
+				} else {
+					reserve(count);
+
+					for (std::size_t i = 0u; i < _size; ++i) {
+						set[i] = i;
+					}
+					for (std::size_t i = _size; i < count; ++i) {
+						set.push_back(i);
+					}
+				}
+
+				tail = 0u;
+				head = count - 1u;
 			}
 		};
 
@@ -725,14 +771,17 @@ namespace guiorgy {
 			// References referring to contained elements are not invalidated, since the elements are deleted lazily.
 			// Invalidates any iterators referring to contained elements.
 			void clear() {
-				free_indices.reserve(list.size());
-				for (index_t index = tail; index != null_index; index = list[index].next) {
-					free_indices.put(index);
 #ifndef NDEBUG
+				for (index_t index = head; index != null_index; index = list[index].prior) {
 					assert(!list[index].removed);
 					list[index].removed = true;
-#endif
 				}
+				for (const list_node& node : list) {
+					assert(node.removed);
+				}
+#endif
+
+				free_indices._clear_and_fill_range(list.size());
 				head = null_index;
 				tail = null_index;
 			}
