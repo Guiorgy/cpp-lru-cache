@@ -1262,6 +1262,20 @@ namespace guiorgy {
 			}
 		}
 
+		// If the key exists in the container, removes the value that is mapped to the
+		// given key, or false if such key does not exist.
+		bool erase(const key_t& key) {
+			map_iterator_t it = this->_cache_items_map.find(key);
+
+			if (it != this->_cache_items_map.end()) {
+				this->_cache_items_list._erase_value_at(it->second);
+				this->_cache_items_map.erase(it);
+				return true;
+			} else {
+				return false;
+			}
+		}
+
 		// Checks if the container contains an element with the given key.
 		bool exists(const key_t& key) const {
 			return this->_cache_items_map.find(key) != this->_cache_items_map.end();
