@@ -44,6 +44,19 @@
 	#endif
 	#define TESSIL_HOPSCOTCH_MAP 32
 
+	// Ankerl ankerl::unordered_dense::map
+	#ifdef ANKERL_UNORDERED_DENSE_MAP
+		#define GUIORGY_LRU_CACHE_ANKERL_UNORDERED_DENSE_MAP_BEFORE ANKERL_UNORDERED_DENSE_MAP
+		#undef ANKERL_UNORDERED_DENSE_MAP
+	#endif
+	#define ANKERL_UNORDERED_DENSE_MAP 40
+	// Ankerl ankerl::unordered_dense::segmented_map
+	#ifdef ANKERL_UNORDERED_DENSE_SEGMENTED_MAP
+		#define GUIORGY_LRU_CACHE_ANKERL_UNORDERED_DENSE_SEGMENTED_MAP_BEFORE ANKERL_UNORDERED_DENSE_SEGMENTED_MAP
+		#undef ANKERL_UNORDERED_DENSE_SEGMENTED_MAP
+	#endif
+	#define ANKERL_UNORDERED_DENSE_SEGMENTED_MAP 41
+
 // Set the default implementation
 #ifndef LRU_CACHE_HASH_MAP_IMPLEMENTATION
 	#define LRU_CACHE_HASH_MAP_IMPLEMENTATION STL_UNORDERED_MAP
@@ -85,12 +98,26 @@
 	#ifdef LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION
 		#pragma message("Using tsl::hopscotch_map as the hashmap for the LRU cache")
 	#endif
+#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ANKERL_UNORDERED_DENSE_MAP
+	// Ankerl ankerl::unordered_dense::map
+	#include "ankerl/unordered_dense.h"
+
+	#ifdef LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION
+		#pragma message("Using ankerl::unordered_dense::map as the hashmap for the LRU cache")
+	#endif
+#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ANKERL_UNORDERED_DENSE_SEGMENTED_MAP
+	// Ankerl ankerl::unordered_dense::segmented_map
+	#include "ankerl/unordered_dense.h"
+
+	#ifdef LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION
+		#pragma message("Using ankerl::unordered_dense::segmented_map as the hashmap for the LRU cache")
+	#endif
 #else
 	#define GUIORGY_VALUE_TO_STRING(x) #x
 	#define GUIORGY_VALUE(x) GUIORGY_VALUE_TO_STRING(x)
 
 	#pragma message("LRU_CACHE_HASH_MAP_IMPLEMENTATION is set to " GUIORGY_VALUE(LRU_CACHE_HASH_MAP_IMPLEMENTATION))
-	#pragma message("Possible valiues are STL_UNORDERED_MAP(std::unordered_map), ABSEIL_FLAT_HASH_MAP(absl::flat_hash_map), TESSIL_SPARSE_MAP(tsl::sparse_map), TESSIL_ROBIN_MAP(tsl::robin_map), TESSIL_HOPSCOTCH_MAP(tsl::hopscotch_map)")
+	#pragma message("Possible valiues are STL_UNORDERED_MAP(std::unordered_map), ABSEIL_FLAT_HASH_MAP(absl::flat_hash_map), TESSIL_SPARSE_MAP(tsl::sparse_map), TESSIL_ROBIN_MAP(tsl::robin_map), TESSIL_HOPSCOTCH_MAP(tsl::hopscotch_map), ANKERL_UNORDERED_DENSE_MAP(ankerl::unordered_dense::map), ANKERL_UNORDERED_DENSE_SEGMENTED_MAP(ankerl::unordered_dense::segmented_map)")
 	#error "Unexpected value of LRU_CACHE_HASH_MAP_IMPLEMENTATION"
 #endif
 
@@ -1117,6 +1144,28 @@ namespace guiorgy {
 						tsl::hopscotch_map<kt, vt, hash_function, key_equality_predicate>
 					>
 				>;
+			#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ANKERL_UNORDERED_DENSE_MAP
+				template<typename kt, typename vt>
+				using map_t = typename std::conditional_t<
+					std::is_same_v<hash_function, DefaultHashFunction<kt>>,
+					ankerl::unordered_dense::map<kt, vt>,
+					typename std::conditional_t<
+						std::is_same_v<key_equality_predicate, DefaultKeyEqualityPredicate<kt>>,
+						ankerl::unordered_dense::map<kt, vt, hash_function>,
+						ankerl::unordered_dense::map<kt, vt, hash_function, key_equality_predicate>
+					>
+				>;
+			#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ANKERL_UNORDERED_DENSE_SEGMENTED_MAP
+				template<typename kt, typename vt>
+				using map_t = typename std::conditional_t<
+					std::is_same_v<hash_function, DefaultHashFunction<kt>>,
+					ankerl::unordered_dense::segmented_map<kt, vt>,
+					typename std::conditional_t<
+						std::is_same_v<key_equality_predicate, DefaultKeyEqualityPredicate<kt>>,
+						ankerl::unordered_dense::segmented_map<kt, vt, hash_function>,
+						ankerl::unordered_dense::segmented_map<kt, vt, hash_function, key_equality_predicate>
+					>
+				>;
 			#endif
 
 		protected:
@@ -1182,17 +1231,7 @@ namespace guiorgy {
 	//     - lru_cache is move constructible.
 	//     - lru_cache is not trivially move constructible.
 	//     - lru_cache is nothrow move constructible.
-	//   - When using absl::flat_hash_map:
-	//     - lru_cache is default constructible only if preallocate is false.
-	//     - lru_cache is not trivially (default) constructible.
-	//     - lru_cache is not nothrow (default) constructible.
-	//     - lru_cache is copy constructible.
-	//     - lru_cache is not trivially copy constructible.
-	//     - lru_cache is not nothrow copy constructible.
-	//     - lru_cache is move constructible.
-	//     - lru_cache is not trivially move constructible.
-	//     - lru_cache is nothrow move constructible.
-	//   - When using tsl::sparse_map:
+	//   - When using absl::flat_hash_map, tsl::sparse_map, ankerl::unordered_dense::map or ankerl::unordered_dense::segmented_map:
 	//     - lru_cache is default constructible only if preallocate is false.
 	//     - lru_cache is not trivially (default) constructible.
 	//     - lru_cache is not nothrow (default) constructible.
@@ -1569,4 +1608,17 @@ namespace guiorgy {
 		#undef TESSIL_HOPSCOTCH_MAP
 		#define TESSIL_HOPSCOTCH_MAP GUIORGY_LRU_CACHE_TESSIL_HOPSCOTCH_MAP_BEFORE
 		#undef GUIORGY_LRU_CACHE_TESSIL_HOPSCOTCH_MAP_BEFORE
+	#endif
+
+	// Ankerl ankerl::unordered_dense
+	#ifdef GUIORGY_LRU_CACHE_ANKERL_UNORDERED_DENSE_MAP_BEFORE
+		#undef ANKERL_UNORDERED_DENSE_MAP
+		#define ANKERL_UNORDERED_DENSE_MAP GUIORGY_LRU_CACHE_ANKERL_UNORDERED_DENSE_MAP_BEFORE
+		#undef GUIORGY_LRU_CACHE_ANKERL_UNORDERED_DENSE_MAP_BEFORE
+	#endif
+	// Ankerl ankerl::unordered_dense::segmented_map
+	#ifdef GUIORGY_LRU_CACHE_ANKERL_UNORDERED_DENSE_SEGMENTED_MAP_BEFORE
+		#undef ANKERL_UNORDERED_DENSE_SEGMENTED_MAP
+		#define ANKERL_UNORDERED_DENSE_SEGMENTED_MAP GUIORGY_LRU_CACHE_ANKERL_UNORDERED_DENSE_SEGMENTED_MAP_BEFORE
+		#undef GUIORGY_LRU_CACHE_ANKERL_UNORDERED_DENSE_SEGMENTED_MAP_BEFORE
 	#endif

@@ -37,6 +37,7 @@ The underlying hashmap implementation can be changed from the default STL `std::
 
 - [Abseil](https://github.com/abseil/abseil-cpp) `absl::flat_hash_map` (`ABSEIL_FLAT_HASH_MAP`)
 - [Tessil](https://github.com/Tessil/sparse-map) `tsl::sparse_map` (`TESSIL_SPARSE_MAP`)
+- [Ankerl](https://github.com/martinus/unordered_dense) `ankerl::unordered_dense::map` (`ANKERL_UNORDERED_DENSE_MAP`) and `ankerl::unordered_dense::segmented_map` (`ANKERL_UNORDERED_DENSE_SEGMENTED_MAP`)
 
 To switch to the desired implementation, set the `LRU_CACHE_HASH_MAP_IMPLEMENTATION` compiler definition to the desired value. For example:
 
@@ -58,7 +59,7 @@ To switch to the desired implementation, set the `LRU_CACHE_HASH_MAP_IMPLEMENTAT
 ```shell
 cd build
 cmake ..
-# cmake -DCMAKE_BUILD_TYPE=Debug -DABSEIL=OFF -DTESSIL=OFF ..
+# cmake -DCMAKE_BUILD_TYPE=Debug -DABSEIL=OFF -DTESSIL=OFF -DANKERL=OFF -DANKERL_SEG=OFF ..
 make test
 # make sanitize
 ```

@@ -74,6 +74,40 @@ if (TESSIL)
     list(LENGTH HASH_MAP_IMPLEMENTATION_OPTIONS_ON NUM_HASH_MAP_IMPLEMENTATIONS_ON)
 endif()
 
+option(ANKERL "Use ankerl::unordered_dense::map instead of std::unordered_map" OFF)
+option(ANKERL_SEG "Use ankerl::unordered_dense::segmented_map instead of std::unordered_map" OFF)
+if (ANKERL OR ANKERL_SEG)
+    if (NUM_HASH_MAP_IMPLEMENTATIONS_ON EQUAL 0)
+        if (ANKERL)
+            message(STATUS "Using ankerl::unordered_dense::map instead of std::unordered_map")
+
+            add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=ANKERL_UNORDERED_DENSE_MAP)
+        else()
+            message(STATUS "Using ankerl::unordered_dense::segmented_map instead of std::unordered_map")
+
+            add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=ANKERL_UNORDERED_DENSE_SEGMENTED_MAP)
+        endif()
+
+        FetchContent_Declare(
+            ankerl
+            GIT_REPOSITORY https://github.com/martinus/unordered_dense.git
+            GIT_TAG v4.5.0
+            SYSTEM
+        )
+        FetchContent_MakeAvailable(ankerl)
+
+        set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES unordered_dense)
+    endif()
+
+    if (ANKERL)
+        list(APPEND HASH_MAP_IMPLEMENTATION_OPTIONS_ON ANKERL)
+    endif()
+    if(ANKERL_SEG)
+        list(APPEND HASH_MAP_IMPLEMENTATION_OPTIONS_ON ANKERL_SEG)
+    endif()
+    list(LENGTH HASH_MAP_IMPLEMENTATION_OPTIONS_ON NUM_HASH_MAP_IMPLEMENTATIONS_ON)
+endif()
+
 if(NUM_HASH_MAP_IMPLEMENTATIONS_ON GREATER 1)
     message(FATAL_ERROR "At most only one implementation of the hashmap can be enabled. The following options are mutually exclusive: ${HASH_MAP_IMPLEMENTATION_OPTIONS_ON}")
 endif()
