@@ -23,6 +23,22 @@
 	#endif
 	#define ABSEIL_FLAT_HASH_MAP 20
 
+	// Tessil tsl::sparse_map
+	#ifdef TESSIL_SPARSE_MAP
+		#define GUIORGY_LRU_CACHE_TESSIL_SPARSE_MAP_BEFORE TESSIL_SPARSE_MAP
+	#endif
+	#define TESSIL_SPARSE_MAP 30
+	// Tessil tsl::robin_map
+	#ifdef TESSIL_ROBIN_MAP
+		#define GUIORGY_LRU_CACHE_TESSIL_ROBIN_MAP_BEFORE TESSIL_ROBIN_MAP
+	#endif
+	#define TESSIL_ROBIN_MAP 31
+	// Tessil tsl::hopscotch_map
+	#ifdef TESSIL_HOPSCOTCH_MAP
+		#define GUIORGY_LRU_CACHE_TESSIL_HOPSCOTCH_MAP_BEFORE TESSIL_HOPSCOTCH_MAP
+	#endif
+	#define TESSIL_HOPSCOTCH_MAP 32
+
 // Set the default implementation
 #ifndef LRU_CACHE_HASH_MAP_IMPLEMENTATION
 	#define LRU_CACHE_HASH_MAP_IMPLEMENTATION STL_UNORDERED_MAP
@@ -30,23 +46,46 @@
 
 // Use the correct headers for the selected implementation
 #if LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_UNORDERED_MAP
+	// STL std::unordered_map
 	#include <unordered_map>
 
 	#ifdef LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION
 		#pragma message("Using std::unordered_map as the hashmap for the LRU cache")
 	#endif
 #elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ABSEIL_FLAT_HASH_MAP
+	// Abseil absl::flat_hash_map
 	#include "absl/container/flat_hash_map.h"
 
 	#ifdef LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION
 		#pragma message("Using absl::flat_hash_map as the hashmap for the LRU cache")
+	#endif
+#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == TESSIL_SPARSE_MAP
+	// Tessil tsl::sparse_map
+	#include "tsl/sparse_map.h"
+
+	#ifdef LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION
+		#pragma message("Using tsl::sparse_map as the hashmap for the LRU cache")
+	#endif
+#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == TESSIL_ROBIN_MAP
+	// Tessil tsl::robin_map
+	#include "tsl/robin_map.h"
+
+	#ifdef LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION
+		#pragma message("Using tsl::robin_map as the hashmap for the LRU cache")
+	#endif
+#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == TESSIL_HOPSCOTCH_MAP
+	// Tessil tsl::hopscotch_map
+	#include "tsl/hopscotch_map.h"
+
+	#ifdef LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION
+		#pragma message("Using tsl::hopscotch_map as the hashmap for the LRU cache")
 	#endif
 #else
 	#define VALUE_TO_STRING(x) #x
 	#define VALUE(x) VALUE_TO_STRING(x)
 
 	#pragma message("LRU_CACHE_HASH_MAP_IMPLEMENTATION is set to " VALUE(LRU_CACHE_HASH_MAP_IMPLEMENTATION))
-	#pragma message("Possible valiues are STL_UNORDERED_MAP(std::unordered_map), ABSEIL_FLAT_HASH_MAP(absl::flat_hash_map)")
+	#pragma message("Possible valiues are STL_UNORDERED_MAP(std::unordered_map), ABSEIL_FLAT_HASH_MAP(absl::flat_hash_map), TESSIL_SPARSE_MAP(tsl::sparse_map), TESSIL_ROBIN_MAP(tsl::robin_map), TESSIL_HOPSCOTCH_MAP(tsl::hopscotch_map)")
 	#error "Unexpected value of LRU_CACHE_HASH_MAP_IMPLEMENTATION"
 #endif
 
@@ -1040,6 +1079,39 @@ namespace guiorgy {
 						absl::flat_hash_map<kt, vt, hash_function, key_equality_predicate>
 					>
 				>;
+			#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == TESSIL_SPARSE_MAP
+				template<typename kt, typename vt>
+				using map_t = typename std::conditional_t<
+					std::is_same_v<hash_function, DefaultHashFunction<kt>>,
+					tsl::sparse_map<kt, vt>,
+					typename std::conditional_t<
+						std::is_same_v<key_equality_predicate, DefaultKeyEqualityPredicate<kt>>,
+						tsl::sparse_map<kt, vt, hash_function>,
+						tsl::sparse_map<kt, vt, hash_function, key_equality_predicate>
+					>
+				>;
+			#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == TESSIL_ROBIN_MAP
+				template<typename kt, typename vt>
+				using map_t = typename std::conditional_t<
+					std::is_same_v<hash_function, DefaultHashFunction<kt>>,
+					tsl::robin_map<kt, vt>,
+					typename std::conditional_t<
+						std::is_same_v<key_equality_predicate, DefaultKeyEqualityPredicate<kt>>,
+						tsl::robin_map<kt, vt, hash_function>,
+						tsl::robin_map<kt, vt, hash_function, key_equality_predicate>
+					>
+				>;
+			#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == TESSIL_HOPSCOTCH_MAP
+				template<typename kt, typename vt>
+				using map_t = typename std::conditional_t<
+					std::is_same_v<hash_function, DefaultHashFunction<kt>>,
+					tsl::hopscotch_map<kt, vt>,
+					typename std::conditional_t<
+						std::is_same_v<key_equality_predicate, DefaultKeyEqualityPredicate<kt>>,
+						tsl::hopscotch_map<kt, vt, hash_function>,
+						tsl::hopscotch_map<kt, vt, hash_function, key_equality_predicate>
+					>
+				>;
 			#endif
 
 		protected:
@@ -1106,6 +1178,16 @@ namespace guiorgy {
 	//     - lru_cache is not trivially move constructible.
 	//     - lru_cache is nothrow move constructible.
 	//   - When using absl::flat_hash_map:
+	//     - lru_cache is default constructible only if preallocate is false.
+	//     - lru_cache is not trivially (default) constructible.
+	//     - lru_cache is not nothrow (default) constructible.
+	//     - lru_cache is copy constructible.
+	//     - lru_cache is not trivially copy constructible.
+	//     - lru_cache is not nothrow copy constructible.
+	//     - lru_cache is move constructible.
+	//     - lru_cache is not trivially move constructible.
+	//     - lru_cache is nothrow move constructible.
+	//   - When using tsl::sparse_map:
 	//     - lru_cache is default constructible only if preallocate is false.
 	//     - lru_cache is not trivially (default) constructible.
 	//     - lru_cache is not nothrow (default) constructible.
@@ -1461,4 +1543,20 @@ namespace guiorgy {
 	#ifdef GUIORGY_LRU_CACHE_ABSEIL_FLAT_HASH_MAP_BEFORE
 		#define ABSEIL_FLAT_HASH_MAP GUIORGY_LRU_CACHE_ABSEIL_FLAT_HASH_MAP_BEFORE
 		#undef GUIORGY_LRU_CACHE_ABSEIL_FLAT_HASH_MAP_BEFORE
+	#endif
+
+	// Tessil tsl::sparse_map
+	#ifdef GUIORGY_LRU_CACHE_TESSIL_SPARSE_MAP_BEFORE
+		#define TESSIL_SPARSE_MAP GUIORGY_LRU_CACHE_TESSIL_SPARSE_MAP_BEFORE
+		#undef GUIORGY_LRU_CACHE_TESSIL_SPARSE_MAP_BEFORE
+	#endif
+	// Tessil tsl::robin_map
+	#ifdef GUIORGY_LRU_CACHE_TESSIL_ROBIN_MAP_BEFORE
+		#define TESSIL_ROBIN_MAP GUIORGY_LRU_CACHE_TESSIL_ROBIN_MAP_BEFORE
+		#undef GUIORGY_LRU_CACHE_TESSIL_ROBIN_MAP_BEFORE
+	#endif
+	// Tessil tsl::hopscotch_map
+	#ifdef GUIORGY_LRU_CACHE_TESSIL_HOPSCOTCH_MAP_BEFORE
+		#define TESSIL_HOPSCOTCH_MAP GUIORGY_LRU_CACHE_TESSIL_HOPSCOTCH_MAP_BEFORE
+		#undef GUIORGY_LRU_CACHE_TESSIL_HOPSCOTCH_MAP_BEFORE
 	#endif

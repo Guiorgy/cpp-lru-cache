@@ -19,6 +19,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
+set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "")
 set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES "")
 
 option(ABSEIL "Use absl::flat_hash_map instead of stl::unordered_map" OFF)
@@ -39,7 +40,32 @@ if (ABSEIL)
     set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES absl::flat_hash_map)
 endif()
 
-include_directories(${PROJECT_SOURCE_DIR}/include)
+option(TESSIL "Use tsl::sparse_map instead of stl::unordered_map" OFF)
+if (TESSIL)
+    message(STATUS "Using tsl::sparse_map instead of stl::unordered_map")
+
+    add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=TESSIL_SPARSE_MAP)
+
+    include(ExternalProject)
+    ExternalProject_Add(
+        tessil
+        GIT_REPOSITORY https://github.com/Tessil/sparse-map.git
+        GIT_TAG v0.6.2
+        SOURCE_DIR "${CMAKE_BINARY_DIR}/tessil-src"
+        BINARY_DIR "${CMAKE_BINARY_DIR}/tessil-bin"
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND ""
+        INSTALL_COMMAND ""
+        UPDATE_COMMAND ""
+    )
+
+    set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "${CMAKE_BINARY_DIR}/tessil-src/include")
+endif()
+
+include_directories(
+    ${PROJECT_SOURCE_DIR}/include
+    ${HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES}
+)
 
 file(GLOB TESTS ${PROJECT_SOURCE_DIR}/tests/*.cpp)
 add_executable(cpp-lru-cache-test ${TESTS})

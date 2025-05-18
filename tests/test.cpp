@@ -7,7 +7,7 @@ static_assert(std::is_constructible_v<guiorgy::lru_cache<int, int, 1>> == true);
 static_assert(std::is_trivially_constructible_v<guiorgy::lru_cache<int, int, 1>> == false);
 #if LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_UNORDERED_MAP
 	static_assert(std::is_nothrow_constructible_v<guiorgy::lru_cache<int, int, 1>> == true);
-#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ABSEIL_FLAT_HASH_MAP
+#elif (LRU_CACHE_HASH_MAP_IMPLEMENTATION == ABSEIL_FLAT_HASH_MAP) || (LRU_CACHE_HASH_MAP_IMPLEMENTATION == TESSIL_SPARSE_MAP)
 	static_assert(std::is_nothrow_constructible_v<guiorgy::lru_cache<int, int, 1>> == false);
 #else
 	#error "Unhandled case of LRU_CACHE_HASH_MAP_IMPLEMENTATION"
@@ -17,7 +17,7 @@ static_assert(std::is_default_constructible_v<guiorgy::lru_cache<int, int, 1>> =
 static_assert(std::is_trivially_default_constructible_v<guiorgy::lru_cache<int, int, 1>> == false);
 #if LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_UNORDERED_MAP
 	static_assert(std::is_nothrow_default_constructible_v<guiorgy::lru_cache<int, int, 1>> == true);
-#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ABSEIL_FLAT_HASH_MAP
+#elif (LRU_CACHE_HASH_MAP_IMPLEMENTATION == ABSEIL_FLAT_HASH_MAP) || (LRU_CACHE_HASH_MAP_IMPLEMENTATION == TESSIL_SPARSE_MAP)
 	static_assert(std::is_nothrow_default_constructible_v<guiorgy::lru_cache<int, int, 1>> == false);
 #else
 	#error "Unhandled case of LRU_CACHE_HASH_MAP_IMPLEMENTATION"
