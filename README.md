@@ -71,3 +71,12 @@ make test
 # make sanitize
 # ./full-test.sh
 ```
+
+### TODO
+
+- Add [gtl::parallel_flat_hash_map](https://github.com/greg7mdp/gtl)
+- Add [folly::F14ValueMap](https://github.com/facebook/folly)
+- Add [emhash8::HashMap](https://github.com/ktprime/emhash)
+- Make it possible to pass a custom map container as a template parameter (as long as it has STL-like APIs that we need)
+- More tests
+- Benchmarks
