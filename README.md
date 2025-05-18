@@ -54,6 +54,8 @@ To switch to the desired implementation, set the `LRU_CACHE_HASH_MAP_IMPLEMENTAT
     #include "lrucache.hpp"
     ```
 
+To decide which implementation to use, check out the amazing round of [benchmarks](https://martin.ankerl.com/2022/08/27/hashmap-bench-01/) for many map implementations done by Martin Leitner-Ankerl.
+
 ### How to run tests
 
 ```shell
