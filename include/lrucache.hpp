@@ -921,7 +921,7 @@ namespace guiorgy {
 
 			// See remove_node for details.
 			T& _erase_value_at(const index_t position) {
-				return remove_node(position);
+				return remove_node(position).value;
 			}
 
 			// See move_node_to_front for details.
