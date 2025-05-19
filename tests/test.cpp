@@ -108,19 +108,19 @@ TEST(CacheTest2, KeepsAllValuesWithinCapacity) {
 }
 
 TEST(CacheTest2, HandlesOverwrites) {
-	constexpr int test_capacity = 50;
+	constexpr int record_count = 50;
 
-	guiorgy::lru_cache<int, int, test_capacity> cache_lru;
+	guiorgy::lru_cache<int, int, record_count> cache_lru;
 
-	for (int i = 0; i < test_capacity; ++i) {
+	for (int i = 0; i < record_count; ++i) {
 		cache_lru.put(i, i);
 	}
 
-	for (int i = 0; i < test_capacity; ++i) {
+	for (int i = 0; i < record_count; ++i) {
 		cache_lru.put(i, -i);
 	}
 
-	for (int i = 0; i < test_capacity; ++i) {
+	for (int i = 0; i < record_count; ++i) {
 		EXPECT_TRUE(cache_lru.exists(i));
 
 		auto cached = cache_lru.get(i);
@@ -129,27 +129,27 @@ TEST(CacheTest2, HandlesOverwrites) {
 	}
 
 	size_t size = cache_lru.size();
-	EXPECT_EQ(test_capacity, size);
+	EXPECT_EQ(record_count, size);
 }
 
 TEST(CacheTest3, HandlesRemovals) {
-	constexpr int test_capacity = 50;
+	constexpr int record_count = 50;
 
-	guiorgy::lru_cache<int, int, test_capacity> cache_lru;
+	guiorgy::lru_cache<int, int, record_count> cache_lru;
 
-	for (int i = 0; i < test_capacity; ++i) {
+	for (int i = 0; i < record_count; ++i) {
 		cache_lru.put(i, i);
 	}
 
-	for (int i = 0; i < test_capacity / 2; ++i) {
+	for (int i = 0; i < record_count / 2; ++i) {
 		cache_lru.remove(i);
 	}
 
-	for (int i = 0; i < test_capacity / 2; ++i) {
+	for (int i = 0; i < record_count / 2; ++i) {
 		EXPECT_FALSE(cache_lru.exists(i));
 	}
 
-	for (int i = test_capacity / 2 + 1; i < test_capacity; ++i) {
+	for (int i = record_count / 2 + 1; i < record_count; ++i) {
 		EXPECT_TRUE(cache_lru.exists(i));
 
 		auto cached = cache_lru.get(i);
@@ -158,27 +158,27 @@ TEST(CacheTest3, HandlesRemovals) {
 	}
 
 	size_t size = cache_lru.size();
-	EXPECT_EQ(test_capacity / 2, size);
+	EXPECT_EQ(record_count / 2, size);
 }
 
 TEST(CacheTest3, HandlesPutsAfterRemoval) {
-	constexpr int test_capacity = 50;
+	constexpr int record_count = 50;
 
-	guiorgy::lru_cache<int, int, test_capacity> cache_lru;
+	guiorgy::lru_cache<int, int, record_count> cache_lru;
 
-	for (int i = 0; i < test_capacity; ++i) {
+	for (int i = 0; i < record_count; ++i) {
 		cache_lru.put(i, i);
 	}
 
-	for (int i = 0; i < test_capacity / 2; ++i) {
+	for (int i = 0; i < record_count / 2; ++i) {
 		cache_lru.remove(i);
 	}
 
-	for (int i = test_capacity; i < 2 * test_capacity; ++i) {
+	for (int i = record_count; i < 2 * record_count; ++i) {
 		cache_lru.put(i, i);
 	}
 
-	for (int i = test_capacity; i < 2 * test_capacity; ++i) {
+	for (int i = record_count; i < 2 * record_count; ++i) {
 		EXPECT_TRUE(cache_lru.exists(i));
 
 		auto cached = cache_lru.get(i);
@@ -187,7 +187,7 @@ TEST(CacheTest3, HandlesPutsAfterRemoval) {
 	}
 
 	size_t size = cache_lru.size();
-	EXPECT_EQ(test_capacity, size);
+	EXPECT_EQ(record_count, size);
 }
 
 int main(int argc, char **argv) {
