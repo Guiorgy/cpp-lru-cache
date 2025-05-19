@@ -190,6 +190,102 @@ TEST(CacheTest3, HandlesPutsAfterRemoval) {
 	EXPECT_EQ(record_count, size);
 }
 
+#ifndef SKIP_ALLOCATION_TESTS
+#include <cstdlib>
+#include <atomic>
+#include <new>
+
+static std::atomic<std::size_t> allocation_count = 0u;
+static std::atomic<std::size_t> allocated_bytes = 0u;
+
+static inline void reset_allocation_count() noexcept {
+	allocation_count.store(0u);
+	allocated_bytes.store(0u);
+}
+
+#define EXPECT_NO_ALLOC() \
+	do { EXPECT_EQ(0u, allocation_count.load()); EXPECT_EQ(0u, allocated_bytes.load()); } while (false)
+
+#define EXPECT_ALLOC_COUNT(expected_count) \
+	do { EXPECT_EQ(expected_count, allocation_count.load()); } while (false)
+
+#define EXPECT_ALLOC_COUNT_AND_BYTES(expected_count, expected_bytes) \
+	do { EXPECT_EQ(expected_count, allocation_count.load()); EXPECT_EQ(expected_bytes, allocated_bytes.load()); } while (false)
+
+#define GET_EXPECT_ALLOC_MACRO(_1, _2, NAME, ...) NAME
+
+#define EXPECT_ALLOC(...) \
+	GET_EXPECT_ALLOC_MACRO(__VA_ARGS__, EXPECT_ALLOC_COUNT_AND_BYTES, EXPECT_ALLOC_COUNT)(__VA_ARGS__)
+
+void* operator new(std::size_t size) {
+	++allocation_count;
+	allocated_bytes += size;
+	return std::malloc(size);
+}
+
+void operator delete(void* ptr) noexcept {
+	std::free(ptr);
+}
+
+void operator delete(void* ptr, std::size_t) noexcept {
+	std::free(ptr);
+}
+
+void* operator new[](std::size_t size) {
+	++allocation_count;
+	allocated_bytes += size;
+	return std::malloc(size);
+}
+
+void operator delete[](void* ptr) noexcept {
+	std::free(ptr);
+}
+
+void operator delete[](void* ptr, std::size_t) noexcept {
+	std::free(ptr);
+}
+
+TEST(AllocationCountingTest, NewAllocationAccounted) {
+	reset_allocation_count();
+	int* i_ptr = new int;
+	*i_ptr = -1;
+	EXPECT_EQ(-1, *i_ptr);
+	EXPECT_ALLOC(1, sizeof(int));
+	delete i_ptr;
+}
+
+TEST(AllocationCountingTest, GlobalNewAllocationAccounted) {
+	reset_allocation_count();
+	int* i_ptr = ::new int;
+	*i_ptr = -1;
+	EXPECT_EQ(-1, *i_ptr);
+	EXPECT_ALLOC(1, sizeof(int));
+	delete i_ptr;
+}
+
+TEST(AllocationCountingTest, NewArrayAllocationAccounted) {
+	constexpr int size = 50;
+
+	reset_allocation_count();
+	int* i_ptr = new int[size];
+	i_ptr[0] = -1;
+	EXPECT_EQ(-1, i_ptr[0]);
+	EXPECT_ALLOC(1, sizeof(int) * size);
+	delete i_ptr;
+}
+
+TEST(AllocationCountingTest, GlobalNewArrayAllocationAccounted) {
+	constexpr int size = 50;
+
+	reset_allocation_count();
+	int* i_ptr = ::new int[size];
+	i_ptr[0] = -1;
+	EXPECT_EQ(-1, i_ptr[0]);
+	EXPECT_ALLOC(1, sizeof(int) * size);
+	delete i_ptr;
+}
+#endif // SKIP_ALLOCATION_TESTS
+
 int main(int argc, char **argv) {
 #ifdef NDEBUG
 	std::cout << "Running tets in Release configuration\n";

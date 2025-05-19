@@ -149,6 +149,15 @@ endif()
 
 find_program(VALGRIND_EXECUTABLE valgrind)
 if(VALGRIND_EXECUTABLE)
+    add_executable(cpp-lru-cache-test-sanitize ${TESTS})
+    target_compile_definitions(cpp-lru-cache-test-sanitize PRIVATE SKIP_ALLOCATION_TESTS)
+
+    target_link_libraries(
+        cpp-lru-cache-test-sanitize
+        ${HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES}
+        gtest gtest_main
+    )
+
     add_compile_options(
         -fsanitize=address -fsanitize-address-use-after-scope
         -fsanitize=leak
@@ -168,9 +177,9 @@ if(VALGRIND_EXECUTABLE)
 
     add_custom_target(
         sanitize
-        COMMAND ${VALGRIND_EXECUTABLE} --verbose --tool=memcheck --leak-check=full --leak-resolution=high --show-leak-kinds=all --track-origins=yes --show-error-list=yes --error-exitcode=1 "$<TARGET_FILE:cpp-lru-cache-test>" --verbose --gtest_color=yes
+        COMMAND ${VALGRIND_EXECUTABLE} --verbose --tool=memcheck --leak-check=full --leak-resolution=high --show-leak-kinds=all --track-origins=yes --show-error-list=yes --error-exitcode=1 "$<TARGET_FILE:cpp-lru-cache-test-sanitize>" --verbose --gtest_color=yes
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        DEPENDS cpp-lru-cache-test
+        DEPENDS cpp-lru-cache-test-sanitize
         USES_TERMINAL
         VERBATIM
     )
