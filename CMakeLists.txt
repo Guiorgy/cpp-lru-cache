@@ -7,7 +7,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g3 -fno-omit-frame-pointer")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -g -flto=auto -DNDEBUG")
-add_compile_definitions(LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION)
 set(CMAKE_LINK_FLAGS_RELEASE "${CMAKE_LINK_FLAGS_RELEASE} -flto=auto")
 
 include(FetchContent)
@@ -115,9 +114,10 @@ endif()
 include_directories(
     ${PROJECT_SOURCE_DIR}/include
     ${HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES}
+    ${PROJECT_SOURCE_DIR}/tests/include
 )
 
-file(GLOB TESTS ${PROJECT_SOURCE_DIR}/tests/*.cpp)
+file(GLOB_RECURSE TESTS ${PROJECT_SOURCE_DIR}/tests/*.cpp)
 add_executable(cpp-lru-cache-test ${TESTS})
 
 target_link_libraries(
