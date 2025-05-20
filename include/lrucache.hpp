@@ -40,7 +40,7 @@ public:
 
 		_cache_items_map.reserve(_cache_items_list.size());
 		for (list_iterator_t it = _cache_items_list.begin(); it != _cache_items_list.end(); ++it) {
-			_cache_items_map[it->first] = it;
+			_cache_items_map.emplace_hint(_cache_items_map.end(), it->first, it);
 		}
 	}
 	lru_cache(lru_cache&&) = default;
@@ -49,7 +49,7 @@ public:
 
 		_cache_items_map.reserve(_cache_items_list.size());
 		for (list_iterator_t it = _cache_items_list.begin(); it != _cache_items_list.end(); ++it) {
-			_cache_items_map[it->first] = it;
+			_cache_items_map.emplace_hint(_cache_items_map.end(), it->first, it);
 		}
 
 		return *this;
@@ -64,7 +64,7 @@ private:
 			_cache_items_list.erase(it->second);
 			it->second = _cache_items_list.begin();
 		} else {
-			_cache_items_map[key] = _cache_items_list.begin();
+			_cache_items_map.emplace_hint(it, key, _cache_items_list.begin());
 		}
 
 		if (_cache_items_map.size() > max_size) {
