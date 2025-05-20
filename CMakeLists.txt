@@ -76,20 +76,15 @@ if (TESSIL)
 
         add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=TESSIL_SPARSE_MAP)
 
-        include(ExternalProject)
-        ExternalProject_Add(
+        FetchContent_Declare(
             tessil
             GIT_REPOSITORY https://github.com/Tessil/sparse-map.git
             GIT_TAG v0.6.2
-            SOURCE_DIR "${CMAKE_BINARY_DIR}/tessil-src"
-            BINARY_DIR "${CMAKE_BINARY_DIR}/tessil-bin"
-            CONFIGURE_COMMAND ""
-            BUILD_COMMAND ""
-            INSTALL_COMMAND ""
-            UPDATE_COMMAND ""
+            SYSTEM
         )
+        FetchContent_Populate(tessil)
 
-        set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "${CMAKE_BINARY_DIR}/tessil-src/include")
+        set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "${tessil_SOURCE_DIR}/include")
     endif()
 
     list(APPEND HASH_MAP_IMPLEMENTATION_OPTIONS_ON TESSIL)
