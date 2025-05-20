@@ -148,16 +148,16 @@ namespace guiorgy {
 		// Determine the smallest unsigned integer type that can fit the specified value.
 		template <const std::size_t max_value>
 		struct uint_fit final {
-			static_assert(max_value >= 0ull, "std::size_t is less than 0?!");
+			static_assert(max_value >= 0u, "std::size_t is less than 0?!");
 
 			using type = std::conditional_t<
-				max_value <= 255ull,
+				max_value <= 255u,
 				std::uint8_t,
 				std::conditional_t<
-					max_value <= 65'535ull,
+					max_value <= 65'535u,
 					std::uint16_t,
 					std::conditional_t<
-						max_value <= 4'294'967'295ull,
+						max_value <= 4'294'967'295u,
 						std::uint32_t,
 						std::uint64_t
 					>
@@ -175,14 +175,16 @@ namespace guiorgy {
 		//   - The size limitation is not enforced within the container, the user must ensure that this condition is not violated.
 		template<typename T, typename index_t = std::size_t>
 		class vector_set final {
-			std::vector<T> set;
+			std::vector<T> set{};
 			index_t head = 0u;
 			index_t tail = 0u;
 			bool _empty = true;
 
 			// Returns the index of the next element to take.
 			index_t next_index(const index_t index) const noexcept {
-				return (std::size_t)index + 1u < set.size() ? index + 1u : 0u;
+				assert(index < std::numeric_limits<index_t>::max());
+
+				return static_cast<index_t>(static_cast<std::size_t>(index) + 1u < set.size() ? index + 1u : 0u);
 			}
 
 		public:
@@ -203,7 +205,7 @@ namespace guiorgy {
 				if (_empty) {
 					return 0u;
 				} else {
-					return tail <= head ? (std::size_t)head - tail + 1u : (std::size_t)head + 1u + (set.size() - tail);
+					return tail <= head ? static_cast<std::size_t>(head) - tail + 1u : static_cast<std::size_t>(head) + 1u + (set.size() - tail);
 				}
 			}
 
@@ -294,29 +296,31 @@ namespace guiorgy {
 			// This assumes T is an unsigned integer.
 			// Only meant to be used by vector_list.
 			void _clear_and_fill_range(const std::size_t count) {
-				if (count == 0) {
+				if (count == 0u) {
 					clear();
 					return;
 				}
 
+				assert(count - 1u <= std::numeric_limits<T>::max());
+
 				const std::size_t _size = set.size();
 				if (count <= _size) {
 					for (std::size_t i = 0u; i < count; ++i) {
-						set[i] = i;
+						set[i] = static_cast<T>(i);
 					}
 				} else {
 					reserve(count);
 
 					for (std::size_t i = 0u; i < _size; ++i) {
-						set[i] = i;
+						set[i] = static_cast<T>(i);
 					}
 					for (std::size_t i = _size; i < count; ++i) {
-						set.push_back(i);
+						set.push_back(static_cast<T>(i));
 					}
 				}
 
 				tail = 0u;
-				head = count - 1u;
+				head = static_cast<T>(count - 1u);
 			}
 		};
 
@@ -342,29 +346,29 @@ namespace guiorgy {
 				bool removed; // For debug assertions to check the correctness of the list.
 #endif
 
-				list_node(const T& value, const index_t prior, const index_t next) :
-					value(value),
-					prior(prior),
-					next(next)
+				list_node(const T& _value, const index_t _prior, const index_t _next) :
+					value(_value),
+					prior(_prior),
+					next(_next)
 #ifndef NDEBUG
 					, removed(false)
 #endif
 					{}
 
-				list_node(T&& value, const index_t prior, const index_t next) :
-					value(std::move(value)),
-					prior(prior),
-					next(next)
+				list_node(T&& _value, const index_t _prior, const index_t _next) :
+					value(std::move(_value)),
+					prior(_prior),
+					next(_next)
 #ifndef NDEBUG
 					, removed(false)
 #endif
 					{}
 
 				template<typename... ValueArgs>
-				list_node(const index_t prior, const index_t next, ValueArgs&&... value_args) :
+				list_node(const index_t _prior, const index_t _next, ValueArgs&&... value_args) :
 					value(std::forward<ValueArgs>(value_args)...),
-					prior(prior),
-					next(next)
+					prior(_prior),
+					next(_next)
 #ifndef NDEBUG
 					, removed(false)
 #endif
@@ -396,10 +400,10 @@ namespace guiorgy {
 			using const_reverse_iterator = _iterator<true, true>;
 
 		private:
-			std::vector<list_node> list;
+			std::vector<list_node> list{};
 			index_t head = null_index;
 			index_t tail = null_index;
-			vector_set<index_t, index_t> free_indices;
+			vector_set<index_t, index_t> free_indices{};
 
 			// Returns a reference to the node at the specified location.
 			list_node& get_node(const index_t at) {
@@ -586,9 +590,12 @@ namespace guiorgy {
 					head = index;
 					if (tail == null_index) tail = head;
 				} else {
-					if (head != null_index) list[head].next = list.size();
+					assert(list.size() <= std::numeric_limits<index_t>::max());
+					index_t list_size = static_cast<index_t>(list.size());
+
+					if (head != null_index) list[head].next = list_size;
 					index_t prior = head;
-					head = list.size();
+					head = list_size;
 					if (tail == null_index) tail = head;
 
 					list.emplace_back(value, prior, null_index);
@@ -615,9 +622,12 @@ namespace guiorgy {
 					head = index;
 					if (tail == null_index) tail = head;
 				} else {
-					if (head != null_index) list[head].next = list.size();
+					assert(list.size() <= std::numeric_limits<index_t>::max());
+					index_t list_size = static_cast<index_t>(list.size());
+
+					if (head != null_index) list[head].next = list_size;
 					index_t prior = head;
-					head = list.size();
+					head = list_size;
 					if (tail == null_index) tail = head;
 
 					list.emplace_back(std::move(value), prior, null_index);
@@ -649,9 +659,12 @@ namespace guiorgy {
 
 					return value;
 				} else {
-					if (head != null_index) list[head].next = list.size();
+					assert(list.size() <= std::numeric_limits<index_t>::max());
+					index_t list_size = static_cast<index_t>(list.size());
+
+					if (head != null_index) list[head].next = list_size;
 					index_t prior = head;
-					head = list.size();
+					head = list_size;
 					if (tail == null_index) tail = head;
 
 					return list.emplace_back(prior, null_index, std::forward<ValueArgs>(value_args)...).value;
@@ -678,9 +691,12 @@ namespace guiorgy {
 					tail = index;
 					if (head == null_index) head = tail;
 				} else {
-					if (tail != null_index) list[tail].prior = list.size();
+					assert(list.size() <= std::numeric_limits<index_t>::max());
+					index_t list_size = static_cast<index_t>(list.size());
+
+					if (tail != null_index) list[tail].prior = list_size;
 					index_t next = tail;
-					tail = list.size();
+					tail = list_size;
 					if (head == null_index) head = tail;
 
 					list.emplace_back(value, null_index, next);
@@ -707,9 +723,12 @@ namespace guiorgy {
 					tail = index;
 					if (head == null_index) head = tail;
 				} else {
-					if (tail != null_index) list[tail].prior = list.size();
+					assert(list.size() <= std::numeric_limits<index_t>::max());
+					index_t list_size = static_cast<index_t>(list.size());
+
+					if (tail != null_index) list[tail].prior = list_size;
 					index_t next = tail;
-					tail = list.size();
+					tail = list_size;
 					if (head == null_index) head = tail;
 
 					list.emplace_back(std::move(value), null_index, next);
@@ -741,9 +760,12 @@ namespace guiorgy {
 
 					return value;
 				} else {
-					if (tail != null_index) list[tail].prior = list.size();
+					assert(list.size() <= std::numeric_limits<index_t>::max());
+					index_t list_size = static_cast<index_t>(list.size());
+
+					if (tail != null_index) list[tail].prior = list_size;
 					index_t next = tail;
-					tail = list.size();
+					tail = list_size;
 					if (head == null_index) head = tail;
 
 					return list.emplace_back(null_index, next, std::forward<ValueArgs>(value_args)...).value;
@@ -924,7 +946,7 @@ namespace guiorgy {
 				const vector_list<T, max_size>& list;
 				index_t current_index;
 
-				_iterator(const vector_list<T, max_size>& list, const index_t index) : list(list), current_index(index) {}
+				_iterator(const vector_list<T, max_size>& _list, const index_t _index) : list(_list), current_index(_index) {}
 
 			public:
 				// Copy constructor from (reverse_)iterator to const_(reverse_)iterator.
@@ -1178,8 +1200,8 @@ namespace guiorgy {
 			using const_reverse_iterator = typename vector_list<key_value_pair_t, max_size>::const_reverse_iterator;
 
 		protected:
-			vector_list<key_value_pair_t, max_size> _cache_items_list;
-			map_t<key_t, list_index_t> _cache_items_map;
+			vector_list<key_value_pair_t, max_size> _cache_items_list{};
+			map_t<key_t, list_index_t> _cache_items_map{};
 		};
 
 		// The base class of lru_cache that defines the default constructors, destructor and assignments.

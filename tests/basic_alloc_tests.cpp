@@ -30,7 +30,7 @@ TEST(TEST_GROUP, NewArrayAllocationAccounted) {
 	i_ptr[0] = -1;
 	EXPECT_EQ(-1, i_ptr[0]);
 	EXPECT_ALLOC(1, sizeof(int) * size);
-	delete i_ptr;
+	delete[] i_ptr;
 }
 
 TEST(TEST_GROUP, GlobalNewArrayAllocationAccounted) {
@@ -41,6 +41,6 @@ TEST(TEST_GROUP, GlobalNewArrayAllocationAccounted) {
 	i_ptr[0] = -1;
 	EXPECT_EQ(-1, i_ptr[0]);
 	EXPECT_ALLOC(1, sizeof(int) * size);
-	delete i_ptr;
+	delete[] i_ptr;
 }
 #endif // SKIP_ALLOCATION_TESTS
