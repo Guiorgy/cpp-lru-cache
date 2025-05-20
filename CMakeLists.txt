@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11...3.29)
+cmake_minimum_required(VERSION 3.14...3.29)
 
 project(CPP-LRU-CACHE-TEST LANGUAGES CXX)
 
