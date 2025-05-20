@@ -64,4 +64,5 @@ cmake ..
 # cmake -DCMAKE_BUILD_TYPE=Debug -DABSEIL=OFF -DTESSIL=OFF -DANKERL=OFF -DANKERL_SEG=OFF ..
 make test
 # make sanitize
+# ./full-test.sh
 ```

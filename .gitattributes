@@ -1,0 +1,2 @@
+# Force Unix style LF line endings on shell scripts meant to be run on a Unix system
+full-test.sh text eol=lf
