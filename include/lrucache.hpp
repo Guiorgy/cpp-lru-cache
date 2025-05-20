@@ -352,9 +352,9 @@ namespace guiorgy {
 					{}
 
 				list_node(T&& value, const index_t prior, const index_t next) :
-					value(value),
+					value(std::move(value)),
 					prior(prior),
-					next(std::move(next))
+					next(next)
 #ifndef NDEBUG
 					, removed(false)
 #endif
@@ -364,7 +364,7 @@ namespace guiorgy {
 				list_node(const index_t prior, const index_t next, ValueArgs&&... value_args) :
 					value(std::forward<ValueArgs>(value_args)...),
 					prior(prior),
-					next(std::move(next))
+					next(next)
 #ifndef NDEBUG
 					, removed(false)
 #endif
