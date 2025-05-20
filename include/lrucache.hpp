@@ -1095,6 +1095,67 @@ namespace guiorgy {
 			}
 		};
 
+		// SFINAE to check if the specified type is a std::pair.
+		// The template returned when matching fails.
+		template<typename, typename = void>
+		struct is_pair : std::false_type {};
+		// The template returned when matching succeeds.
+		template<typename T>
+		struct is_pair<
+			T,
+			std::void_t<
+				typename T::first_type,
+				typename T::second_type
+			>
+		> final : std::is_same<T, std::pair<typename T::first_type, typename T::second_type>> {};
+		// Helper for is_pair.
+		template<typename T>
+		inline constexpr bool is_pair_v = is_pair<T>::value;
+
+		// SFINAE to check if the specified type has an emplace_hint member function similar to std::unordered_map.
+		// The template returned when matching fails.
+		template<typename, typename = void>
+		struct has_emplace_hint final : std::false_type {};
+		// The template returned when matching succeeds.
+		template<typename T>
+		struct has_emplace_hint<
+			T,
+			std::void_t<
+				decltype(
+					std::declval<T&>().emplace_hint(
+						std::declval<typename T::const_iterator>(),
+						std::declval<typename T::key_type&&>(),
+						std::declval<typename T::mapped_type&&>()
+					)
+				)
+			>
+		> final : std::true_type {};
+		// Helper for has_emplace_hint.
+		template<typename T>
+		inline constexpr bool has_emplace_hint_v = has_emplace_hint<T>::value;
+
+		// SFINAE to check if the specified type has an insert member function that takes an iterator hint similar to std::unordered_map.
+		// The template returned when matching fails.
+		template<typename, typename = void>
+		struct has_insert_with_hint final : std::false_type {};
+		// The template returned when matching succeeds.
+		template<typename T>
+		struct has_insert_with_hint<
+			T,
+			std::void_t<
+				typename std::enable_if_t<is_pair_v<typename T::value_type>>,
+				decltype(
+					std::declval<T&>().insert(
+						std::declval<typename T::iterator>(),
+						std::declval<typename T::value_type&&>()
+					)
+				)
+			>
+		> final : std::true_type {};
+		// Helper for has_insert_with_hint.
+		template<typename T>
+		inline constexpr bool has_insert_with_hint_v = has_insert_with_hint<T>::value;
+
 		// Placeholders to indicate that the underlying hashmap should use its default hash function and key equality predicate.
 		template<typename key_t>
 		class DefaultHashFunction final {};
@@ -1194,6 +1255,9 @@ namespace guiorgy {
 			using key_value_pair_t = std::pair<key_t, value_t>;
 			using list_index_t = typename vector_list<key_value_pair_t, max_size>::index_t;
 			using map_iterator_t = typename map_t<key_t, list_index_t>::iterator;
+
+			static constexpr bool map_has_emplace_hint = has_emplace_hint_v<map_t<key_t, list_index_t>>;
+			static constexpr bool map_has_insert_with_hint = has_insert_with_hint_v<map_t<key_t, list_index_t>>;
 
 		public:
 			using const_iterator = typename vector_list<key_value_pair_t, max_size>::const_iterator;
@@ -1296,7 +1360,13 @@ namespace guiorgy {
 					this->_cache_items_list._move_last_value_to_front();
 				}
 
-				this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
+				if constexpr (this->map_has_emplace_hint) {
+					this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
+				} else if constexpr (this->map_has_insert_with_hint) {
+					this->_cache_items_map.insert(it, std::make_pair(key, this->_cache_items_list._first_value_index()));
+				} else {
+					this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
+				}
 			}
 		}
 
@@ -1321,7 +1391,13 @@ namespace guiorgy {
 					this->_cache_items_list._move_last_value_to_front();
 				}
 
-				this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
+				if constexpr (this->map_has_emplace_hint) {
+					this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
+				} else if constexpr (this->map_has_insert_with_hint) {
+					this->_cache_items_map.insert(it, std::make_pair(key, this->_cache_items_list._first_value_index()));
+				} else {
+					this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
+				}
 			}
 		}
 
@@ -1356,7 +1432,13 @@ namespace guiorgy {
 					value = &last.second;
 				}
 
-				this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
+				if constexpr (this->map_has_emplace_hint) {
+					this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
+				} else if constexpr (this->map_has_insert_with_hint) {
+					this->_cache_items_map.insert(it, std::make_pair(key, this->_cache_items_list._first_value_index()));
+				} else {
+					this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
+				}
 
 				return *value;
 			}
