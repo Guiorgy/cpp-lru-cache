@@ -1,5 +1,7 @@
 #!/bin/sh
 
+cd "$(dirname -- "$0")"
+
 BUILD_TYPES='Debug Release'
 OPTIONS='PMR ABSEIL TESSIL ANKERL ANKERL_SEG'
 
