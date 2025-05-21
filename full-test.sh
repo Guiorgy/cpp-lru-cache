@@ -2,6 +2,18 @@
 
 cd "$(dirname -- "$0")"
 
+if command -v -- unbuffer > /dev/null 2>&1; then
+  UNBUFFER='unbuffer'
+else
+  echo 'Command "unbuffer" not found. Output may not be colored' >&2
+
+  if command -v -- apt > /dev/null 2>&1; then
+    echo 'Try running "sudo apt install -y expect"' >&2
+  fi
+
+  UNBUFFER=''
+fi
+
 BUILD_TYPES='Debug Release'
 HASH_MAP_IMPLEMENTATIONS='STL STL_PMR ABSEIL TESSIL ANKERL ANKERL_SEG'
 
@@ -14,7 +26,7 @@ build_and_run_tests() {
   cd "$build_dir"
 
   echo "Configuring the configuration: $build_type $hm_impl"
-  cmake_output=$(cmake -DCMAKE_BUILD_TYPE=$build_type -DHASH_MAP_IMPLEMENTATION=$hm_impl ../.. 2>&1)
+  cmake_output=$($UNBUFFER cmake -DCMAKE_BUILD_TYPE=$build_type -DHASH_MAP_IMPLEMENTATION=$hm_impl ../.. 2>&1)
   if [ $? -ne 0 ]; then
     echo "$cmake_output"
     echo "CMake configuration failed for the configuration: $build_type $hm_impl"
@@ -22,7 +34,7 @@ build_and_run_tests() {
   fi
 
   echo "Compiling the configuration: $build_type $hm_impl"
-  make_output=$(make -j$(nproc) all 2>&1)
+  make_output=$($UNBUFFER make -j$(nproc) all 2>&1)
   if [ $? -ne 0 ]; then
     echo "$cmake_output"
     echo "$make_output"
@@ -31,7 +43,7 @@ build_and_run_tests() {
   fi
 
   echo "Running tests for the configuration: $build_type $hm_impl"
-  test_output=$(make test 2>&1)
+  test_output=$($UNBUFFER make test 2>&1)
   if [ $? -ne 0 ]; then
     echo "$cmake_output"
     echo "$make_output"
@@ -41,7 +53,7 @@ build_and_run_tests() {
   fi
 
   echo "Running sanitizers for the configuration: $build_type $hm_impl"
-  sanitize_output=$(make sanitize 2>&1)
+  sanitize_output=$($UNBUFFER make sanitize 2>&1)
   if [ $? -ne 0 ]; then
     echo "$cmake_output"
     echo "$make_output"
@@ -62,4 +74,4 @@ for build_type in $BUILD_TYPES; do
   done
 done
 
-echo "All configuration tests passed"
+echo 'All configuration tests passed'
