@@ -140,9 +140,73 @@
 	static_assert(std::is_trivially_move_constructible_v<PREALLOCATE> == false);
 	static_assert(std::is_nothrow_move_constructible_v<PREALLOCATE> == true);
 #elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == TESSIL_ROBIN_MAP
-	#error "TODO"
+	// preallocate = false (default)
+	static_assert(std::is_constructible_v<NO_PREALLOCATE> == true);
+	static_assert(std::is_trivially_constructible_v<NO_PREALLOCATE> == false);
+	static_assert(std::is_nothrow_constructible_v<NO_PREALLOCATE> == false);
+
+	static_assert(std::is_default_constructible_v<NO_PREALLOCATE> == true);
+	static_assert(std::is_trivially_default_constructible_v<NO_PREALLOCATE> == false);
+	static_assert(std::is_nothrow_default_constructible_v<NO_PREALLOCATE> == false);
+
+	static_assert(std::is_copy_constructible_v<NO_PREALLOCATE> == true);
+	static_assert(std::is_trivially_copy_constructible_v<NO_PREALLOCATE> == false);
+	static_assert(std::is_nothrow_copy_constructible_v<NO_PREALLOCATE> == false);
+
+	static_assert(std::is_move_constructible_v<NO_PREALLOCATE> == true);
+	static_assert(std::is_trivially_move_constructible_v<NO_PREALLOCATE> == false);
+	static_assert(std::is_nothrow_move_constructible_v<NO_PREALLOCATE> == true);
+
+	// preallocate = true
+	static_assert(std::is_constructible_v<PREALLOCATE> == true);
+	static_assert(std::is_trivially_constructible_v<PREALLOCATE> == false);
+	static_assert(std::is_nothrow_constructible_v<PREALLOCATE> == false);
+
+	static_assert(std::is_default_constructible_v<PREALLOCATE> == true);
+	static_assert(std::is_trivially_default_constructible_v<PREALLOCATE> == false);
+	static_assert(std::is_nothrow_default_constructible_v<PREALLOCATE> == false);
+
+	static_assert(std::is_copy_constructible_v<PREALLOCATE> == true);
+	static_assert(std::is_trivially_copy_constructible_v<PREALLOCATE> == false);
+	static_assert(std::is_nothrow_copy_constructible_v<PREALLOCATE> == false);
+
+	static_assert(std::is_move_constructible_v<PREALLOCATE> == true);
+	static_assert(std::is_trivially_move_constructible_v<PREALLOCATE> == false);
+	static_assert(std::is_nothrow_move_constructible_v<PREALLOCATE> == true);
 #elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == TESSIL_HOPSCOTCH_MAP
-	#error "TODO"
+	// preallocate = false (default)
+	static_assert(std::is_constructible_v<NO_PREALLOCATE> == true);
+	static_assert(std::is_trivially_constructible_v<NO_PREALLOCATE> == false);
+	static_assert(std::is_nothrow_constructible_v<NO_PREALLOCATE> == false);
+
+	static_assert(std::is_default_constructible_v<NO_PREALLOCATE> == true);
+	static_assert(std::is_trivially_default_constructible_v<NO_PREALLOCATE> == false);
+	static_assert(std::is_nothrow_default_constructible_v<NO_PREALLOCATE> == false);
+
+	static_assert(std::is_copy_constructible_v<NO_PREALLOCATE> == true);
+	static_assert(std::is_trivially_copy_constructible_v<NO_PREALLOCATE> == false);
+	static_assert(std::is_nothrow_copy_constructible_v<NO_PREALLOCATE> == false);
+
+	static_assert(std::is_move_constructible_v<NO_PREALLOCATE> == true);
+	static_assert(std::is_trivially_move_constructible_v<NO_PREALLOCATE> == false);
+	static_assert(std::is_nothrow_move_constructible_v<NO_PREALLOCATE> == true);
+
+	// preallocate = true
+	static_assert(std::is_constructible_v<PREALLOCATE> == true);
+	static_assert(std::is_trivially_constructible_v<PREALLOCATE> == false);
+	static_assert(std::is_nothrow_constructible_v<PREALLOCATE> == false);
+
+	static_assert(std::is_default_constructible_v<PREALLOCATE> == true);
+	static_assert(std::is_trivially_default_constructible_v<PREALLOCATE> == false);
+	static_assert(std::is_nothrow_default_constructible_v<PREALLOCATE> == false);
+
+	static_assert(std::is_copy_constructible_v<PREALLOCATE> == true);
+	static_assert(std::is_trivially_copy_constructible_v<PREALLOCATE> == false);
+	static_assert(std::is_nothrow_copy_constructible_v<PREALLOCATE> == false);
+
+	static_assert(std::is_move_constructible_v<PREALLOCATE> == true);
+	static_assert(std::is_trivially_move_constructible_v<PREALLOCATE> == false);
+	static_assert(std::is_nothrow_move_constructible_v<PREALLOCATE> == true);
 #elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ANKERL_UNORDERED_DENSE_MAP
 	// preallocate = false (default)
 	static_assert(std::is_constructible_v<NO_PREALLOCATE> == true);

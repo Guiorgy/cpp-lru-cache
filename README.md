@@ -35,11 +35,14 @@ const std::string& from_cache_2 = cache.get_ref("two")->get();
 
 The underlying hashmap implementation can be changed from the default STL `std::unordered_map` to the following:
 
-- [STL (default)](https://en.cppreference.com/w/cpp/container/unordered_map) `std::unordered_map` (`STL_UNORDERED_MAP`)
+- [STL](https://en.cppreference.com/w/cpp/container/unordered_map) `std::unordered_map` (`STL_UNORDERED_MAP`)
 - [STL std::pmr](https://en.cppreference.com/w/cpp/container/unordered_map) `std::pmr::unordered_map` (`STL_PMR_UNORDERED_MAP`)
 - [Abseil](https://github.com/abseil/abseil-cpp) `absl::flat_hash_map` (`ABSEIL_FLAT_HASH_MAP`)
-- [Tessil](https://github.com/Tessil/sparse-map) `tsl::sparse_map` (`TESSIL_SPARSE_MAP`)
-- [Ankerl](https://github.com/martinus/unordered_dense) `ankerl::unordered_dense::map` (`ANKERL_UNORDERED_DENSE_MAP`) and `ankerl::unordered_dense::segmented_map` (`ANKERL_UNORDERED_DENSE_SEGMENTED_MAP`)
+- [Tessil Sparse](https://github.com/Tessil/sparse-map) `tsl::sparse_map` (`TESSIL_SPARSE_MAP`)
+- [Tessil Robin](https://github.com/Tessil/sparse-map) `tsl::robin_map` (`TESSIL_ROBIN_MAP`)
+- [Tessil Hopscotch](https://github.com/Tessil/sparse-map) `tsl::hopscotch_map` (`TESSIL_HOPSCOTCH_MAP`)
+- [Ankerl](https://github.com/martinus/unordered_dense) `ankerl::unordered_dense::map` (`ANKERL_UNORDERED_DENSE_MAP`)
+- [Ankerl Segmented](https://github.com/martinus/unordered_dense) `ankerl::unordered_dense::segmented_map` (`ANKERL_UNORDERED_DENSE_SEGMENTED_MAP`)
 
 To switch to the desired implementation, set the `LRU_CACHE_HASH_MAP_IMPLEMENTATION` compiler definition to the desired value. For example:
 
@@ -63,7 +66,7 @@ To decide which implementation to use, check out the amazing round of [benchmark
 ```shell
 cd build
 cmake ..
-# cmake -DCMAKE_BUILD_TYPE=Debug -DHASH_MAP_IMPLEMENTATION=STL|STL_PMR|ABSEIL|TESSIL|ANKERL|ANKERL_SEG ..
+# cmake -DCMAKE_BUILD_TYPE=Debug -DHASH_MAP_IMPLEMENTATION=STL|STL_PMR|ABSEIL|TESSIL_SPARSE|TESSIL_ROBIN|TESSIL_HOP|ANKERL|ANKERL_SEG ..
 make test
 # make sanitize
 # ./full-test.sh

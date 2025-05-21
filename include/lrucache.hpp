@@ -1410,7 +1410,7 @@ namespace guiorgy {
 	//     - lru_cache is not move constructible.
 	//     - lru_cache is not trivially move constructible.
 	//     - lru_cache is not nothrow move constructible.
-	//   - When using absl::flat_hash_map, tsl::sparse_map, ankerl::unordered_dense::map or ankerl::unordered_dense::segmented_map:
+	//   - When using absl::flat_hash_map, tsl::sparse_map, tsl::robin_map, tsl::hopscotch_map, ankerl::unordered_dense::map or ankerl::unordered_dense::segmented_map:
 	//     - lru_cache is default constructible.
 	//     - lru_cache is not trivially (default) constructible.
 	//     - lru_cache is not nothrow (default) constructible.

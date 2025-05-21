@@ -71,20 +71,48 @@ elseif (HASH_MAP_IMPLEMENTATION STREQUAL "ABSEIL")
     FetchContent_MakeAvailable(abseil)
 
     set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES absl::flat_hash_map)
-elseif (HASH_MAP_IMPLEMENTATION STREQUAL "TESSIL")
+elseif (HASH_MAP_IMPLEMENTATION STREQUAL "TESSIL_SPARSE")
     message(STATUS "Using tsl::sparse_map as the hashmap implementation")
 
     add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=TESSIL_SPARSE_MAP)
 
     FetchContent_Declare(
-        tessil
+        tessil-sparse
         GIT_REPOSITORY https://github.com/Tessil/sparse-map.git
         GIT_TAG v0.6.2
         SYSTEM
     )
-    FetchContent_Populate(tessil)
+    FetchContent_Populate(tessil-sparse)
 
-    set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "${tessil_SOURCE_DIR}/include")
+    set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "${tessil-sparse_SOURCE_DIR}/include")
+elseif (HASH_MAP_IMPLEMENTATION STREQUAL "TESSIL_ROBIN")
+    message(STATUS "Using tsl::robin_map as the hashmap implementation")
+
+    add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=TESSIL_ROBIN_MAP)
+
+    FetchContent_Declare(
+        tessil-robin
+        GIT_REPOSITORY https://github.com/Tessil/robin-map.git
+        GIT_TAG v1.4.0
+        SYSTEM
+    )
+    FetchContent_Populate(tessil-robin)
+
+    set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "${tessil-robin_SOURCE_DIR}/include")
+elseif (HASH_MAP_IMPLEMENTATION STREQUAL "TESSIL_HOP")
+    message(STATUS "Using tsl::hopscotch_map as the hashmap implementation")
+
+    add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=TESSIL_HOPSCOTCH_MAP)
+
+    FetchContent_Declare(
+        tessil-hopscotch
+        GIT_REPOSITORY https://github.com/Tessil/hopscotch-map.git
+        GIT_TAG v2.3.1
+        SYSTEM
+    )
+    FetchContent_Populate(tessil-hopscotch)
+
+    set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "${tessil-hopscotch_SOURCE_DIR}/include")
 elseif (HASH_MAP_IMPLEMENTATION STREQUAL "ANKERL" OR HASH_MAP_IMPLEMENTATION STREQUAL "ANKERL_SEG")
     if (HASH_MAP_IMPLEMENTATION STREQUAL "ANKERL")
         message(STATUS "Using ankerl::unordered_dense::map as the hashmap implementation")
