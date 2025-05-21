@@ -2,7 +2,7 @@
 
 > ⚠️ **This implementation is NOT thread safe!**
 
-Simple and reliable LRU (Least Recently Used) cache for c++ based on hashmap and linkedlist. The library is header only, simple test and example are included.
+Simple and reliable LRU (Least Recently Used) cache for c++ 17 based on hashmap and linkedlist. The library is header only, simple test and example are included.
 It includes standard components and very little own logics that guarantees reliability.
 
 Example:
