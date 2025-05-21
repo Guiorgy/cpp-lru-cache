@@ -41,104 +41,72 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
+option(HASH_MAP_IMPLEMENTATION "Select the implementation of hashmap to use inside the LRU cache. std::unordered_map by default" "")
+
 set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "")
 set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES "")
-set(HASH_MAP_IMPLEMENTATION_OPTIONS_ON "")
-set(NUM_HASH_MAP_IMPLEMENTATIONS_ON 0)
 
-option(PMR "Use std::pmr::unordered_map with std::pmr::unsynchronized_pool_resource instead of std::unordered_map" OFF)
-if (PMR)
-    if (NUM_HASH_MAP_IMPLEMENTATIONS_ON EQUAL 0)
-        message(STATUS "Using std::pmr::unordered_map with std::pmr::unsynchronized_pool_resource instead of std::unordered_map")
+if (HASH_MAP_IMPLEMENTATION STREQUAL "")
+    message(STATUS "Using the default hashmap implementation")
+elseif (HASH_MAP_IMPLEMENTATION STREQUAL "STL")
+    message(STATUS "Using std::unordered_map as the hashmap implementation")
 
-        add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=STL_PMR_UNORDERED_MAP)
+    add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=STL_UNORDERED_MAP)
+elseif (HASH_MAP_IMPLEMENTATION STREQUAL "STL_PMR")
+    message(STATUS "Using std::pmr::unordered_map with std::pmr::unsynchronized_pool_resource as the hashmap implementation")
+
+    add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=STL_PMR_UNORDERED_MAP)
+elseif (HASH_MAP_IMPLEMENTATION STREQUAL "ABSEIL")
+    message(STATUS "Using absl::flat_hash_map as the hashmap implementation")
+
+    add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=ABSEIL_FLAT_HASH_MAP)
+
+    FetchContent_Declare(
+        abseil
+        GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
+        GIT_TAG 20250512.0
+        CMAKE_ARGS -DCMAKE_CXX_STANDARD=17 -DABSL_ENABLE_INSTALL=OFF
+        SYSTEM
+    )
+    FetchContent_MakeAvailable(abseil)
+
+    set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES absl::flat_hash_map)
+elseif (HASH_MAP_IMPLEMENTATION STREQUAL "TESSIL")
+    message(STATUS "Using tsl::sparse_map as the hashmap implementation")
+
+    add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=TESSIL_SPARSE_MAP)
+
+    FetchContent_Declare(
+        tessil
+        GIT_REPOSITORY https://github.com/Tessil/sparse-map.git
+        GIT_TAG v0.6.2
+        SYSTEM
+    )
+    FetchContent_Populate(tessil)
+
+    set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "${tessil_SOURCE_DIR}/include")
+elseif (HASH_MAP_IMPLEMENTATION STREQUAL "ANKERL" OR HASH_MAP_IMPLEMENTATION STREQUAL "ANKERL_SEG")
+    if (HASH_MAP_IMPLEMENTATION STREQUAL "ANKERL")
+        message(STATUS "Using ankerl::unordered_dense::map as the hashmap implementation")
+
+        add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=ANKERL_UNORDERED_DENSE_MAP)
+    else()
+        message(STATUS "Using ankerl::unordered_dense::segmented_map as the hashmap implementation")
+
+        add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=ANKERL_UNORDERED_DENSE_SEGMENTED_MAP)
     endif()
 
-    list(APPEND HASH_MAP_IMPLEMENTATION_OPTIONS_ON PMR)
-    list(LENGTH HASH_MAP_IMPLEMENTATION_OPTIONS_ON NUM_HASH_MAP_IMPLEMENTATIONS_ON)
-endif()
+    FetchContent_Declare(
+        ankerl
+        GIT_REPOSITORY https://github.com/martinus/unordered_dense.git
+        GIT_TAG v4.5.0
+        SYSTEM
+    )
+    FetchContent_MakeAvailable(ankerl)
 
-option(ABSEIL "Use absl::flat_hash_map instead of std::unordered_map" OFF)
-if (ABSEIL)
-    if (NUM_HASH_MAP_IMPLEMENTATIONS_ON EQUAL 0)
-        message(STATUS "Using absl::flat_hash_map instead of std::unordered_map")
-
-        add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=ABSEIL_FLAT_HASH_MAP)
-
-        FetchContent_Declare(
-            abseil
-            GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
-            GIT_TAG 20250512.0
-            CMAKE_ARGS -DCMAKE_CXX_STANDARD=17 -DABSL_ENABLE_INSTALL=OFF
-            SYSTEM
-        )
-        FetchContent_MakeAvailable(abseil)
-
-        set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES absl::flat_hash_map)
-    endif()
-
-    list(APPEND HASH_MAP_IMPLEMENTATION_OPTIONS_ON ABSEIL)
-    list(LENGTH HASH_MAP_IMPLEMENTATION_OPTIONS_ON NUM_HASH_MAP_IMPLEMENTATIONS_ON)
-endif()
-
-option(TESSIL "Use tsl::sparse_map instead of std::unordered_map" OFF)
-if (TESSIL)
-    if (NUM_HASH_MAP_IMPLEMENTATIONS_ON EQUAL 0)
-        message(STATUS "Using tsl::sparse_map instead of std::unordered_map")
-
-        add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=TESSIL_SPARSE_MAP)
-
-        FetchContent_Declare(
-            tessil
-            GIT_REPOSITORY https://github.com/Tessil/sparse-map.git
-            GIT_TAG v0.6.2
-            SYSTEM
-        )
-        FetchContent_Populate(tessil)
-
-        set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "${tessil_SOURCE_DIR}/include")
-    endif()
-
-    list(APPEND HASH_MAP_IMPLEMENTATION_OPTIONS_ON TESSIL)
-    list(LENGTH HASH_MAP_IMPLEMENTATION_OPTIONS_ON NUM_HASH_MAP_IMPLEMENTATIONS_ON)
-endif()
-
-option(ANKERL "Use ankerl::unordered_dense::map instead of std::unordered_map" OFF)
-option(ANKERL_SEG "Use ankerl::unordered_dense::segmented_map instead of std::unordered_map" OFF)
-if (ANKERL OR ANKERL_SEG)
-    if (NUM_HASH_MAP_IMPLEMENTATIONS_ON EQUAL 0)
-        if (ANKERL)
-            message(STATUS "Using ankerl::unordered_dense::map instead of std::unordered_map")
-
-            add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=ANKERL_UNORDERED_DENSE_MAP)
-        else()
-            message(STATUS "Using ankerl::unordered_dense::segmented_map instead of std::unordered_map")
-
-            add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=ANKERL_UNORDERED_DENSE_SEGMENTED_MAP)
-        endif()
-
-        FetchContent_Declare(
-            ankerl
-            GIT_REPOSITORY https://github.com/martinus/unordered_dense.git
-            GIT_TAG v4.5.0
-            SYSTEM
-        )
-        FetchContent_MakeAvailable(ankerl)
-
-        set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES unordered_dense)
-    endif()
-
-    if (ANKERL)
-        list(APPEND HASH_MAP_IMPLEMENTATION_OPTIONS_ON ANKERL)
-    endif()
-    if(ANKERL_SEG)
-        list(APPEND HASH_MAP_IMPLEMENTATION_OPTIONS_ON ANKERL_SEG)
-    endif()
-    list(LENGTH HASH_MAP_IMPLEMENTATION_OPTIONS_ON NUM_HASH_MAP_IMPLEMENTATIONS_ON)
-endif()
-
-if(NUM_HASH_MAP_IMPLEMENTATIONS_ON GREATER 1)
-    message(FATAL_ERROR "At most only one implementation of the hashmap can be enabled. The following options are mutually exclusive: ${HASH_MAP_IMPLEMENTATION_OPTIONS_ON}")
+    set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES unordered_dense)
+else()
+    message(FATAL_ERROR "Invalid hashmap implementation set in HASH_MAP_IMPLEMENTATION: ${HASH_MAP_IMPLEMENTATION}")
 endif()
 
 include_directories(

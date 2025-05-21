@@ -63,7 +63,7 @@ To decide which implementation to use, check out the amazing round of [benchmark
 ```shell
 cd build
 cmake ..
-# cmake -DCMAKE_BUILD_TYPE=Debug -DPMR=OFF -DABSEIL=OFF -DTESSIL=OFF -DANKERL=OFF -DANKERL_SEG=OFF ..
+# cmake -DCMAKE_BUILD_TYPE=Debug -DHASH_MAP_IMPLEMENTATION=STL|STL_PMR|ABSEIL|TESSIL|ANKERL|ANKERL_SEG ..
 make test
 # make sanitize
 # ./full-test.sh
