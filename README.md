@@ -2,7 +2,7 @@
 
 > ⚠️ **This implementation is NOT thread safe!**
 
-An LRU (Least Recently Used) cache for c++ based on hashmap and a packed linkedlist based on vector. The library is header only, a simple test and example are included.
+An LRU (Least Recently Used) cache for C++ 17 based on hashmap and a packed linkedlist based on vector. The library is header only, a simple test and example are included.
 
 > ⚠️ *For a simpler implementation that only includes standard STL containers and very little of its own logics (and probably more reliable) see the stl-only branch.*
 
