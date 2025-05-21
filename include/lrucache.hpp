@@ -898,14 +898,25 @@ namespace guiorgy {
 			}
 
 			// Returns an iterator to the front element of the list.
-			iterator begin() const noexcept {
+			iterator begin() noexcept {
 				return iterator(list, head);
 			}
 
 			// Returns an iterator to an invalid element of the list.
 			// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
-			iterator end() const noexcept {
+			iterator end() noexcept {
 				return iterator(list, null_index);
+			}
+
+			// Returns a const iterator to the front element of the list.
+			const_iterator begin() const noexcept {
+				return const_iterator(list, head);
+			}
+
+			// Returns a const iterator to an invalid element of the list.
+			// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
+			const_iterator end() const noexcept {
+				return const_iterator(list, null_index);
 			}
 
 			// Returns a const iterator to the front element of the list.
@@ -921,15 +932,28 @@ namespace guiorgy {
 
 			// Returns a reverse iterator to the front element of the reversed list.
 			// It corresponds to the back element of the non-reversed list.
-			reverse_iterator rbegin() const noexcept {
+			reverse_iterator rbegin() noexcept {
 				return reverse_iterator(list, null_index);
 			}
 
 			// Returns a reverse iterator to an invalid element of the list.
 			// It corresponds to the element preceding the first element of the non-reversed list.
 			// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
-			reverse_iterator rend() const noexcept {
+			reverse_iterator rend() noexcept {
 				return reverse_iterator(list, head);
+			}
+
+			// Returns a const reverse iterator to the front element of the reversed list.
+			// It corresponds to the back element of the non-reversed list.
+			const_reverse_iterator rbegin() const noexcept {
+				return const_reverse_iterator(list, null_index);
+			}
+
+			// Returns a const reverse iterator to an invalid element of the list.
+			// It corresponds to the element preceding the first element of the non-reversed list.
+			// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
+			const_reverse_iterator rend() const noexcept {
+				return const_reverse_iterator(list, head);
 			}
 
 			// Returns a const reverse iterator to the front element of the reversed list.
