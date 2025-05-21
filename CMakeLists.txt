@@ -39,7 +39,7 @@ FetchContent_Declare(
     GIT_TAG v1.17.0
     CMAKE_ARGS -Dgtest_force_shared_crt=ON
 )
-FetchContent_MakeAvailable(googletest)
+set(FETCH_CONTENT_MAKE_AVAILABLE googletest)
 
 option(HASH_MAP_IMPLEMENTATION "Select the implementation of hashmap to use inside the LRU cache. std::unordered_map by default" "")
 
@@ -68,7 +68,7 @@ elseif (HASH_MAP_IMPLEMENTATION STREQUAL "ABSEIL")
         CMAKE_ARGS -DCMAKE_CXX_STANDARD=17 -DABSL_ENABLE_INSTALL=OFF
         SYSTEM
     )
-    FetchContent_MakeAvailable(abseil)
+    list(APPEND FETCH_CONTENT_MAKE_AVAILABLE abseil)
 
     set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES absl::flat_hash_map)
 elseif (HASH_MAP_IMPLEMENTATION STREQUAL "TESSIL_SPARSE")
@@ -80,11 +80,16 @@ elseif (HASH_MAP_IMPLEMENTATION STREQUAL "TESSIL_SPARSE")
         tessil-sparse
         GIT_REPOSITORY https://github.com/Tessil/sparse-map.git
         GIT_TAG v0.6.2
+        SOURCE_SUBDIR "include"
         SYSTEM
     )
-    FetchContent_Populate(tessil-sparse)
+    if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.30)
+        list(APPEND FETCH_CONTENT_MAKE_AVAILABLE tessil-sparse)
+    else()
+        FetchContent_Populate(tessil-sparse)
+    endif()
 
-    set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "${tessil-sparse_SOURCE_DIR}/include")
+    list(APPEND HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "tessil-sparse,include")
 elseif (HASH_MAP_IMPLEMENTATION STREQUAL "TESSIL_ROBIN")
     message(STATUS "Using tsl::robin_map as the hashmap implementation")
 
@@ -94,11 +99,16 @@ elseif (HASH_MAP_IMPLEMENTATION STREQUAL "TESSIL_ROBIN")
         tessil-robin
         GIT_REPOSITORY https://github.com/Tessil/robin-map.git
         GIT_TAG v1.4.0
+        SOURCE_SUBDIR "include"
         SYSTEM
     )
-    FetchContent_Populate(tessil-robin)
+    if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.30)
+        list(APPEND FETCH_CONTENT_MAKE_AVAILABLE tessil-robin)
+    else()
+        FetchContent_Populate(tessil-robin)
+    endif()
 
-    set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "${tessil-robin_SOURCE_DIR}/include")
+    list(APPEND HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "tessil-robin,include")
 elseif (HASH_MAP_IMPLEMENTATION STREQUAL "TESSIL_HOP")
     message(STATUS "Using tsl::hopscotch_map as the hashmap implementation")
 
@@ -108,11 +118,16 @@ elseif (HASH_MAP_IMPLEMENTATION STREQUAL "TESSIL_HOP")
         tessil-hopscotch
         GIT_REPOSITORY https://github.com/Tessil/hopscotch-map.git
         GIT_TAG v2.3.1
+        SOURCE_SUBDIR "include"
         SYSTEM
     )
-    FetchContent_Populate(tessil-hopscotch)
+    if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.30)
+        list(APPEND FETCH_CONTENT_MAKE_AVAILABLE tessil-hopscotch)
+    else()
+        FetchContent_Populate(tessil-hopscotch)
+    endif()
 
-    set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "${tessil-hopscotch_SOURCE_DIR}/include")
+    list(APPEND HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES "tessil-hopscotch,include")
 elseif (HASH_MAP_IMPLEMENTATION STREQUAL "ANKERL" OR HASH_MAP_IMPLEMENTATION STREQUAL "ANKERL_SEG")
     if (HASH_MAP_IMPLEMENTATION STREQUAL "ANKERL")
         message(STATUS "Using ankerl::unordered_dense::map as the hashmap implementation")
@@ -130,12 +145,29 @@ elseif (HASH_MAP_IMPLEMENTATION STREQUAL "ANKERL" OR HASH_MAP_IMPLEMENTATION STR
         GIT_TAG v4.5.0
         SYSTEM
     )
-    FetchContent_MakeAvailable(ankerl)
+    list(APPEND FETCH_CONTENT_MAKE_AVAILABLE ankerl)
 
     set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES unordered_dense)
 else()
     message(FATAL_ERROR "Invalid hashmap implementation set in HASH_MAP_IMPLEMENTATION: ${HASH_MAP_IMPLEMENTATION}")
 endif()
+
+FetchContent_MakeAvailable(${FETCH_CONTENT_MAKE_AVAILABLE})
+
+set(TMP "")
+foreach(name_and_include IN LISTS HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES)
+    string(REPLACE "," ";" name_and_include "${name_and_include}")
+
+    list(GET name_and_include 0 content_name)
+    list(GET name_and_include 1 include_directory)
+
+    if (NOT content_name STREQUAL "")
+        list(APPEND TMP "${${content_name}_SOURCE_DIR}/${include_directory}")
+    else()
+        list(APPEND TMP "${include_directory}")
+    endif()
+endforeach()
+set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES ${TMP})
 
 include_directories(
     ${PROJECT_SOURCE_DIR}/include
