@@ -39,6 +39,118 @@ TEST(TEST_GROUP, SizeIs0AfterClear) {
 	EXPECT_EQ(0, cache_lru.size());
 }
 
+TEST(TEST_GROUP, IteratorWithOneElement) {
+	guiorgy::lru_cache<int, int, 1> cache_lru;
+	cache_lru.put(7, 777);
+
+	EXPECT_EQ(7, cache_lru.begin()->first);
+	EXPECT_EQ(777, cache_lru.begin()->second);
+	EXPECT_EQ(7, cache_lru.cbegin()->first);
+	EXPECT_EQ(777, cache_lru.cbegin()->second);
+	EXPECT_EQ(7, cache_lru.rbegin()->first);
+	EXPECT_EQ(777, cache_lru.rbegin()->second);
+	EXPECT_EQ(7, cache_lru.crbegin()->first);
+	EXPECT_EQ(777, cache_lru.crbegin()->second);
+}
+
+TEST(TEST_GROUP, IteratorConversion) {
+	using lru_cache_t = guiorgy::lru_cache<int, int, 1>;
+
+	EXPECT_TRUE((std::is_same_v<lru_cache_t::iterator, lru_cache_t::const_iterator>));
+	EXPECT_TRUE((std::is_same_v<lru_cache_t::reverse_iterator, lru_cache_t::const_reverse_iterator>));
+
+	lru_cache_t cache_lru;
+	cache_lru.put(7, 777);
+
+	// From iterator.
+	{
+		lru_cache_t::iterator it = cache_lru.begin();
+		EXPECT_EQ(7, it->first);
+		EXPECT_EQ(777, it->second);
+
+		// To const_iterator.
+		lru_cache_t::const_iterator cit(it);
+		EXPECT_EQ(7, cit->first);
+		EXPECT_EQ(777, cit->second);
+
+		// To reverse_iterator.
+		lru_cache_t::reverse_iterator rit(it);
+		EXPECT_EQ(7, rit->first);
+		EXPECT_EQ(777, rit->second);
+
+		// To const_reverse_iterator.
+		lru_cache_t::const_reverse_iterator crit(it);
+		EXPECT_EQ(7, crit->first);
+		EXPECT_EQ(777, crit->second);
+	}
+
+	// From const_iterator.
+	{
+		lru_cache_t::const_iterator cit = cache_lru.cbegin();
+		EXPECT_EQ(7, cit->first);
+		EXPECT_EQ(777, cit->second);
+
+		// To iterator.
+		lru_cache_t::iterator it(cit);
+		EXPECT_EQ(7, it->first);
+		EXPECT_EQ(777, it->second);
+
+		// To reverse_iterator.
+		lru_cache_t::reverse_iterator rit(cit);
+		EXPECT_EQ(7, rit->first);
+		EXPECT_EQ(777, rit->second);
+
+		// To const_reverse_iterator.
+		lru_cache_t::const_reverse_iterator crit(cit);
+		EXPECT_EQ(7, crit->first);
+		EXPECT_EQ(777, crit->second);
+	}
+
+	// From reverse_iterator.
+	{
+		lru_cache_t::reverse_iterator rit = cache_lru.rbegin();
+		EXPECT_EQ(7, rit->first);
+		EXPECT_EQ(777, rit->second);
+
+		// To iterator.
+		lru_cache_t::iterator it(rit);
+		EXPECT_EQ(7, it->first);
+		EXPECT_EQ(777, it->second);
+
+		// To const_iterator.
+		lru_cache_t::const_iterator cit(rit);
+		EXPECT_EQ(7, cit->first);
+		EXPECT_EQ(777, cit->second);
+
+		// To const_reverse_iterator.
+		lru_cache_t::const_reverse_iterator crit(rit);
+		EXPECT_EQ(7, crit->first);
+		EXPECT_EQ(777, crit->second);
+	}
+
+	// From const_reverse_iterator.
+	{
+		lru_cache_t::const_reverse_iterator crit = cache_lru.crbegin();;
+		EXPECT_EQ(7, crit->first);
+		EXPECT_EQ(777, crit->second);
+
+		// To iterator.
+		lru_cache_t::iterator it(crit);
+		EXPECT_EQ(7, it->first);
+		EXPECT_EQ(777, it->second);
+
+		// To const_iterator.
+		lru_cache_t::const_iterator cit(crit);
+		EXPECT_EQ(7, cit->first);
+		EXPECT_EQ(777, cit->second);
+
+		// To reverse_iterator.
+		lru_cache_t::reverse_iterator rit(crit);
+		EXPECT_EQ(7, rit->first);
+		EXPECT_EQ(777, rit->second);
+	}
+}
+
 TEST(TEST_GROUP, KeepsAllValuesWithinCapacity) {
 	constexpr int record_count = 100;
 	constexpr int test_capacity = 50;

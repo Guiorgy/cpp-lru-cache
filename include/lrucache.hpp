@@ -513,6 +513,16 @@ namespace guiorgy::detail {
 			return list[at];
 		}
 
+		// Returns a const reference to the node at the specified location.
+		[[nodiscard]] const list_node& get_node(const index_t at) const {
+			assert(at < list.size());
+#ifndef NDEBUG
+			assert(!list[at].removed);
+#endif
+
+			return list[at];
+		}
+
 		// Removes the node at the specified location and returns a reference to the removed node.
 		// References to the removed node are not invalidated, since the node is just marked as removed and added to the free_indices set.
 		// Iterators to the removed node are invalidated. Other iterators are not affected.
@@ -1000,74 +1010,74 @@ namespace guiorgy::detail {
 
 		// Returns an iterator to the front element of the list.
 		[[nodiscard]] iterator begin() noexcept {
-			return iterator(list, head);
+			return iterator(*this, head);
 		}
 
 		// Returns an iterator to an invalid element of the list.
 		// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
 		[[nodiscard]] iterator end() noexcept {
-			return iterator(list, null_index);
+			return iterator(*this, null_index);
 		}
 
 		// Returns a const iterator to the front element of the list.
 		[[nodiscard]] const_iterator begin() const noexcept {
-			return const_iterator(list, head);
+			return const_iterator(*this, head);
 		}
 
 		// Returns a const iterator to an invalid element of the list.
 		// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
 		[[nodiscard]] const_iterator end() const noexcept {
-			return const_iterator(list, null_index);
+			return const_iterator(*this, null_index);
 		}
 
 		// Returns a const iterator to the front element of the list.
 		[[nodiscard]] const_iterator cbegin() const noexcept {
-			return const_iterator(list, head);
+			return const_iterator(*this, head);
 		}
 
 		// Returns a const iterator to an invalid element of the list.
 		// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
 		[[nodiscard]] const_iterator cend() const noexcept {
-			return const_iterator(list, null_index);
+			return const_iterator(*this, null_index);
 		}
 
 		// Returns a reverse iterator to the front element of the reversed list.
 		// It corresponds to the back element of the non-reversed list.
 		[[nodiscard]] reverse_iterator rbegin() noexcept {
-			return reverse_iterator(list, null_index);
+			return reverse_iterator(*this, null_index);
 		}
 
 		// Returns a reverse iterator to an invalid element of the list.
 		// It corresponds to the element preceding the first element of the non-reversed list.
 		// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
 		[[nodiscard]] reverse_iterator rend() noexcept {
-			return reverse_iterator(list, head);
+			return reverse_iterator(*this, head);
 		}
 
 		// Returns a const reverse iterator to the front element of the reversed list.
 		// It corresponds to the back element of the non-reversed list.
 		[[nodiscard]] const_reverse_iterator rbegin() const noexcept {
-			return const_reverse_iterator(list, null_index);
+			return const_reverse_iterator(*this, null_index);
 		}
 
 		// Returns a const reverse iterator to an invalid element of the list.
 		// It corresponds to the element preceding the first element of the non-reversed list.
 		// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
 		[[nodiscard]] const_reverse_iterator rend() const noexcept {
-			return const_reverse_iterator(list, head);
+			return const_reverse_iterator(*this, head);
 		}
 
 		// Returns a const reverse iterator to the front element of the reversed list.
 		// It corresponds to the back element of the non-reversed list.
 		[[nodiscard]] const_reverse_iterator crbegin() const noexcept {
-			return const_reverse_iterator(list, null_index);
+			return const_reverse_iterator(*this, null_index);
 		}
 
 		// Returns a const reverse iterator to an invalid element of the list.
 		// It corresponds to the element preceding the first element of the non-reversed list.
 		// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
 		[[nodiscard]] const_reverse_iterator crend() const noexcept {
-			return const_reverse_iterator(list, head);
+			return const_reverse_iterator(*this, head);
 		}
 
 	private:
@@ -1082,28 +1092,33 @@ namespace guiorgy::detail {
 			using reference = std::conditional_t<constant, const T&, T&>;
 
 		private:
-			const vector_list<T, max_size>& list;
+			using list_reference_t = std::conditional_t<constant, const vector_list<T, max_size>&, vector_list<T, max_size>&>;
+			using list_pointer_t = std::conditional_t<constant, const vector_list<T, max_size>*, vector_list<T, max_size>*>;
+
+			list_pointer_t list;
 			index_t current_index;
 
-			_iterator(const vector_list<T, max_size>& _list, const index_t _index) : list(_list), current_index(_index) {}
+			_iterator(list_reference_t _list, const index_t _index) : list(&_list), current_index(_index) {}
+
+			template<const bool from_reverse, const bool to_reverse>
+			static index_t reverse_index(list_pointer_t _list, const index_t index) {
+				static_assert(from_reverse != to_reverse);
+
+				if constexpr (!from_reverse) {
+					return index != null_index ? (*_list)[index].prior : null_index;
+				} else {
+					return index == null_index ? _list->tail : (*_list)[index].next;
+				}
+			}
 
 		public:
 			// Copy constructor from (reverse_)iterator to const_(reverse_)iterator.
-			template<const bool this_constant = constant, typename = typename std::enable_if_t<this_constant>>
-			_iterator(const _iterator<false, reverse>& it) : list(it.list), current_index(it.current_index) {}
+			template<const bool other_constant>
+			_iterator(const _iterator<other_constant, reverse>& it) : list(it.list), current_index(it.current_index) {}
 
-			// Copy constructor from const_(reverse_)iterator to (reverse_)iterator.
-			// Explicitly deleted, since this would violate the const constraint.
-			template<const bool this_constant = constant, typename = typename std::enable_if_t<!this_constant>>
-			_iterator(const _iterator<true, reverse>& it) = delete;
-
-			// Copy constructor from (const_)iterator to (const_)reverse_iterator.
-			template<const bool this_reverse = reverse, typename = typename std::enable_if_t<this_reverse>>
-			_iterator(const _iterator<constant, false>& it) : list(it.list), current_index(current_index != null_index ? list[current_index].prior : null_index) {}
-
-			// Copy constructor from (const_)reverse_iterator to (const_)iterator.
-			template<const bool this_reverse = reverse, typename = typename std::enable_if_t<!this_reverse>>
-			_iterator(const _iterator<constant, true>& it) : list(it.list), current_index(current_index == null_index ? list.tail : list[current_index].next) {}
+			// Copy constructor from (const_)iterator to (const_)reverse_iterator and from (const_)reverse_iterator to (const_)iterator.
+			template<const bool other_reverse>
+			_iterator(const _iterator<constant, other_reverse>& it) : list(it.list), current_index(reverse_index<other_reverse, reverse>(it.list, it.current_index)) {}
 
 			_iterator() = delete;
 			~_iterator() = default;
@@ -1119,24 +1134,24 @@ namespace guiorgy::detail {
 				if constexpr (!reverse) {
 					return current_index;
 				} else {
-					return current_index == null_index ? list.tail : list[current_index].next;
+					return current_index == null_index ? list->tail : (*list)[current_index].next;
 				}
 			}
 
 		public:
 			reference operator*() const {
-				return list[forward_index()].value;
+				return (*list)[forward_index()].value;
 			}
 
 			pointer operator->() const {
-				return &(list[forward_index()].value);
+				return &((*list)[forward_index()].value);
 			}
 
 			_iterator& operator++() {
 				if constexpr (!reverse) {
-					if (current_index != null_index) current_index = list[current_index].prior;
+					if (current_index != null_index) current_index = (*list)[current_index].prior;
 				} else {
-					if (current_index != list.head) current_index = current_index == null_index ? list.tail : list[current_index].next;
+					if (current_index != list->head) current_index = current_index == null_index ? list->tail : (*list)[current_index].next;
 				}
 
 				return *this;
@@ -1150,9 +1165,9 @@ namespace guiorgy::detail {
 
 			_iterator& operator--() {
 				if constexpr (!reverse) {
-					if (current_index != list.head) current_index = current_index == null_index ? list.tail : list[current_index].next;
+					if (current_index != list->head) current_index = current_index == null_index ? list->tail : (*list)[current_index].next;
 				} else {
-					if (current_index != null_index) current_index = list[current_index].prior;
+					if (current_index != null_index) current_index = (*list)[current_index].prior;
 				}
 
 				return *this;
@@ -1177,6 +1192,18 @@ namespace guiorgy::detail {
 		};
 
 	private:
+		// See get_node for details.
+		// This should only be used by _iterator;
+		[[nodiscard]] list_node& operator[](const index_t position) {
+			return get_node(position);
+		}
+
+		// See get_node for details.
+		// This should only be used by _iterator;
+		[[nodiscard]] const list_node& operator[](const index_t position) const {
+			return get_node(position);
+		}
+
 		// Declare lru_cache_storage_base as a friend to allow access to index_t.
 		template<typename kt, typename vt, const std::size_t ms, typename hf, typename kep>
 		friend class lru_cache_storage_base;
@@ -1303,6 +1330,8 @@ namespace guiorgy::detail {
 	public:
 		using const_iterator = typename vector_list<key_value_pair_t, max_size>::const_iterator;
 		using const_reverse_iterator = typename vector_list<key_value_pair_t, max_size>::const_reverse_iterator;
+		using iterator = typename vector_list<key_value_pair_t, max_size>::const_iterator;
+		using reverse_iterator = typename vector_list<key_value_pair_t, max_size>::const_reverse_iterator;
 
 	protected:
 		vector_list<key_value_pair_t, max_size> _cache_items_list{};
@@ -1455,6 +1484,8 @@ namespace guiorgy {
 		using map_iterator_t = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::map_iterator_t;
 
 	public:
+		using iterator = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::iterator;
+		using reverse_iterator = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::reverse_iterator;
 		using const_iterator = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::const_iterator;
 		using const_reverse_iterator = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::const_reverse_iterator;
 
@@ -1744,7 +1775,7 @@ namespace guiorgy {
 		// Remarks:
 		//   - Equivalent to cbegin().
 		//   - Accessing elements through iterators does not change their order of replacement.
-		[[nodiscard]] const_iterator begin() const noexcept {
+		[[nodiscard]] iterator begin() const noexcept {
 			return cbegin();
 		}
 
@@ -1761,7 +1792,7 @@ namespace guiorgy {
 		// Remarks:
 		//   - Equivalent to cend().
 		//   - Accessing elements through iterators does not change their order of replacement.
-		[[nodiscard]] const_iterator end() const noexcept {
+		[[nodiscard]] iterator end() const noexcept {
 			return cend();
 		}
 
@@ -1778,7 +1809,7 @@ namespace guiorgy {
 		// Remarks:
 		//   - Equivalent to crbegin().
 		//   - Accessing elements through iterators does not change their order of replacement.
-		[[nodiscard]] const_iterator rbegin() const noexcept {
+		[[nodiscard]] reverse_iterator rbegin() const noexcept {
 			return crbegin();
 		}
 
@@ -1797,7 +1828,7 @@ namespace guiorgy {
 		// Remarks:
 		//   - Equivalent to crbegin().
 		//   - Accessing elements through iterators does not change their order of replacement.
-		[[nodiscard]] const_iterator rend() const noexcept {
+		[[nodiscard]] reverse_iterator rend() const noexcept {
 			return crend();
 		}
 	};
