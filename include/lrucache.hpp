@@ -527,19 +527,26 @@ namespace guiorgy::detail {
 
 			list_node& _at = list[at];
 
-			if (_at.prior != null_index && _at.next != null_index) {
+			if (at != head && at != tail) {
+				assert(_at.prior != null_index && _at.next != null_index);
+
 				list[_at.prior].next = _at.next;
 				list[_at.next].prior = _at.prior;
-			} else if (_at.prior != null_index) {
-				list[_at.prior].next = null_index;
-			} else {
-				list[_at.next].prior = null_index;
-			}
+			} else if (at != tail) {
+				assert(_at.prior != null_index && _at.next == null_index);
 
-			if (at == head) {
 				head = _at.prior;
-			} else if (at == tail) {
+				list[head].next = null_index;
+			} else if (at != head) {
+				assert(_at.prior == null_index && _at.next != null_index);
+
 				tail = _at.next;
+				list[tail].prior = null_index;
+			} else {
+				assert(_at.prior == null_index && _at.next == null_index);
+
+				head = null_index;
+				tail = null_index;
 			}
 
 			if (mark_removed) {
