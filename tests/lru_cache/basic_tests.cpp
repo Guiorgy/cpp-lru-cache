@@ -90,7 +90,7 @@ TEST(TEST_GROUP, HandlesRemovals) {
 	}
 
 	for (int i = 0; i < record_count / 2; ++i) {
-		cache_lru.remove(i);
+		cache_lru.erase(i);
 	}
 
 	for (int i = 0; i < record_count / 2; ++i) {
@@ -119,7 +119,7 @@ TEST(TEST_GROUP, HandlesPutsAfterRemoval) {
 	}
 
 	for (int i = 0; i < record_count / 2; ++i) {
-		cache_lru.remove(i);
+		cache_lru.erase(i);
 	}
 
 	for (int i = record_count; i < 2 * record_count; ++i) {

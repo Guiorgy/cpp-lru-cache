@@ -20,6 +20,15 @@
 #include <limits>
 #include <vector>
 
+// A helper macro to drop the explanation argument of the [[nodiscard]] attribute on C++ versions that don't support it.
+#if __cplusplus < 202002L	// C++20
+	#ifdef nodiscard
+		#define GUIORGY_nodiscard_BEFORE
+		#undef nodiscard
+	#endif
+	#define nodiscard(explanation) nodiscard
+#endif
+
 /* Define possible implementations and store old definitions to restore later in case of a conflict */
 // STL std::unordered_map
 #ifdef STL_UNORDERED_MAP
@@ -285,12 +294,12 @@ namespace guiorgy::detail {
 		}
 
 		// Checks whether the set is empty.
-		bool empty() const noexcept {
+		[[nodiscard]] bool empty() const noexcept {
 			return _empty;
 		}
 
 		// Returns the number of elements in the set.
-		std::size_t size() const noexcept {
+		[[nodiscard]] std::size_t size() const noexcept {
 			if (_empty) {
 				return 0u;
 			} else {
@@ -299,7 +308,7 @@ namespace guiorgy::detail {
 		}
 
 		// Returns the number of elements that the set has currently allocated space for.
-		std::size_t capacity() const noexcept {
+		[[nodiscard]] std::size_t capacity() const noexcept {
 			return set.capacity();
 		}
 
@@ -352,14 +361,14 @@ namespace guiorgy::detail {
 		}
 
 		// Returns a reference to the next element in the set.
-		T& peek() const {
+		[[nodiscard]] T& peek() const {
 			assert(!_empty);
 
 			return set[tail];
 		}
 
 		// Removes the next element in the set and returns it.
-		T take() {
+		[[nodiscard]] T take() {
 			assert(!_empty);
 
 			T _front = set[tail];
@@ -495,7 +504,7 @@ namespace guiorgy::detail {
 		vector_set<index_t, index_t> free_indices{};
 
 		// Returns a reference to the node at the specified location.
-		list_node& get_node(const index_t at) {
+		[[nodiscard]] list_node& get_node(const index_t at) {
 			assert(at < list.size());
 #ifndef NDEBUG
 			assert(!list[at].removed);
@@ -509,6 +518,7 @@ namespace guiorgy::detail {
 		// Iterators to the removed node are invalidated. Other iterators are not affected.
 		// If mark_removed is false, then the removed node is not marked as removed and is not added to the free_indices set.
 		// Set mark_removed to false only if the node is to be reincluded back into the list at a different location immediately after the removal.
+		[[nodiscard("Especially if mark_removed is set to false. Use erase_node(const index_t at) instead")]]
 		list_node& remove_node(const index_t at, const bool mark_removed = true) {
 			assert(at < list.size());
 #ifndef NDEBUG
@@ -540,6 +550,13 @@ namespace guiorgy::detail {
 			}
 
 			return _at;
+		}
+
+		// Removes the node at the specified location.
+		// References to the removed node are not invalidated, since the node is just marked as removed and added to the free_indices set.
+		// Iterators to the removed node are invalidated. Other iterators are not affected.
+		void erase_node(const index_t at) {
+			[[maybe_unused]] list_node& discard = remove_node(at, true);
 		}
 
 		// Moves the node at the specified location to before/after another node and returns a reference to the moved node.
@@ -645,17 +662,17 @@ namespace guiorgy::detail {
 		}
 
 		// Checks whether the list is empty.
-		bool empty() const noexcept {
+		[[nodiscard]] bool empty() const noexcept {
 			return list.size() == free_indices.size();
 		}
 
 		// Returns the number of elements in the list.
-		std::size_t size() const noexcept {
+		[[nodiscard]] std::size_t size() const noexcept {
 			return list.size() - free_indices.size();
 		}
 
 		// Returns the number of elements that the list has currently allocated space for.
-		std::size_t capacity() const noexcept {
+		[[nodiscard]] std::size_t capacity() const noexcept {
 			return list.capacity();
 		}
 
@@ -862,7 +879,7 @@ namespace guiorgy::detail {
 		}
 
 		// Returns a reference to the first element in the list.
-		T& front() {
+		[[nodiscard]] T& front() {
 			assert(head != null_index);
 			assert(size() != 0u);
 
@@ -891,12 +908,13 @@ namespace guiorgy::detail {
 		// Removes the first element of the list and returns a copy of ithe removed element.
 		// References to the removed element are not invalidated, since the element is deleted lazily.
 		// Iterators to the removed element are invalidated. Other iterators are not affected.
+		[[nodiscard("Use pop_front_ref() instead to avoid a needless copy of T")]]
 		T pop_front() {
 			return pop_front_ref();
 		}
 
 		// Returns a reference to the last element in the list.
-		T& back() {
+		[[nodiscard]] T& back() {
 			assert(tail != null_index);
 			assert(size() != 0u);
 
@@ -925,6 +943,7 @@ namespace guiorgy::detail {
 		// Removes the last element of the list and returns a copy of ithe removed element.
 		// References to the removed element are not invalidated, since the element is deleted lazily.
 		// Iterators to the removed element are invalidated. Other iterators are not affected.
+		[[nodiscard("Use pop_back_ref() instead to avoid a needless copy of T")]]
 		T pop_back() {
 			return pop_back_ref();
 		}
@@ -973,74 +992,74 @@ namespace guiorgy::detail {
 		}
 
 		// Returns an iterator to the front element of the list.
-		iterator begin() noexcept {
+		[[nodiscard]] iterator begin() noexcept {
 			return iterator(list, head);
 		}
 
 		// Returns an iterator to an invalid element of the list.
 		// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
-		iterator end() noexcept {
+		[[nodiscard]] iterator end() noexcept {
 			return iterator(list, null_index);
 		}
 
 		// Returns a const iterator to the front element of the list.
-		const_iterator begin() const noexcept {
+		[[nodiscard]] const_iterator begin() const noexcept {
 			return const_iterator(list, head);
 		}
 
 		// Returns a const iterator to an invalid element of the list.
 		// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
-		const_iterator end() const noexcept {
+		[[nodiscard]] const_iterator end() const noexcept {
 			return const_iterator(list, null_index);
 		}
 
 		// Returns a const iterator to the front element of the list.
-		const_iterator cbegin() const noexcept {
+		[[nodiscard]] const_iterator cbegin() const noexcept {
 			return const_iterator(list, head);
 		}
 
 		// Returns a const iterator to an invalid element of the list.
 		// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
-		const_iterator cend() const noexcept {
+		[[nodiscard]] const_iterator cend() const noexcept {
 			return const_iterator(list, null_index);
 		}
 
 		// Returns a reverse iterator to the front element of the reversed list.
 		// It corresponds to the back element of the non-reversed list.
-		reverse_iterator rbegin() noexcept {
+		[[nodiscard]] reverse_iterator rbegin() noexcept {
 			return reverse_iterator(list, null_index);
 		}
 
 		// Returns a reverse iterator to an invalid element of the list.
 		// It corresponds to the element preceding the first element of the non-reversed list.
 		// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
-		reverse_iterator rend() noexcept {
+		[[nodiscard]] reverse_iterator rend() noexcept {
 			return reverse_iterator(list, head);
 		}
 
 		// Returns a const reverse iterator to the front element of the reversed list.
 		// It corresponds to the back element of the non-reversed list.
-		const_reverse_iterator rbegin() const noexcept {
+		[[nodiscard]] const_reverse_iterator rbegin() const noexcept {
 			return const_reverse_iterator(list, null_index);
 		}
 
 		// Returns a const reverse iterator to an invalid element of the list.
 		// It corresponds to the element preceding the first element of the non-reversed list.
 		// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
-		const_reverse_iterator rend() const noexcept {
+		[[nodiscard]] const_reverse_iterator rend() const noexcept {
 			return const_reverse_iterator(list, head);
 		}
 
 		// Returns a const reverse iterator to the front element of the reversed list.
 		// It corresponds to the back element of the non-reversed list.
-		const_reverse_iterator crbegin() const noexcept {
+		[[nodiscard]] const_reverse_iterator crbegin() const noexcept {
 			return const_reverse_iterator(list, null_index);
 		}
 
 		// Returns a const reverse iterator to an invalid element of the list.
 		// It corresponds to the element preceding the first element of the non-reversed list.
 		// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
-		const_reverse_iterator crend() const noexcept {
+		[[nodiscard]] const_reverse_iterator crend() const noexcept {
 			return const_reverse_iterator(list, head);
 		}
 
@@ -1089,7 +1108,7 @@ namespace guiorgy::detail {
 		private:
 			// Normalizes the index to the one used in forward iteration.
 			// In other words, if the current iterator is a (const_)reverse_iterator this returns the index to the list node this iterator actually refers to.
-			index_t forward_index() const noexcept {
+			[[nodiscard]] index_t forward_index() const noexcept {
 				if constexpr (!reverse) {
 					return current_index;
 				} else {
@@ -1138,11 +1157,11 @@ namespace guiorgy::detail {
 				return temp;
 			}
 
-			bool operator==(const _iterator& other) const noexcept {
+			[[nodiscard]] bool operator==(const _iterator& other) const noexcept {
 				return current_index == other.current_index;
 			}
 
-			bool operator!=(const _iterator& other) const noexcept {
+			[[nodiscard]] bool operator!=(const _iterator& other) const noexcept {
 				return !(*this == other);
 			}
 
@@ -1174,7 +1193,7 @@ namespace guiorgy::detail {
 		}
 
 		// See get_node for details.
-		T& _get_value_at(const index_t position) {
+		[[nodiscard]] T& _get_value_at(const index_t position) {
 			return get_node(position).value;
 		}
 
@@ -1194,14 +1213,14 @@ namespace guiorgy::detail {
 		}
 
 		// Returns the index to the first element in the list, or null_index if the list is empty.
-		index_t _first_value_index() const noexcept {
+		[[nodiscard]] index_t _first_value_index() const noexcept {
 			assert(head != null_index);
 
 			return head;
 		}
 
 		// Returns the index to the last element in the list, or null_index if the list is empty.
-		index_t _last_value_index() const noexcept {
+		[[nodiscard]] index_t _last_value_index() const noexcept {
 			assert(tail != null_index);
 
 			return tail;
@@ -1539,7 +1558,7 @@ namespace guiorgy {
 
 		// Returns a std::optional with the value that is mapped to the given key,
 		// or an empty optional if such key does not already exist.
-		const std::optional<value_t> get(const key_t& key) {
+		[[nodiscard]] const std::optional<value_t> get(const key_t& key) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
 			if (it == this->_cache_items_map.end()) {
@@ -1554,7 +1573,7 @@ namespace guiorgy {
 		// Remarks:
 		//   - No guarantees are given about the underlying object lifetime when
 		//     modifying the cache (inserting/removing elements), so use with caution.
-		const std::optional<std::reference_wrapper<const value_t>> get_ref(const key_t& key) {
+		[[nodiscard]] const std::optional<std::reference_wrapper<const value_t>> get_ref(const key_t& key) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
 			if (it == this->_cache_items_map.end()) {
@@ -1566,7 +1585,7 @@ namespace guiorgy {
 
 		// Returns true and copies the value that is mapped to the given key into
 		// the given value_out reference, or false if such key does not already exist.
-		bool try_get(const key_t& key, value_t& value_out) {
+		[[nodiscard]] bool try_get(const key_t& key, value_t& value_out) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
 			if (it == this->_cache_items_map.end()) {
@@ -1583,7 +1602,7 @@ namespace guiorgy {
 		// Remarks:
 		//   - No guarantees are given about the underlying object lifetime when
 		//     modifying the cache (inserting/removing elements), so use with caution.
-		bool try_get_ref(const key_t& key, const value_t*& value_out) {
+		[[nodiscard]] bool try_get_ref(const key_t& key, const value_t*& value_out) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
 			if (it == this->_cache_items_map.end()) {
@@ -1598,6 +1617,7 @@ namespace guiorgy {
 		// If the key exists in the container, removes the value that is mapped to the
 		// given key and returns a std::optional with the removed value,
 		// otherwise, returns an empty optional.
+		[[nodiscard("Use erase(const key_t& key) instead")]]
 		std::optional<value_t> remove(const key_t& key) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
@@ -1616,6 +1636,7 @@ namespace guiorgy {
 		// Remarks:
 		//   - No guarantees are given about the underlying object lifetime when
 		//     modifying the cache (inserting/removing elements), so use with caution.
+		[[nodiscard("Use erase(const key_t& key) instead")]]
 		std::optional<std::reference_wrapper<value_t>> remove_ref(const key_t& key) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
@@ -1631,6 +1652,7 @@ namespace guiorgy {
 		// If the key exists in the container, removes the value that is mapped to the
 		// given key, returns true and copies the value that is mapped to the given key
 		// into the given value_out reference, or false if such key does not exist.
+		[[nodiscard("Use erase(const key_t& key) instead")]]
 		bool try_remove(const key_t& key, value_t& value_out) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
@@ -1650,6 +1672,7 @@ namespace guiorgy {
 		// Remarks:
 		//   - No guarantees are given about the underlying object lifetime when
 		//     modifying the cache (inserting/removing elements), so use with caution.
+		[[nodiscard("Use erase(const key_t& key) instead")]]
 		bool try_remove_ref(const key_t& key, const value_t*& value_out) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
@@ -1677,12 +1700,12 @@ namespace guiorgy {
 		}
 
 		// Checks if the container contains an element with the given key.
-		bool exists(const key_t& key) const {
+		[[nodiscard]] bool exists(const key_t& key) const {
 			return this->_cache_items_map.find(key) != this->_cache_items_map.end();
 		}
 
 		// Returns the number of elements in the container.
-		std::size_t size() const noexcept {
+		[[nodiscard]] std::size_t size() const noexcept {
 			return this->_cache_items_map.size();
 		}
 
@@ -1706,7 +1729,7 @@ namespace guiorgy {
 		// Returns a const iterator to the first (most recently used) element of the container.
 		// Remarks:
 		//   - Accessing elements through iterators does not change their order of replacement.
-		const_iterator cbegin() const noexcept {
+		[[nodiscard]] const_iterator cbegin() const noexcept {
 			return this->_cache_items_list.cbegin();
 		}
 
@@ -1714,7 +1737,7 @@ namespace guiorgy {
 		// Remarks:
 		//   - Equivalent to cbegin().
 		//   - Accessing elements through iterators does not change their order of replacement.
-		const_iterator begin() const noexcept {
+		[[nodiscard]] const_iterator begin() const noexcept {
 			return cbegin();
 		}
 
@@ -1722,7 +1745,7 @@ namespace guiorgy {
 		// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
 		// Remarks:
 		//   - Accessing elements through iterators does not change their order of replacement.
-		const_iterator cend() const noexcept {
+		[[nodiscard]] const_iterator cend() const noexcept {
 			return this->_cache_items_list.cend();
 		}
 
@@ -1731,7 +1754,7 @@ namespace guiorgy {
 		// Remarks:
 		//   - Equivalent to cend().
 		//   - Accessing elements through iterators does not change their order of replacement.
-		const_iterator end() const noexcept {
+		[[nodiscard]] const_iterator end() const noexcept {
 			return cend();
 		}
 
@@ -1739,7 +1762,7 @@ namespace guiorgy {
 		// It corresponds to the last (least recently used) element of the non-reversed container.
 		// Remarks:
 		//   - Accessing elements through iterators does not change their order of replacement.
-		const_reverse_iterator crbegin() const noexcept {
+		[[nodiscard]] const_reverse_iterator crbegin() const noexcept {
 			return this->_cache_items_list.crbegin();
 		}
 
@@ -1748,7 +1771,7 @@ namespace guiorgy {
 		// Remarks:
 		//   - Equivalent to crbegin().
 		//   - Accessing elements through iterators does not change their order of replacement.
-		const_iterator rbegin() const noexcept {
+		[[nodiscard]] const_iterator rbegin() const noexcept {
 			return crbegin();
 		}
 
@@ -1757,7 +1780,7 @@ namespace guiorgy {
 		// This returned iterator only acts as a sentinel. It is not guaranteed to be dereferenceable.
 		// Remarks:
 		//   - Accessing elements through iterators does not change their order of replacement.
-		const_reverse_iterator crend() const noexcept {
+		[[nodiscard]] const_reverse_iterator crend() const noexcept {
 			return this->_cache_items_list.crend();
 		}
 
@@ -1767,8 +1790,15 @@ namespace guiorgy {
 		// Remarks:
 		//   - Equivalent to crbegin().
 		//   - Accessing elements through iterators does not change their order of replacement.
-		const_iterator rend() const noexcept {
+		[[nodiscard]] const_iterator rend() const noexcept {
 			return crend();
 		}
 	};
 } // guiorgy
+
+// Restore nodiscard if it was already defined.
+#ifdef GUIORGY_nodiscard_BEFORE
+	#undef nodiscard
+	#define nodiscard GUIORGY_nodiscard_BEFORE
+	#undef GUIORGY_nodiscard_BEFORE
+#endif
