@@ -15,6 +15,14 @@
 #include <tuple>
 #include <list>
 
+#if __cplusplus < 202002L	// C++20
+	#ifdef nodiscard
+		#define GUIORGY_nodiscard_BEFORE
+		#undef nodiscard
+	#endif
+	#define nodiscard(explanation) nodiscard
+#endif
+
 template<typename key_t, typename value_t, const std::size_t max_size>
 class lru_cache final {
 	static_assert(max_size > 0);
@@ -96,7 +104,7 @@ public:
 		return value;
 	}
 
-	const std::optional<value_t> get(const key_t& key) {
+	[[nodiscard]] const std::optional<value_t> get(const key_t& key) {
 		map_iterator_t it = _cache_items_map.find(key);
 
 		if (it == _cache_items_map.end()) {
@@ -109,7 +117,7 @@ public:
 		}
 	}
 
-	const std::optional<std::reference_wrapper<const value_t>> get_ref(const key_t& key) {
+	[[nodiscard]] const std::optional<std::reference_wrapper<const value_t>> get_ref(const key_t& key) {
 		map_iterator_t it = _cache_items_map.find(key);
 
 		if (it == _cache_items_map.end()) {
@@ -122,7 +130,7 @@ public:
 		}
 	}
 
-	bool try_get(const key_t& key, value_t& value_out) {
+	[[nodiscard]] bool try_get(const key_t& key, value_t& value_out) {
 		map_iterator_t it = _cache_items_map.find(key);
 
 		if (it == _cache_items_map.end()) {
@@ -136,7 +144,7 @@ public:
 		}
 	}
 
-	bool try_get_ref(const key_t& key, const value_t*& value_out) {
+	[[nodiscard]] bool try_get_ref(const key_t& key, const value_t*& value_out) {
 		map_iterator_t it = _cache_items_map.find(key);
 
 		if (it == _cache_items_map.end()) {
@@ -160,11 +168,11 @@ public:
 		}
 	}
 
-	bool exists(const key_t& key) const {
+	[[nodiscard]] bool exists(const key_t& key) const {
 		return _cache_items_map.find(key) != _cache_items_map.end();
 	}
 
-	std::size_t size() const noexcept {
+	[[nodiscard]] std::size_t size() const noexcept {
 		return _cache_items_map.size();
 	}
 
@@ -173,35 +181,42 @@ public:
 		_cache_items_list.clear();
 	}
 
-	const_iterator cbegin() const noexcept {
+	[[nodiscard]] const_iterator cbegin() const noexcept {
 		return _cache_items_list.cbegin();
 	}
 
-	const_iterator begin() const noexcept {
+	[[nodiscard]] const_iterator begin() const noexcept {
 		return cbegin();
 	}
 
-	const_iterator cend() const noexcept {
+	[[nodiscard]] const_iterator cend() const noexcept {
 		return _cache_items_list.cend();
 	}
 
-	const_iterator end() const noexcept {
+	[[nodiscard]] const_iterator end() const noexcept {
 		return cend();
 	}
 
-	const_reverse_iterator crbegin() const noexcept {
+	[[nodiscard]] const_reverse_iterator crbegin() const noexcept {
 		return _cache_items_list.crbegin();
 	}
 
-	const_iterator rbegin() const noexcept {
+	[[nodiscard]] const_iterator rbegin() const noexcept {
 		return crbegin();
 	}
 
-	const_reverse_iterator crend() const noexcept {
+	[[nodiscard]] const_reverse_iterator crend() const noexcept {
 		return _cache_items_list.crend();
 	}
 
-	const_iterator rend() const noexcept {
+	[[nodiscard]] const_iterator rend() const noexcept {
 		return crend();
 	}
 };
+
+// Restore nodiscard if it was already defined.
+#ifdef GUIORGY_nodiscard_BEFORE
+	#undef nodiscard
+	#define nodiscard GUIORGY_nodiscard_BEFORE
+	#undef GUIORGY_nodiscard_BEFORE
+#endif
