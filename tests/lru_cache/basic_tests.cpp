@@ -19,6 +19,16 @@ TEST(TEST_GROUP, MissingValue) {
 	EXPECT_FALSE(cached.has_value());
 }
 
+TEST(TEST_GROUP, MissingAfterManualRemoval) {
+	guiorgy::lru_cache<int, int, 1> cache_lru;
+	cache_lru.put(7, 777);
+	cache_lru.erase(7);
+	auto cached = cache_lru.get(7);
+
+	EXPECT_FALSE(cached.has_value());
+	EXPECT_EQ(0, cache_lru.size());
+}
+
 TEST(TEST_GROUP, SizeIs0AfterClear) {
 	guiorgy::lru_cache<int, int, 1> cache_lru;
 	cache_lru.put(7, 777);
