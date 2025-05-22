@@ -976,7 +976,7 @@ namespace guiorgy::detail {
 		// Iterators to the removed element are invalidated. Other iterators are not affected.
 		template<const bool reverse>
 		T& erase(const _iterator<false, reverse> it) {
-			return remove_node(it.forward_index()).value;
+			return remove_node(it.forward_index(), true).value;
 		}
 
 		// Erases all elements from the list. After this call, size() returns zero.
@@ -1206,7 +1206,7 @@ namespace guiorgy::detail {
 
 		// See remove_node for details.
 		T& _erase_value_at(const index_t position) {
-			return remove_node(position).value;
+			return remove_node(position, true).value;
 		}
 
 		// See move_node_to_front for details.
