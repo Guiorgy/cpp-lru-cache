@@ -17,6 +17,12 @@ fi
 BUILD_TYPES='Debug Release'
 HASH_MAP_IMPLEMENTATIONS='STL STL_PMR ABSEIL TESSIL_SPARSE TESSIL_ROBIN TESSIL_HOP ANKERL ANKERL_SEG'
 
+if [ $# -ne 0 ] && [ "$1" = 'dev' ]; then
+  DEV=1
+else
+  DEV=0
+fi
+
 build_and_run_tests() {
   local build_type="$1"
   local hm_impl="$2"
@@ -25,8 +31,13 @@ build_and_run_tests() {
   mkdir -p "$build_dir"
   cd "$build_dir"
 
+  local cmake_args="-DCMAKE_BUILD_TYPE=$build_type -DHASH_MAP_IMPLEMENTATION=$hm_impl"
+  if [ $DEV -eq 1 ]; then
+    cmake_args="$cmake_args -Wdev -Werror=dev -Wdeprecated -Werror=deprecated --warn-uninitialized --loglevel=VERBOSE"
+  fi
+
   echo "Configuring the configuration: $build_type $hm_impl"
-  cmake_output=$($UNBUFFER cmake -DCMAKE_BUILD_TYPE=$build_type -DHASH_MAP_IMPLEMENTATION=$hm_impl -Wdev -Werror=dev -Wdeprecated -Werror=deprecated --warn-uninitialized --loglevel=VERBOSE ../.. 2>&1)
+  cmake_output=$($UNBUFFER cmake $cmake_args ../.. 2>&1)
   if [ $? -ne 0 ]; then
     echo "$cmake_output"
     echo "CMake configuration failed for the configuration: $build_type $hm_impl"
