@@ -1,7 +1,7 @@
 #!/bin/sh
 
 BUILD_TYPES='Debug Release'
-OPTIONS='ABSEIL TESSIL ANKERL ANKERL_SEG'
+OPTIONS='PMR ABSEIL TESSIL ANKERL ANKERL_SEG'
 
 build_and_run_tests() {
   local build_type="$1"

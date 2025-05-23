@@ -17,6 +17,12 @@
 		#undef STL_UNORDERED_MAP
 	#endif
 	#define STL_UNORDERED_MAP 10
+	// STL std::pmr::unordered_map with std::pmr::unsynchronized_pool_resource
+	#ifdef STL_PMR_UNORDERED_MAP
+		#define GUIORGY_LRU_CACHE_STL_PMR_UNORDERED_MAP_BEFORE STL_PMR_UNORDERED_MAP
+		#undef STL_PMR_UNORDERED_MAP
+	#endif
+	#define STL_PMR_UNORDERED_MAP 11
 
 	// Abseil absl::flat_hash_map
 	#ifdef ABSEIL_FLAT_HASH_MAP
@@ -70,6 +76,14 @@
 	#ifdef LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION
 		#pragma message("Using std::unordered_map as the hashmap for the LRU cache")
 	#endif
+#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_PMR_UNORDERED_MAP
+	// STL std::pmr::unordered_map with std::pmr::unsynchronized_pool_resource
+	#include <memory_resource>
+	#include <unordered_map>
+
+	#ifdef LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION
+		#pragma message("Using std::pmr::unordered_map as the hashmap for the LRU cache")
+	#endif
 #elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ABSEIL_FLAT_HASH_MAP
 	// Abseil absl::flat_hash_map
 	#include "absl/container/flat_hash_map.h"
@@ -117,7 +131,7 @@
 	#define GUIORGY_VALUE(x) GUIORGY_VALUE_TO_STRING(x)
 
 	#pragma message("LRU_CACHE_HASH_MAP_IMPLEMENTATION is set to " GUIORGY_VALUE(LRU_CACHE_HASH_MAP_IMPLEMENTATION))
-	#pragma message("Possible valiues are STL_UNORDERED_MAP(std::unordered_map), ABSEIL_FLAT_HASH_MAP(absl::flat_hash_map), TESSIL_SPARSE_MAP(tsl::sparse_map), TESSIL_ROBIN_MAP(tsl::robin_map), TESSIL_HOPSCOTCH_MAP(tsl::hopscotch_map), ANKERL_UNORDERED_DENSE_MAP(ankerl::unordered_dense::map), ANKERL_UNORDERED_DENSE_SEGMENTED_MAP(ankerl::unordered_dense::segmented_map)")
+	#pragma message("Possible valiues are STL_UNORDERED_MAP(std::unordered_map), STL_PMR_UNORDERED_MAP(std::pmr::unordered_map), ABSEIL_FLAT_HASH_MAP(absl::flat_hash_map), TESSIL_SPARSE_MAP(tsl::sparse_map), TESSIL_ROBIN_MAP(tsl::robin_map), TESSIL_HOPSCOTCH_MAP(tsl::hopscotch_map), ANKERL_UNORDERED_DENSE_MAP(ankerl::unordered_dense::map), ANKERL_UNORDERED_DENSE_SEGMENTED_MAP(ankerl::unordered_dense::segmented_map)")
 	#error "Unexpected value of LRU_CACHE_HASH_MAP_IMPLEMENTATION"
 #endif
 
@@ -1183,6 +1197,17 @@ namespace guiorgy {
 						std::unordered_map<kt, vt, hash_function, key_equality_predicate>
 					>
 				>;
+			#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_PMR_UNORDERED_MAP
+				template<typename kt, typename vt>
+				using map_t = typename std::conditional_t<
+					std::is_same_v<hash_function, DefaultHashFunction<kt>>,
+					std::pmr::unordered_map<kt, vt>,
+					typename std::conditional_t<
+						std::is_same_v<key_equality_predicate, DefaultKeyEqualityPredicate<kt>>,
+						std::pmr::unordered_map<kt, vt, hash_function>,
+						std::pmr::unordered_map<kt, vt, hash_function, key_equality_predicate>
+					>
+				>;
 			#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ABSEIL_FLAT_HASH_MAP
 				template<typename kt, typename vt>
 				using map_t = typename std::conditional_t<
@@ -1265,7 +1290,20 @@ namespace guiorgy {
 
 		protected:
 			vector_list<key_value_pair_t, max_size> _cache_items_list{};
-			map_t<key_t, list_index_t> _cache_items_map{};
+
+			#if LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_PMR_UNORDERED_MAP
+				static constexpr std::size_t map_node_overhead_estimate = 24;
+				std::pmr::unsynchronized_pool_resource _unsynchronized_pool_resource{
+					std::pmr::pool_options{
+						/* max_blocks_per_chunk */ 64,
+						/* largest_required_pool_block */ sizeof(key_value_pair_t) + map_node_overhead_estimate
+					},
+					std::pmr::get_default_resource()
+				};
+				map_t<key_t, list_index_t> _cache_items_map{&_unsynchronized_pool_resource};
+			#else
+				map_t<key_t, list_index_t> _cache_items_mapP{};
+			#endif
 		};
 
 		// The base class of lru_cache that defines the default constructors, destructor and assignments.
@@ -1317,6 +1355,16 @@ namespace guiorgy {
 	//     - lru_cache is move constructible.
 	//     - lru_cache is not trivially move constructible.
 	//     - lru_cache is nothrow move constructible.
+	//   - When using std::pmr::unordered_map:
+	//     - lru_cache is default constructible only if preallocate is false.
+	//     - lru_cache is not trivially (default) constructible.
+	//     - lru_cache is not nothrow (default) constructible.
+	//     - lru_cache is not copy constructible.
+	//     - lru_cache is not trivially copy constructible.
+	//     - lru_cache is not nothrow copy constructible.
+	//     - lru_cache is not move constructible.
+	//     - lru_cache is not trivially move constructible.
+	//     - lru_cache is not nothrow move constructible.
 	//   - When using absl::flat_hash_map, tsl::sparse_map, ankerl::unordered_dense::map or ankerl::unordered_dense::segmented_map:
 	//     - lru_cache is default constructible only if preallocate is false.
 	//     - lru_cache is not trivially (default) constructible.
@@ -1686,6 +1734,12 @@ namespace guiorgy {
 		#undef STL_UNORDERED_MAP
 		#define STL_UNORDERED_MAP GUIORGY_LRU_CACHE_STL_UNORDERED_MAP_BEFORE
 		#undef GUIORGY_LRU_CACHE_STL_UNORDERED_MAP_BEFORE
+	#endif
+	// STL std::pmr::unordered_map with std::pmr::unsynchronized_pool_resource
+	#ifdef GUIORGY_LRU_CACHE_STL_PMR_UNORDERED_MAP_BEFORE
+		#undef STL_MPR_UNORDERED_MAP
+		#define STL_MPR_UNORDERED_MAP GUIORGY_LRU_CACHE_STL_PMR_UNORDERED_MAP_BEFORE
+		#undef GUIORGY_LRU_CACHE_STL_PMR_UNORDERED_MAP_BEFORE
 	#endif
 
 	// STL std::unordered_map

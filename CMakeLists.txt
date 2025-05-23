@@ -46,6 +46,18 @@ set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES "")
 set(HASH_MAP_IMPLEMENTATION_OPTIONS_ON "")
 set(NUM_HASH_MAP_IMPLEMENTATIONS_ON 0)
 
+option(PMR "Use std::pmr::unordered_map with std::pmr::unsynchronized_pool_resource instead of std::unordered_map" OFF)
+if (PMR)
+    if (NUM_HASH_MAP_IMPLEMENTATIONS_ON EQUAL 0)
+        message(STATUS "Using std::pmr::unordered_map with std::pmr::unsynchronized_pool_resource instead of std::unordered_map")
+
+        add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=STL_PMR_UNORDERED_MAP)
+    endif()
+
+    list(APPEND HASH_MAP_IMPLEMENTATION_OPTIONS_ON PMR)
+    list(LENGTH HASH_MAP_IMPLEMENTATION_OPTIONS_ON NUM_HASH_MAP_IMPLEMENTATIONS_ON)
+endif()
+
 option(ABSEIL "Use absl::flat_hash_map instead of std::unordered_map" OFF)
 if (ABSEIL)
     if (NUM_HASH_MAP_IMPLEMENTATIONS_ON EQUAL 0)
