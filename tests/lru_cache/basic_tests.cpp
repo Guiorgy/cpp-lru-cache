@@ -39,6 +39,35 @@ TEST(TEST_GROUP, SizeIs0AfterClear) {
 	EXPECT_EQ(0, cache_lru.size());
 }
 
+TEST(TEST_GROUP, PutWithHints) {
+	guiorgy::lru_cache<int, int, 5> cache_lru;
+
+	cache_lru.put(1, 111);
+	EXPECT_TRUE(cache_lru.exists(1));
+	EXPECT_EQ(111, cache_lru.get(1).value());
+	EXPECT_EQ(1, cache_lru.size());
+
+	cache_lru.put<true>(2, 222);
+	EXPECT_TRUE(cache_lru.exists(2));
+	EXPECT_EQ(222, cache_lru.get(2).value());
+	EXPECT_EQ(2, cache_lru.size());
+
+	cache_lru.put<false, true>(3, 333);
+	EXPECT_TRUE(cache_lru.exists(3));
+	EXPECT_EQ(333, cache_lru.get(3).value());
+	EXPECT_EQ(3, cache_lru.size());
+
+	cache_lru.put<guiorgy::Likelihood::Likely>(4, 444);
+	EXPECT_TRUE(cache_lru.exists(4));
+	EXPECT_EQ(444, cache_lru.get(4).value());
+	EXPECT_EQ(4, cache_lru.size());
+
+	cache_lru.put<guiorgy::Likelihood::Unlikely, guiorgy::Likelihood::Likely>(5, 555);
+	EXPECT_TRUE(cache_lru.exists(5));
+	EXPECT_EQ(555, cache_lru.get(5).value());
+	EXPECT_EQ(5, cache_lru.size());
+}
+
 TEST(TEST_GROUP, IteratorWithOneElement) {
 	guiorgy::lru_cache<int, int, 1> cache_lru;
 	cache_lru.put(7, 777);
