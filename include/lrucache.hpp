@@ -1803,60 +1803,159 @@ namespace guiorgy {
 
 		// Returns a std::optional with the value that is mapped to the given key,
 		// or an empty optional if such key does not already exist.
+		// Use key_exists to hint to the compiler for which case to optimize for.
+		template<const Likelihood key_exists = Likelihood::Unknown>
 		[[nodiscard]] const std::optional<value_t> get(const key_t& key) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
-			if (it == this->_cache_items_map.end()) {
-				return std::nullopt;
-			} else {
-				return this->_cache_items_list._move_value_at_to_front(it->second).second;
+			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
+			if constexpr (key_exists == Likelihood::Unknown) {
+				if (it != this->_cache_items_map.end()) {
+					return this->_cache_items_list._move_value_at_to_front(it->second).second;
+				} else {
+					return std::nullopt;
+				}
+			} else if constexpr (key_exists == Likelihood::Likely) {
+				if (it != this->_cache_items_map.end()) LIKELY {
+					return this->_cache_items_list._move_value_at_to_front(it->second).second;
+				} else {
+					return std::nullopt;
+				}
+			} else if constexpr (key_exists == Likelihood::Unlikely) {
+				if (it != this->_cache_items_map.end()) UNLIKELY {
+					return this->_cache_items_list._move_value_at_to_front(it->second).second;
+				} else {
+					return std::nullopt;
+				}
 			}
+		}
+
+		// See the get above for details.
+		// Use key_likely_exists to hint to the compiler for which case to optimize for.
+		template<const bool key_likely_exists>
+		[[nodiscard]] const std::optional<value_t> get(const key_t& key) {
+			return get<likelihood(key_likely_exists)>(key);
 		}
 
 		// Returns a std::optional with a reference to the value that is mapped to
 		// the given key, or an empty optional if such key does not already exist.
+		// Use key_exists to hint to the compiler for which case to optimize for.
 		// Remarks:
 		//   - No guarantees are given about the underlying object lifetime when
 		//     modifying the cache (inserting/removing elements), so use with caution.
+		template<const Likelihood key_exists = Likelihood::Unknown>
 		[[nodiscard]] const std::optional<std::reference_wrapper<const value_t>> get_ref(const key_t& key) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
-			if (it == this->_cache_items_map.end()) {
-				return std::nullopt;
-			} else {
-				return std::make_optional(std::cref(this->_cache_items_list._move_value_at_to_front(it->second).second));
+			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
+			if constexpr (key_exists == Likelihood::Unknown) {
+				if (it != this->_cache_items_map.end()) {
+					return std::make_optional(std::cref(this->_cache_items_list._move_value_at_to_front(it->second).second));
+				} else {
+					return std::nullopt;
+				}
+			} else if constexpr (key_exists == Likelihood::Likely) {
+				if (it != this->_cache_items_map.end()) LIKELY {
+					return std::make_optional(std::cref(this->_cache_items_list._move_value_at_to_front(it->second).second));
+				} else {
+					return std::nullopt;
+				}
+			} else if constexpr (key_exists == Likelihood::Unlikely) {
+				if (it != this->_cache_items_map.end()) UNLIKELY {
+					return std::make_optional(std::cref(this->_cache_items_list._move_value_at_to_front(it->second).second));
+				} else {
+					return std::nullopt;
+				}
 			}
+		}
+
+		// See the get_ref above for details.
+		// Use key_likely_exists to hint to the compiler for which case to optimize for.
+		template<const bool key_likely_exists>
+		[[nodiscard]] const std::optional<std::reference_wrapper<const value_t>> get_ref(const key_t& key) {
+			return get_ref<likelihood(key_likely_exists)>(key);
 		}
 
 		// Returns true and copies the value that is mapped to the given key into
 		// the given value_out reference, or false if such key does not already exist.
+		// Use key_exists to hint to the compiler for which case to optimize for.
+		template<const Likelihood key_exists = Likelihood::Unknown>
 		[[nodiscard]] bool try_get(const key_t& key, value_t& value_out) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
-			if (it == this->_cache_items_map.end()) {
-				return false;
-			} else {
-				value_out = this->_cache_items_list._move_value_at_to_front(it->second).second;
-				return true;
+			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
+			if constexpr (key_exists == Likelihood::Unknown) {
+				if (it != this->_cache_items_map.end()) {
+					value_out = this->_cache_items_list._move_value_at_to_front(it->second).second;
+					return true;
+				} else {
+					return false;
+				}
+			} else if constexpr (key_exists == Likelihood::Likely) {
+				if (it != this->_cache_items_map.end()) LIKELY {
+					value_out = this->_cache_items_list._move_value_at_to_front(it->second).second;
+					return true;
+				} else {
+					return false;
+				}
+			} else if constexpr (key_exists == Likelihood::Unlikely) {
+				if (it != this->_cache_items_map.end()) UNLIKELY {
+					value_out = this->_cache_items_list._move_value_at_to_front(it->second).second;
+					return true;
+				} else {
+					return false;
+				}
 			}
+		}
+
+		// See the try_get above for details.
+		// Use key_likely_exists to hint to the compiler for which case to optimize for.
+		template<const bool key_likely_exists>
+		[[nodiscard]] bool try_get(const key_t& key, value_t& value_out) {
+			return try_get<likelihood(key_likely_exists)>(key, value_out);
 		}
 
 		// Returns true and assigns the address to the value that is mapped to the
 		// given key into the given value_out pointer reference, or false if such
 		// key does not already exist.
+		// Use key_exists to hint to the compiler for which case to optimize for.
 		// Remarks:
 		//   - No guarantees are given about the underlying object lifetime when
 		//     modifying the cache (inserting/removing elements), so use with caution.
+		template<const Likelihood key_exists = Likelihood::Unknown>
 		[[nodiscard]] bool try_get_ref(const key_t& key, const value_t*& value_out) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
-			if (it == this->_cache_items_map.end()) {
-				value_out = nullptr;
-				return false;
-			} else {
-				value_out = &(this->_cache_items_list._move_value_at_to_front(it->second).second);
-				return true;
+			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
+			if constexpr (key_exists == Likelihood::Unknown) {
+				if (it != this->_cache_items_map.end()) {
+					value_out = &(this->_cache_items_list._move_value_at_to_front(it->second).second);
+					return true;
+				} else {
+					return false;
+				}
+			} else if constexpr (key_exists == Likelihood::Likely) {
+				if (it != this->_cache_items_map.end()) LIKELY {
+					value_out = &(this->_cache_items_list._move_value_at_to_front(it->second).second);
+					return true;
+				} else {
+					return false;
+				}
+			} else if constexpr (key_exists == Likelihood::Unlikely) {
+				if (it != this->_cache_items_map.end()) UNLIKELY {
+					value_out = &(this->_cache_items_list._move_value_at_to_front(it->second).second);
+					return true;
+				} else {
+					return false;
+				}
 			}
+		}
+
+		// See the try_get_ref above for details.
+		// Use key_likely_exists to hint to the compiler for which case to optimize for.
+		template<const bool key_likely_exists>
+		[[nodiscard]] bool try_get_ref(const key_t& key, const value_t*& value_out) {
+			return try_get_ref<likelihood(key_likely_exists)>(key, value_out);
 		}
 
 		// If the key exists in the container, removes the value that is mapped to the
