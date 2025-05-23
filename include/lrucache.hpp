@@ -1453,6 +1453,13 @@ namespace guiorgy::detail {
 
 // lru_cache public.
 namespace guiorgy {
+	// A hint to the likelihood of a condition being true.
+	enum struct Likelihood : uint_fast8_t {
+		Unknown,	// No attribute used
+		Likely,		// [[likely]] attribute used
+		Unlikely	// [[unlikely]] attribute used
+	};
+
 	// A fixed size (if preallocate is true) or bounded (if preallocate is false) container that
 	// contains key-value pairs with unique keys. Search, insertion, and removal of elements have
 	// average constant-time complexity. Two keys are considered equivalent if key_equality_predicate
@@ -1500,6 +1507,17 @@ namespace guiorgy {
 		using list_index_t = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::list_index_t;
 		using map_iterator_t = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::map_iterator_t;
 
+		// Checks whether the given likelihood value is a valid Likelihood enum value.
+		static constexpr bool is_valid_likelihood(const Likelihood likelihood) noexcept {
+			return likelihood == Likelihood::Unknown || likelihood == Likelihood::Likely || likelihood == Likelihood::Unlikely;
+		}
+
+		// Converts a bool to a Likelihood::Likely or Likelihood::Unlikely enum.
+		// The Likelihood::Unknown value is impossible to get this way.
+		static constexpr Likelihood likelihood(const bool likely) noexcept {
+			return likely ? Likelihood::Likely : Likelihood::Unlikely;
+		}
+
 	public:
 		using iterator = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::iterator;
 		using reverse_iterator = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::reverse_iterator;
@@ -1510,85 +1528,218 @@ namespace guiorgy {
 		// If the key doesn't exist in the container, inserts a copy of value into the container.
 		// If a reallocation takes place after the operation, or the container size is already at max_size,
 		// all references and iterators are invalidated.
+		// Use key_exists and cache_full to hint to the compiler for which case to optimize for.
+		template<const Likelihood key_exists = Likelihood::Unknown, const Likelihood cache_full = Likelihood::Unknown>
 		void put(const key_t& key, const value_t& value) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
-			if (it != this->_cache_items_map.end()) {
-				this->_cache_items_list._get_value_at(it->second).second = value;
-				this->_cache_items_list._move_value_at_to_front(it->second);
-			} else {
-				if (this->_cache_items_map.size() < max_size) {
-					this->_cache_items_list.emplace_front(key, value);
-				} else {
+			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
+			if constexpr (key_exists == Likelihood::Unknown) {
+				if (it != this->_cache_items_map.end()) {
+					this->_cache_items_list._get_value_at(it->second).second = value;
+					this->_cache_items_list._move_value_at_to_front(it->second);
+
+					return;
+				}
+			} else if constexpr (key_exists == Likelihood::Likely) {
+				if (it != this->_cache_items_map.end()) LIKELY {
+					this->_cache_items_list._get_value_at(it->second).second = value;
+					this->_cache_items_list._move_value_at_to_front(it->second);
+
+					return;
+				}
+			} else if constexpr (key_exists == Likelihood::Unlikely) {
+				if (it != this->_cache_items_map.end()) UNLIKELY {
+					this->_cache_items_list._get_value_at(it->second).second = value;
+					this->_cache_items_list._move_value_at_to_front(it->second);
+
+					return;
+				}
+			}
+
+			static_assert(is_valid_likelihood(cache_full), "cache_full has an invalid enum value for Likelihood");
+			if constexpr (cache_full == Likelihood::Unknown) {
+				if (this->_cache_items_map.size() == max_size) {
 					key_value_pair_t& last = this->_cache_items_list.back();
 					this->_cache_items_map.erase(last.first);
 					last.first = key;
 					last.second = value;
 					this->_cache_items_list._move_last_value_to_front();
-				}
-
-				if constexpr (this->map_has_emplace_hint) {
-					this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
-				} else if constexpr (this->map_has_insert_with_hint) {
-					this->_cache_items_map.insert(it, std::make_pair(key, this->_cache_items_list._first_value_index()));
 				} else {
-					this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
+					this->_cache_items_list.emplace_front(key, value);
+				}
+			} else if constexpr (cache_full == Likelihood::Likely) {
+				if (this->_cache_items_map.size() == max_size) LIKELY  {
+					key_value_pair_t& last = this->_cache_items_list.back();
+					this->_cache_items_map.erase(last.first);
+					last.first = key;
+					last.second = value;
+					this->_cache_items_list._move_last_value_to_front();
+				} else {
+					this->_cache_items_list.emplace_front(key, value);
+				}
+			} else if constexpr (cache_full == Likelihood::Unlikely) {
+				if (this->_cache_items_map.size() == max_size) UNLIKELY {
+					key_value_pair_t& last = this->_cache_items_list.back();
+					this->_cache_items_map.erase(last.first);
+					last.first = key;
+					last.second = value;
+					this->_cache_items_list._move_last_value_to_front();
+				} else {
+					this->_cache_items_list.emplace_front(key, value);
 				}
 			}
+
+			if constexpr (this->map_has_emplace_hint) {
+				this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
+			} else if constexpr (this->map_has_insert_with_hint) {
+				this->_cache_items_map.insert(it, std::make_pair(key, this->_cache_items_list._first_value_index()));
+			} else {
+				this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
+			}
+		}
+
+		// See the put above for details.
+		// Use key_likely_exists and cache_likely_full to hint to the compiler for which case to optimize for.
+		template<const bool key_likely_exists, const bool cache_likely_full>
+		void put(const key_t& key, const value_t& value) {
+			put<likelihood(key_likely_exists), likelihood(cache_likely_full)>(key, value);
+		}
+		template<const bool key_likely_exists>
+		void put(const key_t& key, const value_t& value) {
+			put<likelihood(key_likely_exists)>(key, value);
 		}
 
 		// If the key already exists in the container, moves value to the mapped value inside the container.
 		// If the key doesn't exist in the container, inserts value into the container.
 		// If a reallocation takes place after the operation, or the container size is already at max_size,
 		// all references and iterators are invalidated.
+		// Use key_exists and cache_full to hint to the compiler for which case to optimize for.
+		template<const Likelihood key_exists = Likelihood::Unknown, const Likelihood cache_full = Likelihood::Unknown>
 		void put(const key_t& key, value_t&& value) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
-			if (it != this->_cache_items_map.end()) {
-				this->_cache_items_list._get_value_at(it->second).second = std::move(value);
-				this->_cache_items_list._move_value_at_to_front(it->second);
-			} else {
-				if (this->_cache_items_map.size() < max_size) {
-					this->_cache_items_list.emplace_front(key, std::move(value));
-				} else {
+			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
+			if constexpr (key_exists == Likelihood::Unknown) {
+				if (it != this->_cache_items_map.end()) {
+					this->_cache_items_list._get_value_at(it->second).second = std::move(value);
+					this->_cache_items_list._move_value_at_to_front(it->second);
+
+					return;
+				}
+			} else if constexpr (key_exists == Likelihood::Likely) {
+				if (it != this->_cache_items_map.end()) LIKELY {
+					this->_cache_items_list._get_value_at(it->second).second = std::move(value);
+					this->_cache_items_list._move_value_at_to_front(it->second);
+
+					return;
+				}
+			} else if constexpr (key_exists == Likelihood::Unlikely) {
+				if (it != this->_cache_items_map.end()) UNLIKELY {
+					this->_cache_items_list._get_value_at(it->second).second = std::move(value);
+					this->_cache_items_list._move_value_at_to_front(it->second);
+
+					return;
+				}
+			}
+
+			static_assert(is_valid_likelihood(cache_full), "cache_full has an invalid enum value for Likelihood");
+			if constexpr (cache_full == Likelihood::Unknown) {
+				if (this->_cache_items_map.size() == max_size) {
 					key_value_pair_t& last = this->_cache_items_list.back();
 					this->_cache_items_map.erase(last.first);
 					last.first = key;
 					last.second = std::move(value);
 					this->_cache_items_list._move_last_value_to_front();
-				}
-
-				if constexpr (this->map_has_emplace_hint) {
-					this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
-				} else if constexpr (this->map_has_insert_with_hint) {
-					this->_cache_items_map.insert(it, std::make_pair(key, this->_cache_items_list._first_value_index()));
 				} else {
-					this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
+					this->_cache_items_list.emplace_front(key, std::move(value));
+				}
+			} else if constexpr (cache_full == Likelihood::Likely) {
+				if (this->_cache_items_map.size() == max_size) LIKELY  {
+					key_value_pair_t& last = this->_cache_items_list.back();
+					this->_cache_items_map.erase(last.first);
+					last.first = key;
+					last.second = std::move(value);
+					this->_cache_items_list._move_last_value_to_front();
+				} else {
+					this->_cache_items_list.emplace_front(key, std::move(value));
+				}
+			} else if constexpr (cache_full == Likelihood::Unlikely) {
+				if (this->_cache_items_map.size() == max_size) UNLIKELY {
+					key_value_pair_t& last = this->_cache_items_list.back();
+					this->_cache_items_map.erase(last.first);
+					last.first = key;
+					last.second = std::move(value);
+					this->_cache_items_list._move_last_value_to_front();
+				} else {
+					this->_cache_items_list.emplace_front(key, std::move(value));
 				}
 			}
+
+			if constexpr (this->map_has_emplace_hint) {
+				this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
+			} else if constexpr (this->map_has_insert_with_hint) {
+				this->_cache_items_map.insert(it, std::make_pair(key, this->_cache_items_list._first_value_index()));
+			} else {
+				this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
+			}
+		}
+
+		// See the put above for details.
+		// Use key_likely_exists and cache_likely_full to hint to the compiler for which case to optimize for.
+		template<const bool key_likely_exists, const bool cache_likely_full>
+		void put(const key_t& key, value_t&& value) {
+			put<likelihood(key_likely_exists), likelihood(cache_likely_full)>(key, std::move(value));
+		}
+		template<const bool key_likely_exists>
+		void put(const key_t& key, value_t&& value) {
+			put<likelihood(key_likely_exists)>(key, std::move(value));
 		}
 
 		// If the key already exists in the container, constructs a new element in-place with the given value_args into the mapped value inside the container.
 		// If the key doesn't exist in the container, constructs a new element in-place with the given value_args into the container.
 		// If a reallocation takes place after the operation, or the container size is already at max_size,
 		// all references and iterators are invalidated.
-		template<typename... ValueArgs>
+		// Use key_exists and cache_full to hint to the compiler for which case to optimize for.
+		template<const Likelihood key_exists = Likelihood::Unknown, const Likelihood cache_full = Likelihood::Unknown, typename... ValueArgs>
 		const value_t& emplace(const key_t& key, ValueArgs&&... value_args) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
-			if (it != this->_cache_items_map.end()) {
-				value_t& value = this->_cache_items_list._get_value_at(it->second).second;
-				value.~value_t();
-				::new (&value) value_t(std::forward<ValueArgs>(value_args)...);
-				this->_cache_items_list._move_value_at_to_front(it->second);
+			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
+			if constexpr (key_exists == Likelihood::Unknown) {
+				if (it != this->_cache_items_map.end()) {
+					value_t& value = this->_cache_items_list._get_value_at(it->second).second;
+					value.~value_t();
+					::new (&value) value_t(std::forward<ValueArgs>(value_args)...);
+					this->_cache_items_list._move_value_at_to_front(it->second);
 
-				return value;
-			} else {
-				value_t* value;
+					return value;
+				}
+			} else if constexpr (key_exists == Likelihood::Likely) {
+				if (it != this->_cache_items_map.end()) LIKELY {
+					value_t& value = this->_cache_items_list._get_value_at(it->second).second;
+					value.~value_t();
+					::new (&value) value_t(std::forward<ValueArgs>(value_args)...);
+					this->_cache_items_list._move_value_at_to_front(it->second);
 
-				if (this->_cache_items_map.size() < max_size) {
-					value = &(this->_cache_items_list.emplace_front(key, std::forward<ValueArgs>(value_args)...));
-				} else {
+					return value;
+				}
+			} else if constexpr (key_exists == Likelihood::Unlikely) {
+				if (it != this->_cache_items_map.end()) UNLIKELY {
+					value_t& value = this->_cache_items_list._get_value_at(it->second).second;
+					value.~value_t();
+					::new (&value) value_t(std::forward<ValueArgs>(value_args)...);
+					this->_cache_items_list._move_value_at_to_front(it->second);
+
+					return value;
+				}
+			}
+
+			value_t* value;
+
+			static_assert(is_valid_likelihood(cache_full), "cache_full has an invalid enum value for Likelihood");
+			if constexpr (cache_full == Likelihood::Unknown) {
+				if (this->_cache_items_map.size() == max_size) {
 					key_value_pair_t& last = this->_cache_items_list.back();
 					this->_cache_items_map.erase(last.first);
 					last.first = key;
@@ -1597,18 +1748,57 @@ namespace guiorgy {
 					this->_cache_items_list._move_last_value_to_front();
 
 					value = &last.second;
-				}
-
-				if constexpr (this->map_has_emplace_hint) {
-					this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
-				} else if constexpr (this->map_has_insert_with_hint) {
-					this->_cache_items_map.insert(it, std::make_pair(key, this->_cache_items_list._first_value_index()));
 				} else {
-					this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
+					value = &(this->_cache_items_list.emplace_front(key, std::forward<ValueArgs>(value_args)...));
 				}
+			} else if constexpr (cache_full == Likelihood::Likely) {
+				if (this->_cache_items_map.size() == max_size) LIKELY  {
+					key_value_pair_t& last = this->_cache_items_list.back();
+					this->_cache_items_map.erase(last.first);
+					last.first = key;
+					last.second.~value_t();
+					::new (&last.second) value_t(std::forward<ValueArgs>(value_args)...);
+					this->_cache_items_list._move_last_value_to_front();
 
-				return *value;
+					value = &last.second;
+				} else {
+					value = &(this->_cache_items_list.emplace_front(key, std::forward<ValueArgs>(value_args)...));
+				}
+			} else if constexpr (cache_full == Likelihood::Unlikely) {
+				if (this->_cache_items_map.size() == max_size) UNLIKELY {
+					key_value_pair_t& last = this->_cache_items_list.back();
+					this->_cache_items_map.erase(last.first);
+					last.first = key;
+					last.second.~value_t();
+					::new (&last.second) value_t(std::forward<ValueArgs>(value_args)...);
+					this->_cache_items_list._move_last_value_to_front();
+
+					value = &last.second;
+				} else {
+					value = &(this->_cache_items_list.emplace_front(key, std::forward<ValueArgs>(value_args)...));
+				}
 			}
+
+			if constexpr (this->map_has_emplace_hint) {
+				this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
+			} else if constexpr (this->map_has_insert_with_hint) {
+				this->_cache_items_map.insert(it, std::make_pair(key, this->_cache_items_list._first_value_index()));
+			} else {
+				this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
+			}
+
+			return *value;
+		}
+
+		// See the emplace above for details.
+		// Use key_likely_exists and cache_likely_full to hint to the compiler for which case to optimize for.
+		template<const bool key_likely_exists, const bool cache_likely_full, typename... ValueArgs>
+		void emplace(const key_t& key, ValueArgs&&... value_args) {
+			emplace<likelihood(key_likely_exists), likelihood(cache_likely_full)>(key, std::forward<ValueArgs>(value_args)...);
+		}
+		template<const bool key_likely_exists, typename... ValueArgs>
+		void emplace(const key_t& key, ValueArgs&&... value_args) {
+			emplace<likelihood(key_likely_exists)>(key, std::forward<ValueArgs>(value_args)...);
 		}
 
 		// Returns a std::optional with the value that is mapped to the given key,
