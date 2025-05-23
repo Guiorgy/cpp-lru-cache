@@ -26,7 +26,7 @@ build_and_run_tests() {
   cd "$build_dir"
 
   echo "Configuring the configuration: $build_type $hm_impl"
-  cmake_output=$($UNBUFFER cmake -DCMAKE_BUILD_TYPE=$build_type -DHASH_MAP_IMPLEMENTATION=$hm_impl ../.. 2>&1)
+  cmake_output=$($UNBUFFER cmake -DCMAKE_BUILD_TYPE=$build_type -DHASH_MAP_IMPLEMENTATION=$hm_impl -Wdev -Werror=dev -Wdeprecated -Werror=deprecated --warn-uninitialized --loglevel=VERBOSE ../.. 2>&1)
   if [ $? -ne 0 ]; then
     echo "$cmake_output"
     echo "CMake configuration failed for the configuration: $build_type $hm_impl"
