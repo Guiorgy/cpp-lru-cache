@@ -2146,17 +2146,45 @@ namespace guiorgy {
 		}
 
 		// If the key exists in the container, removes the value that is mapped to the
-		// given key, or false if such key does not exist.
+		// given key and returns true, or false if such key does not exist.
+		// Use key_exists to hint to the compiler for which case to optimize for.
+		template<const Likelihood key_exists = Likelihood::Unknown>
 		bool erase(const key_t& key) {
 			map_iterator_t it = this->_cache_items_map.find(key);
 
-			if (it != this->_cache_items_map.end()) {
-				this->_cache_items_list._erase_value_at(it->second);
-				this->_cache_items_map.erase(it);
-				return true;
-			} else {
-				return false;
+			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
+			if constexpr (key_exists == Likelihood::Unknown) {
+				if (it != this->_cache_items_map.end()) {
+					this->_cache_items_list._erase_value_at(it->second);
+					this->_cache_items_map.erase(it);
+					return true;
+				} else {
+					return false;
+				}
+			} else if constexpr (key_exists == Likelihood::Likely) {
+				if (it != this->_cache_items_map.end()) LIKELY {
+					this->_cache_items_list._erase_value_at(it->second);
+					this->_cache_items_map.erase(it);
+					return true;
+				} else {
+					return false;
+				}
+			} else if constexpr (key_exists == Likelihood::Unlikely) {
+				if (it != this->_cache_items_map.end()) UNLIKELY {
+					this->_cache_items_list._erase_value_at(it->second);
+					this->_cache_items_map.erase(it);
+					return true;
+				} else {
+					return false;
+				}
 			}
+		}
+
+		// See the erase above for details.
+		// Use key_likely_exists to hint to the compiler for which case to optimize for.
+		template<const bool key_likely_exists>
+		bool erase(const key_t& key) {
+			return erase<likelihood(key_likely_exists)>(key);
 		}
 
 		// Checks if the container contains an element with the given key.
