@@ -186,19 +186,22 @@ foreach(name_and_include IN LISTS HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES)
 endforeach()
 set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES ${TMP})
 
-include_directories(
-    ${PROJECT_SOURCE_DIR}/include
-    ${HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES}
-    ${PROJECT_SOURCE_DIR}/tests/include
-)
-
 file(GLOB_RECURSE TESTS ${PROJECT_SOURCE_DIR}/tests/*.cpp)
 add_executable(cpp-lru-cache-test ${TESTS})
 
 target_compile_options(cpp-lru-cache-test PRIVATE "SHELL:${MORE_WARNING_FLAGS}")
 
+target_include_directories(
+    cpp-lru-cache-test SYSTEM PRIVATE
+    ${HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES}
+)
+target_include_directories(
+    cpp-lru-cache-test PRIVATE
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/tests/include
+)
 target_link_libraries(
-    cpp-lru-cache-test
+    cpp-lru-cache-test PRIVATE
     ${HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES}
     gtest gtest_main
 )
@@ -230,8 +233,17 @@ if(VALGRIND_EXECUTABLE)
     target_compile_options(cpp-lru-cache-test-sanitize PRIVATE "SHELL:${MORE_WARNING_FLAGS}")
     target_compile_definitions(cpp-lru-cache-test-sanitize PRIVATE SKIP_ALLOCATION_TESTS)
 
+    target_include_directories(
+        cpp-lru-cache-test-sanitize SYSTEM PRIVATE
+        ${HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES}
+    )
+    target_include_directories(
+        cpp-lru-cache-test-sanitize PRIVATE
+        ${PROJECT_SOURCE_DIR}/include
+        ${PROJECT_SOURCE_DIR}/tests/include
+    )
     target_link_libraries(
-        cpp-lru-cache-test-sanitize
+        cpp-lru-cache-test-sanitize PRIVATE
         ${HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES}
         gtest gtest_main
     )
