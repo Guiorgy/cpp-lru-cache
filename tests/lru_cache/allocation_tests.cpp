@@ -21,7 +21,13 @@
 	TEST(TEST_GROUP, ConstructorDoesnNotAllocate) {
 		reset_allocation_count();
 		guiorgy::lru_cache<int, int, 1> cache_lru;
-		EXPECT_ALLOC(0, 0);
+		EXPECT_NO_ALLOC();
 	}
 #endif // LRU_CACHE_HASH_MAP_IMPLEMENTATION
+
+TEST(TEST_GROUP, ConstructorWithPreallocateAllocates) {
+	reset_allocation_count();
+	guiorgy::lru_cache<int, int, 1, true> cache_lru;
+	EXPECT_SOME_ALLOC();
+}
 #endif // SKIP_ALLOCATION_TESTS

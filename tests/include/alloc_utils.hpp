@@ -11,6 +11,9 @@ void extern reset_allocation_count() noexcept;
 #define EXPECT_NO_ALLOC() \
 	do { EXPECT_EQ(0u, allocation_count.load()); EXPECT_EQ(0u, allocated_bytes.load()); } while (false)
 
+#define EXPECT_SOME_ALLOC() \
+	do { EXPECT_NE(0u, allocation_count.load()); EXPECT_NE(0u, allocated_bytes.load()); } while (false)
+
 #define EXPECT_ALLOC_COUNT(expected_count) \
 	do { EXPECT_EQ(expected_count, allocation_count.load()); } while (false)
 
