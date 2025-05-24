@@ -88,6 +88,10 @@ elseif (HASH_MAP_IMPLEMENTATION STREQUAL "ABSEIL")
 elseif (HASH_MAP_IMPLEMENTATION STREQUAL "TESSIL_SPARSE")
     message(STATUS "Using tsl::sparse_map as the hashmap implementation")
 
+    # False-positive on an iterator dereference which is guarded by a test against end().
+    # Tested by insering assertions before the reported line.
+    STRING(REPLACE "-Wnull-dereference" "" MORE_WARNING_FLAGS "${MORE_WARNING_FLAGS}")
+
     add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=TESSIL_SPARSE_MAP)
 
     FetchContent_Declare(
