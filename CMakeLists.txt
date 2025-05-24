@@ -78,6 +78,7 @@ elseif (HASH_MAP_IMPLEMENTATION STREQUAL "ABSEIL")
         abseil
         GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
         GIT_TAG 20250512.0
+        GIT_SHALLOW 1
         SYSTEM
     )
     set(ABSL_ENABLE_INSTALL OFF)
@@ -93,6 +94,7 @@ elseif (HASH_MAP_IMPLEMENTATION STREQUAL "TESSIL_SPARSE")
         tessil-sparse
         GIT_REPOSITORY https://github.com/Tessil/sparse-map.git
         GIT_TAG v0.6.2
+        GIT_SHALLOW 1
         SOURCE_SUBDIR "include"
         SYSTEM
     )
@@ -112,6 +114,7 @@ elseif (HASH_MAP_IMPLEMENTATION STREQUAL "TESSIL_ROBIN")
         tessil-robin
         GIT_REPOSITORY https://github.com/Tessil/robin-map.git
         GIT_TAG v1.4.0
+        GIT_SHALLOW 1
         SOURCE_SUBDIR "include"
         SYSTEM
     )
@@ -131,6 +134,7 @@ elseif (HASH_MAP_IMPLEMENTATION STREQUAL "TESSIL_HOP")
         tessil-hopscotch
         GIT_REPOSITORY https://github.com/Tessil/hopscotch-map.git
         GIT_TAG v2.3.1
+        GIT_SHALLOW 1
         SOURCE_SUBDIR "include"
         SYSTEM
     )
@@ -156,6 +160,7 @@ elseif (HASH_MAP_IMPLEMENTATION STREQUAL "ANKERL" OR HASH_MAP_IMPLEMENTATION STR
         ankerl
         GIT_REPOSITORY https://github.com/martinus/unordered_dense.git
         GIT_TAG v4.5.0
+        GIT_SHALLOW 1
         SYSTEM
     )
     list(APPEND FETCH_CONTENT_MAKE_AVAILABLE ankerl)
@@ -188,6 +193,7 @@ else()
         googletest
         GIT_REPOSITORY https://github.com/google/googletest.git
         GIT_TAG v1.17.0
+        GIT_SHALLOW 1
         SYSTEM
     )
     set(gtest_force_shared_crt ON)
