@@ -49,14 +49,35 @@ else()
     message(WARNING "Untested compiler '${CMAKE_CXX_COMPILER_ID}'. Additional warnings disabled")
 endif()
 
-include(FetchContent)
-FetchContent_Declare(
-    googletest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG v1.17.0
-    CMAKE_ARGS -Dgtest_force_shared_crt=ON
-)
-FetchContent_MakeAvailable(googletest)
+if (EXISTS "${CMAKE_BINARY_DIR}/lib/libgtest.a" AND EXISTS "${CMAKE_BINARY_DIR}/lib/libgtest_main.a")
+    set(GTEST_INCLUDE_DIR "${CMAKE_BINARY_DIR}/_deps/googletest-src/googletest/include/")
+
+    add_library(gtest STATIC IMPORTED GLOBAL)
+    set_target_properties(
+        gtest PROPERTIES
+        IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/lib/libgtest.a"
+        INTERFACE_INCLUDE_DIRECTORIES "${GTEST_INCLUDE_DIR}"
+        INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${GTEST_INCLUDE_DIR}"
+    )
+
+    add_library(gtest_main STATIC IMPORTED GLOBAL)
+    set_target_properties(
+        gtest_main PROPERTIES
+        IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/lib/libgtest_main.a"
+        INTERFACE_INCLUDE_DIRECTORIES "${GTEST_INCLUDE_DIR}"
+        INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${GTEST_INCLUDE_DIR}"
+    )
+else()
+    include(FetchContent)
+    FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG v1.17.0
+        SYSTEM
+    )
+    set(gtest_force_shared_crt ON)
+    FetchContent_MakeAvailable(googletest)
+endif()
 
 enable_testing()
 include(CTest)
