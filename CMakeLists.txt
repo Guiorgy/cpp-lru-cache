@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.14...3.29)
 
 project(CPP-LRU-CACHE-TEST LANGUAGES CXX)
 
+include(FetchContent)
+include(CTest)
+
 set(CMAKE_ALLOWED_BUILD_TYPES "Debug" "Release") # "MinSizeRel" "RelWithDebInfo"
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug")
@@ -49,14 +52,7 @@ else()
     message(WARNING "Untested compiler '${CMAKE_CXX_COMPILER_ID}'. Additional warnings disabled")
 endif()
 
-include(FetchContent)
-FetchContent_Declare(
-    googletest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG v1.17.0
-)
-set(gtest_force_shared_crt ON)
-set(FETCH_CONTENT_MAKE_AVAILABLE googletest)
+set(FETCH_CONTENT_MAKE_AVAILABLE "")
 
 option(HASH_MAP_IMPLEMENTATION "Select the implementation of hashmap to use inside the LRU cache. std::unordered_map by default" "")
 
@@ -169,6 +165,35 @@ else()
     message(FATAL_ERROR "Invalid hashmap implementation set in HASH_MAP_IMPLEMENTATION: ${HASH_MAP_IMPLEMENTATION}")
 endif()
 
+if (EXISTS "${CMAKE_BINARY_DIR}/lib/libgtest.a" AND EXISTS "${CMAKE_BINARY_DIR}/lib/libgtest_main.a")
+    set(GTEST_INCLUDE_DIR "${CMAKE_BINARY_DIR}/_deps/googletest-src/googletest/include/")
+
+    add_library(gtest STATIC IMPORTED GLOBAL)
+    set_target_properties(
+        gtest PROPERTIES
+        IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/lib/libgtest.a"
+        INTERFACE_INCLUDE_DIRECTORIES "${GTEST_INCLUDE_DIR}"
+        INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${GTEST_INCLUDE_DIR}"
+    )
+
+    add_library(gtest_main STATIC IMPORTED GLOBAL)
+    set_target_properties(
+        gtest_main PROPERTIES
+        IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/lib/libgtest_main.a"
+        INTERFACE_INCLUDE_DIRECTORIES "${GTEST_INCLUDE_DIR}"
+        INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${GTEST_INCLUDE_DIR}"
+    )
+else()
+    FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG v1.17.0
+        SYSTEM
+    )
+    set(gtest_force_shared_crt ON)
+    list(APPEND FETCH_CONTENT_MAKE_AVAILABLE googletest)
+endif()
+
 FetchContent_MakeAvailable(${FETCH_CONTENT_MAKE_AVAILABLE})
 
 set(TMP "")
@@ -206,14 +231,12 @@ target_link_libraries(
     gtest gtest_main
 )
 
-include(GoogleTest)
 add_test(
     NAME cpp-lru-cache-test
     COMMAND cpp-lru-cache-test --verbose --gtest_color=yes
 )
 
 enable_testing()
-include(CTest)
 list(APPEND CMAKE_CTEST_ARGUMENTS "--verbose")
 
 if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.29)
