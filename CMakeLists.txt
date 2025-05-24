@@ -54,8 +54,8 @@ FetchContent_Declare(
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
     GIT_TAG v1.17.0
-    CMAKE_ARGS -Dgtest_force_shared_crt=ON
 )
+set(gtest_force_shared_crt ON)
 set(FETCH_CONTENT_MAKE_AVAILABLE googletest)
 
 option(HASH_MAP_IMPLEMENTATION "Select the implementation of hashmap to use inside the LRU cache. std::unordered_map by default" "")
@@ -82,9 +82,9 @@ elseif (HASH_MAP_IMPLEMENTATION STREQUAL "ABSEIL")
         abseil
         GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
         GIT_TAG 20250512.0
-        CMAKE_ARGS -DCMAKE_CXX_STANDARD=17 -DABSL_ENABLE_INSTALL=OFF
         SYSTEM
     )
+    set(ABSL_ENABLE_INSTALL OFF)
     list(APPEND FETCH_CONTENT_MAKE_AVAILABLE abseil)
 
     set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES absl::flat_hash_map)
