@@ -561,7 +561,7 @@ namespace guiorgy::detail {
 				return emplace(&value, std::forward<ValueArgs>(value_args)...);
 			}
 
-			list_node() = default;
+			list_node() = delete;
 			~list_node() = default;
 			list_node(const list_node&) = default;
 			list_node(list_node&&) = default;
