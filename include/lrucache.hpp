@@ -403,7 +403,7 @@ namespace guiorgy::detail {
 				if (set.size() == 0u) UNLIKELY {
 					set.push_back(std::move(value));
 				} else {
-					set[head] = value;
+					set[head] = std::move(value);
 				}
 			} else {
 				index_t next_head = next_index(head);
@@ -412,7 +412,32 @@ namespace guiorgy::detail {
 					set.push_back(std::move(value));
 				} else {
 					head = next_head;
-					set[head] = value;
+					set[head] = std::move(value);
+				}
+			}
+
+			assert(set.size() == 0u || set.size() - 1u <= std::numeric_limits<index_t>::max());
+		}
+
+		// Emplaces the given element into the set.
+		template<typename... ValueArgs>
+		void emplace(ValueArgs&&... value_args) {
+			if (_empty) LIKELY {
+				_empty = false;
+
+				if (set.size() == 0u) UNLIKELY {
+					set.emplace_back(std::forward<ValueArgs>(value_args)...);
+				} else {
+					emplace(&set[head], std::forward<ValueArgs>(value_args)...);
+				}
+			} else {
+				index_t next_head = next_index(head);
+
+				if (next_head == tail) UNLIKELY {
+					set.emplace_back(std::forward<ValueArgs>(value_args)...);
+				} else {
+					head = next_head;
+					emplace(&set[head], std::forward<ValueArgs>(value_args)...);
 				}
 			}
 
