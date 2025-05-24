@@ -1,5 +1,7 @@
 # cpp-lru-cache
 
+## ⚠️⚠️⚠️ Currently WIP and experimental ⚠️⚠️⚠️
+
 > ⚠️ **This implementation is NOT thread safe!**
 
 An LRU (Least Recently Used) cache for C++ 17 based on hashmap and a packed linkedlist based on vector. The library is header only, a simple test and example are included.
@@ -74,9 +76,10 @@ make test
 
 ### TODO
 
-- Add [gtl::parallel_flat_hash_map](https://github.com/greg7mdp/gtl)
-- Add [folly::F14ValueMap](https://github.com/facebook/folly)
-- Add [emhash8::HashMap](https://github.com/ktprime/emhash)
+- Add tests for [gtl::parallel_flat_hash_map](https://github.com/greg7mdp/gtl)
+- Add tests for [folly::F14ValueMap](https://github.com/facebook/folly)
+- Add tests for [emhash8::HashMap](https://github.com/ktprime/emhash)
 - Make it possible to pass a custom map container as a template parameter (as long as it has STL-like APIs that we need)
+- Optionally use a stable vector-like container as the back end of the linked list, when pointer/reference stability is needed and/or when copy/move is too expensive during
 - More tests
 - Benchmarks
