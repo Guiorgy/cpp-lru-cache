@@ -177,31 +177,40 @@
 	#error "Unexpected value of LRU_CACHE_HASH_MAP_IMPLEMENTATION"
 #endif
 
-// Type traits utils.
+// Type trait utils.
 namespace guiorgy::detail {
-	// Determine the smallest unsigned integer type that can fit the specified value.
-	template <const std::size_t max_value>
+	// Determines the smallest unsigned integer type that can fit the specified value
+	// if fast is set to false, otherwise, the fastest unsigned integer type that can
+	// fit specified value.
+	template <const std::size_t max_value, const bool fast = false>
 	struct uint_fit final {
 		static_assert(max_value >= 0u, "std::size_t is less than 0?!");
+		static_assert(max_value <= std::numeric_limits<std::uint64_t>::max(), "uint_fit only supports up to 64 bit numbers");
 
 		using type = std::conditional_t<
-			max_value <= 255u,
-			std::uint8_t,
+			max_value <= std::numeric_limits<std::uint8_t>::max(),
+			std::conditional_t<fast, std::uint_fast8_t, std::uint8_t>,
 			std::conditional_t<
-				max_value <= 65'535u,
-				std::uint16_t,
+				max_value <= std::numeric_limits<std::uint16_t>::max(),
+				std::conditional_t<fast, std::uint_fast16_t, std::uint16_t>,
 				std::conditional_t<
-					max_value <= 4'294'967'295u,
-					std::uint32_t,
-					std::uint64_t
+					max_value <= std::numeric_limits<std::uint32_t>::max(),
+					std::conditional_t<fast, std::uint_fast32_t, std::uint32_t>,
+					std::conditional_t<fast, std::uint_fast64_t, std::uint64_t>
 				>
 			>
 		>;
 	};
 
 	// Helper for uint_fit.
+	template<const std::size_t max_value, const bool fast = false>
+	using uint_fit_t = typename uint_fit<max_value, fast>::type;
+
+	// See uint_fit for details.
 	template<const std::size_t max_value>
-	using uint_fit_t = typename uint_fit<max_value>::type;
+	using uint_fit_fast = uint_fit<max_value, true>;
+	template<const std::size_t max_value>
+	using uint_fit_fast_t = typename uint_fit_fast<max_value>::type;
 
 	// SFINAE to check if the specified type is a std::pair.
 	// The template returned when matching fails.
