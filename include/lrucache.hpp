@@ -274,6 +274,39 @@ namespace guiorgy::detail {
 	inline constexpr bool has_insert_with_hint_v = has_insert_with_hint<T>::value;
 } // guiorgy::detail
 
+// Utils.
+namespace guiorgy::detail {
+	// Emplaces a new object in place of the old.
+	// If replace is set to false, assumes that the destination is uninitialized.
+	// Remarks:
+	//   - Calling emplace with an initialized object as the destination and
+	//     replace explicitly set to false results in undefined behaviour.
+	template<typename T, const bool replace = !std::is_trivially_destructible_v<T>, typename... Args>
+	inline T& emplace(T* destination, Args&&... args)
+		noexcept(
+			(!replace || std::is_nothrow_destructible_v<T>)
+			&& std::is_nothrow_constructible_v<T, Args...>
+		) {
+		assert(destination != nullptr);
+
+		if constexpr (replace) {
+			static_assert(std::is_destructible_v<T>, "T needs to be destructible to allow emplacement");
+
+			(*destination).~T();
+		}
+
+		::new (destination) T(std::forward<Args>(args)...);
+		return *destination;
+	}
+
+	// Emplaces a new object in place.
+	// Remarks:
+	//   - This assumes the destination is uninitialized. Calling emplace_new with
+	//     an initialized object as the destination results in undefined behaviour.
+	template<typename T, typename... Args>
+	T& emplace_new = emplace<T, false, Args...>;
+}
+
 // Forward declarations.
 namespace guiorgy {
 	// Forward declaration of lru_cache.
@@ -500,9 +533,7 @@ namespace guiorgy::detail {
 
 			template<typename... ValueArgs>
 			T& emplace_value(ValueArgs&&... value_args) {
-				value.~T();
-				::new (&value) T(std::forward<ValueArgs>(value_args)...);
-				return value;
+				return emplace(&value, std::forward<ValueArgs>(value_args)...);
 			}
 
 			list_node() = default;
@@ -1718,8 +1749,7 @@ namespace guiorgy {
 			if constexpr (key_exists == Likelihood::Unknown) {
 				if (it != this->_cache_items_map.end()) {
 					value_t& value = this->_cache_items_list._get_value_at(it->second).second;
-					value.~value_t();
-					::new (&value) value_t(std::forward<ValueArgs>(value_args)...);
+					detail::emplace(&value, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_value_at_to_front(it->second);
 
 					return value;
@@ -1727,8 +1757,7 @@ namespace guiorgy {
 			} else if constexpr (key_exists == Likelihood::Likely) {
 				if (it != this->_cache_items_map.end()) LIKELY {
 					value_t& value = this->_cache_items_list._get_value_at(it->second).second;
-					value.~value_t();
-					::new (&value) value_t(std::forward<ValueArgs>(value_args)...);
+					detail::emplace(&value, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_value_at_to_front(it->second);
 
 					return value;
@@ -1736,8 +1765,7 @@ namespace guiorgy {
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
 				if (it != this->_cache_items_map.end()) UNLIKELY {
 					value_t& value = this->_cache_items_list._get_value_at(it->second).second;
-					value.~value_t();
-					::new (&value) value_t(std::forward<ValueArgs>(value_args)...);
+					detail::emplace(&value, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_value_at_to_front(it->second);
 
 					return value;
@@ -1752,8 +1780,7 @@ namespace guiorgy {
 					key_value_pair_t& last = this->_cache_items_list.back();
 					this->_cache_items_map.erase(last.first);
 					last.first = key;
-					last.second.~value_t();
-					::new (&last.second) value_t(std::forward<ValueArgs>(value_args)...);
+					detail::emplace(&last.second, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_last_value_to_front();
 
 					value = &last.second;
@@ -1765,8 +1792,7 @@ namespace guiorgy {
 					key_value_pair_t& last = this->_cache_items_list.back();
 					this->_cache_items_map.erase(last.first);
 					last.first = key;
-					last.second.~value_t();
-					::new (&last.second) value_t(std::forward<ValueArgs>(value_args)...);
+					detail::emplace(&last.second, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_last_value_to_front();
 
 					value = &last.second;
@@ -1778,8 +1804,7 @@ namespace guiorgy {
 					key_value_pair_t& last = this->_cache_items_list.back();
 					this->_cache_items_map.erase(last.first);
 					last.first = key;
-					last.second.~value_t();
-					::new (&last.second) value_t(std::forward<ValueArgs>(value_args)...);
+					detail::emplace(&last.second, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_last_value_to_front();
 
 					value = &last.second;
