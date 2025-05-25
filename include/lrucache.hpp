@@ -2370,10 +2370,10 @@ namespace guiorgy {
 			this->_cache_items_list.clear();
 		}
 
-		// Preallocates memory for max_size elements.
+		// Preallocates memory for at least max_size number of elements.
 		// Remarks:
-		//   - If std::unordered_map is used, only reserves capacity for the buckets. Element insertions will still cause some allocations.
-		//   - If absl::flat_hash_map is used, this should prevent reallocations.
+		//   - Some hashmap implementations (e.g. std::unordered_map) only reserve capacity for the buckets.
+		//     In that case, element insertions will still cause some allocations.
 		void reserve() {
 			this->_cache_items_map.reserve(max_size);
 			this->_cache_items_list.reserve(max_size);
