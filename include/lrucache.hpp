@@ -305,6 +305,36 @@ namespace guiorgy::detail {
 	//     an initialized object as the destination results in undefined behaviour.
 	template<typename T, typename... Args>
 	T& emplace_new = emplace<T, false, Args...>;
+
+	// Decrements an integer by one, but clamps it to a minimum value if it would underflow it.
+	template<typename int_t>
+	[[nodiscard]] inline constexpr int_t clamped_decrement(int_t x, const int_t minimum) noexcept {
+		static_assert(std::is_integral_v<int_t>, "clamped_decrement only accepts integrals");
+
+		if (x > minimum) --x;
+		return x;
+	}
+
+	// Decrements an integer by one, but only if this doesn't cause an underflow.
+	template<typename int_t>
+	[[nodiscard]] inline constexpr int_t safe_decrement(int_t x) noexcept {
+		return clamped_decrement(x, std::numeric_limits<int_t>::lowest());
+	}
+
+	// Increments an integer by one, but clamps it to a maximum value if it would overflow it.
+	template<typename int_t>
+	[[nodiscard]] inline constexpr int_t clamped_increment(int_t x, const int_t maximum) noexcept {
+		static_assert(std::is_integral_v<int_t>, "clamped_increment only accepts integrals");
+
+		if (x < maximum) ++x;
+		return x;
+	}
+
+	// Increments an integer by one, but only if this doesn't cause an overflow.
+	template<typename int_t>
+	[[nodiscard]] inline constexpr int_t safe_increment(const int_t x) noexcept {
+		return clamped_increment(x, std::numeric_limits<int_t>::max());
+	}
 }
 
 // Forward declarations.
@@ -337,11 +367,18 @@ namespace guiorgy::detail {
 		index_t tail = 0u;
 		bool _empty = true;
 
-		// Returns the index of the next element to take.
-		index_t next_index(const index_t index) const noexcept {
-			assert(index < std::numeric_limits<index_t>::max());
+		// Returns the index of the next element.
+		template<const bool forward = true>
+		[[nodiscard]] index_t next_index(const index_t index) const noexcept {
+			assert(set.size() <= static_cast<std::size_t>(std::numeric_limits<index_t>::max()) + 1u);
+			assert(set.size() != 0u);
+			assert(static_cast<std::size_t>(index) < set.size());
 
-			return static_cast<index_t>(static_cast<std::size_t>(index) + 1u < set.size() ? index + 1u : 0u);
+			if constexpr (forward) {
+				return index != static_cast<index_t>(safe_decrement(set.size())) ? index + 1u : 0u;
+			} else {
+				return index != 0u ? static_cast<index_t>(index - 1u) : static_cast<index_t>(safe_decrement(set.size()));
+			}
 		}
 
 	public:
@@ -362,7 +399,10 @@ namespace guiorgy::detail {
 			if (_empty) LIKELY {
 				return 0u;
 			} else {
-				return tail <= head ? static_cast<std::size_t>(head) - tail + 1u : static_cast<std::size_t>(head) + 1u + (set.size() - tail);
+				std::size_t _head = static_cast<std::size_t>(head);
+				std::size_t _tail = static_cast<std::size_t>(tail);
+
+				return _tail <= _head ? _head - tail + 1u : (_head + 1u) + (set.size() - tail);
 			}
 		}
 
@@ -395,7 +435,7 @@ namespace guiorgy::detail {
 
 					set.push_back(value);
 
-					if (tail == 0u) UNLIKELY {
+					if (tail == 0u) LIKELY {
 						++head;
 					}
 				} else {
@@ -431,7 +471,7 @@ namespace guiorgy::detail {
 
 					set.push_back(std::move(value));
 
-					if (tail == 0u) UNLIKELY {
+					if (tail == 0u) LIKELY {
 						++head;
 					}
 				} else {
@@ -468,7 +508,7 @@ namespace guiorgy::detail {
 
 					set.emplace_back(std::forward<ValueArgs>(value_args)...);
 
-					if (tail == 0u) UNLIKELY {
+					if (tail == 0u) LIKELY {
 						++head;
 					}
 				} else {
@@ -481,20 +521,34 @@ namespace guiorgy::detail {
 		}
 
 		// Returns a reference to the next element in the set.
+		template<const bool from_head = true>
 		[[nodiscard]] T& peek() const {
 			assert(!_empty);
 
-			return set[tail];
+			if constexpr (from_head) {
+				return set[head];
+			} else {
+				return set[tail];
+			}
 		}
 
 		// Removes the next element in the set and returns it.
+		// If from_head is always true, vector_set effectively acts like a vector backed stack.
+		template<const bool from_head = true>
 		[[nodiscard]] T take() {
 			assert(!_empty);
 
-			T _front = set[tail];
-			if (tail == head) LIKELY _empty = true;
-			else tail = next_index(tail);
-			return _front;
+			if constexpr (from_head) {
+				T& _head = set[head];
+				if (head == tail) LIKELY _empty = true;
+				else head = next_index<false>(head);
+				return _head;
+			} else {
+				T& _tail = set[tail];
+				if (tail == head) LIKELY _empty = true;
+				else tail = next_index<true>(tail);
+				return _tail;
+			}
 		}
 
 		// Erases all elements from the set. After this call, size() returns zero.
