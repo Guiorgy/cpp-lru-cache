@@ -29,6 +29,23 @@
 	#define nodiscard(explanation) nodiscard
 #endif
 
+// Helper macros to remove the [[likely]] and [[unlikely]] attributes if C++ version < 20.
+#ifdef LIKELY
+	#define GUIORGY_LIKELY_BEFORE
+	#undef LIKELY
+#endif
+#ifdef UNLIKELY
+	#define GUIORGY_UNLIKELY_BEFORE
+	#undef UNLIKELY
+#endif
+#if __cplusplus >= 202002L	// C++20
+	#define LIKELY [[likely]]
+	#define UNLIKELY [[unlikely]]
+#else
+	#define LIKELY
+	#define UNLIKELY
+#endif
+
 /* Define possible implementations and store old definitions to restore later in case of a conflict */
 // STL std::unordered_map
 #ifdef STL_UNORDERED_MAP
@@ -300,7 +317,7 @@ namespace guiorgy::detail {
 
 		// Returns the number of elements in the set.
 		[[nodiscard]] std::size_t size() const noexcept {
-			if (_empty) {
+			if (_empty) LIKELY {
 				return 0u;
 			} else {
 				return tail <= head ? static_cast<std::size_t>(head) - tail + 1u : static_cast<std::size_t>(head) + 1u + (set.size() - tail);
@@ -314,10 +331,10 @@ namespace guiorgy::detail {
 
 		// Puts the given element into the set.
 		void put(const T& value) {
-			if (_empty) {
+			if (_empty) LIKELY {
 				_empty = false;
 
-				if (set.size() == 0u) {
+				if (set.size() == 0u) UNLIKELY {
 					set.push_back(value);
 				} else {
 					set[head] = value;
@@ -325,7 +342,7 @@ namespace guiorgy::detail {
 			} else {
 				index_t next_head = next_index(head);
 
-				if (next_head == tail) {
+				if (next_head == tail) UNLIKELY {
 					set.push_back(value);
 				} else {
 					head = next_head;
@@ -338,10 +355,10 @@ namespace guiorgy::detail {
 
 		// Puts the given element into the set.
 		void put(T&& value) {
-			if (_empty) {
+			if (_empty) LIKELY {
 				_empty = false;
 
-				if (set.size() == 0u) {
+				if (set.size() == 0u) UNLIKELY {
 					set.push_back(std::move(value));
 				} else {
 					set[head] = value;
@@ -349,7 +366,7 @@ namespace guiorgy::detail {
 			} else {
 				index_t next_head = next_index(head);
 
-				if (next_head == tail) {
+				if (next_head == tail) UNLIKELY {
 					set.push_back(std::move(value));
 				} else {
 					head = next_head;
@@ -373,7 +390,7 @@ namespace guiorgy::detail {
 
 			T _front = set[tail];
 			tail = next_index(tail);
-			if (tail == head) _empty = true;
+			if (tail == head) LIKELY _empty = true;
 			return _front;
 		}
 
@@ -394,7 +411,7 @@ namespace guiorgy::detail {
 		// This assumes T is an unsigned integer.
 		// Only meant to be used by vector_list.
 		void _clear_and_fill_range(const std::size_t count) {
-			if (count == 0u) {
+			if (count == 0u) UNLIKELY {
 				clear();
 				return;
 			}
@@ -402,7 +419,7 @@ namespace guiorgy::detail {
 			assert(count - 1u <= std::numeric_limits<T>::max());
 
 			const std::size_t _size = set.size();
-			if (count <= _size) {
+			if (count <= _size) UNLIKELY {
 				for (std::size_t i = 0u; i < count; ++i) {
 					set[i] = static_cast<T>(i);
 				}
@@ -537,17 +554,17 @@ namespace guiorgy::detail {
 
 			list_node& _at = list[at];
 
-			if (at != head && at != tail) {
+			if (at != head && at != tail) LIKELY {
 				assert(_at.prior != null_index && _at.next != null_index);
 
 				list[_at.prior].next = _at.next;
 				list[_at.next].prior = _at.prior;
-			} else if (at != tail) {
+			} else if (at != tail) LIKELY {
 				assert(_at.prior != null_index && _at.next == null_index);
 
 				head = _at.prior;
 				list[head].next = null_index;
-			} else if (at != head) {
+			} else if (at != head) UNLIKELY {
 				assert(_at.prior == null_index && _at.next != null_index);
 
 				tail = _at.next;
@@ -589,7 +606,7 @@ namespace guiorgy::detail {
 			assert(!list[to].removed);
 #endif
 
-			if (from == to) return list[from];
+			if (from == to) UNLIKELY return list[from];
 
 			list_node& _from = remove_node(from, false);
 			list_node& _to = list[to];
@@ -635,7 +652,7 @@ namespace guiorgy::detail {
 			assert(!list[from].removed);
 #endif
 
-			if (from == head) return list[head];
+			if (from == head) UNLIKELY return list[head];
 
 			list_node& _from = remove_node(from, false);
 
@@ -657,7 +674,7 @@ namespace guiorgy::detail {
 			assert(!list[from].removed);
 #endif
 
-			if (from == tail) return list[tail];
+			if (from == tail) UNLIKELY return list[tail];
 
 			list_node& _from = remove_node(from, false);
 
@@ -697,7 +714,7 @@ namespace guiorgy::detail {
 		// If after the operation the new size() is greater than old capacity() a reallocation takes place, in which case all references are invalidated.
 		// No iterators are invalidated.
 		void push_front(const T& value) {
-			if (!free_indices.empty()) {
+			if (!free_indices.empty()) UNLIKELY {
 				index_t index = free_indices.take();
 				list_node& node = list[index];
 
@@ -709,17 +726,17 @@ namespace guiorgy::detail {
 				node.removed = false;
 #endif
 
-				if (head != null_index) list[head].next = index;
+				if (head != null_index) LIKELY list[head].next = index;
 				head = index;
-				if (tail == null_index) tail = head;
+				if (tail == null_index) UNLIKELY tail = head;
 			} else {
 				assert(list.size() <= std::numeric_limits<index_t>::max());
 				index_t list_size = static_cast<index_t>(list.size());
 
-				if (head != null_index) list[head].next = list_size;
+				if (head != null_index) LIKELY list[head].next = list_size;
 				index_t prior = head;
 				head = list_size;
-				if (tail == null_index) tail = head;
+				if (tail == null_index) UNLIKELY tail = head;
 
 				list.emplace_back(value, prior, null_index);
 			}
@@ -729,7 +746,7 @@ namespace guiorgy::detail {
 		// If after the operation the new size() is greater than old capacity() a reallocation takes place, in which case all references are invalidated.
 		// No iterators are invalidated.
 		void push_front(T&& value) {
-			if (!free_indices.empty()) {
+			if (!free_indices.empty()) UNLIKELY {
 				index_t index = free_indices.take();
 				list_node& node = list[index];
 
@@ -741,17 +758,17 @@ namespace guiorgy::detail {
 				node.removed = false;
 #endif
 
-				if (head != null_index) list[head].next = index;
+				if (head != null_index) LIKELY list[head].next = index;
 				head = index;
-				if (tail == null_index) tail = head;
+				if (tail == null_index) UNLIKELY tail = head;
 			} else {
 				assert(list.size() <= std::numeric_limits<index_t>::max());
 				index_t list_size = static_cast<index_t>(list.size());
 
-				if (head != null_index) list[head].next = list_size;
+				if (head != null_index) LIKELY list[head].next = list_size;
 				index_t prior = head;
 				head = list_size;
-				if (tail == null_index) tail = head;
+				if (tail == null_index) UNLIKELY tail = head;
 
 				list.emplace_back(std::move(value), prior, null_index);
 			}
@@ -764,7 +781,7 @@ namespace guiorgy::detail {
 		// No iterators are invalidated.
 		template<typename... ValueArgs>
 		T& emplace_front(ValueArgs&&... value_args) {
-			if (!free_indices.empty()) {
+			if (!free_indices.empty()) UNLIKELY {
 				index_t index = free_indices.take();
 				list_node& node = list[index];
 
@@ -776,19 +793,19 @@ namespace guiorgy::detail {
 				node.removed = false;
 #endif
 
-				if (head != null_index) list[head].next = index;
+				if (head != null_index) LIKELY list[head].next = index;
 				head = index;
-				if (tail == null_index) tail = head;
+				if (tail == null_index) UNLIKELY tail = head;
 
 				return value;
 			} else {
 				assert(list.size() <= std::numeric_limits<index_t>::max());
 				index_t list_size = static_cast<index_t>(list.size());
 
-				if (head != null_index) list[head].next = list_size;
+				if (head != null_index) LIKELY list[head].next = list_size;
 				index_t prior = head;
 				head = list_size;
-				if (tail == null_index) tail = head;
+				if (tail == null_index) UNLIKELY tail = head;
 
 				return list.emplace_back(prior, null_index, std::forward<ValueArgs>(value_args)...).value;
 			}
@@ -810,17 +827,17 @@ namespace guiorgy::detail {
 				node.removed = false;
 #endif
 
-				if (tail != null_index) list[tail].prior = index;
+				if (tail != null_index) LIKELY list[tail].prior = index;
 				tail = index;
-				if (head == null_index) head = tail;
+				if (head == null_index) UNLIKELY head = tail;
 			} else {
 				assert(list.size() <= std::numeric_limits<index_t>::max());
 				index_t list_size = static_cast<index_t>(list.size());
 
-				if (tail != null_index) list[tail].prior = list_size;
+				if (tail != null_index) LIKELY list[tail].prior = list_size;
 				index_t next = tail;
 				tail = list_size;
-				if (head == null_index) head = tail;
+				if (head == null_index) UNLIKELY head = tail;
 
 				list.emplace_back(value, null_index, next);
 			}
@@ -842,17 +859,17 @@ namespace guiorgy::detail {
 				node.removed = false;
 #endif
 
-				if (tail != null_index) list[tail].prior = index;
+				if (tail != null_index) LIKELY list[tail].prior = index;
 				tail = index;
-				if (head == null_index) head = tail;
+				if (head == null_index) UNLIKELY head = tail;
 			} else {
 				assert(list.size() <= std::numeric_limits<index_t>::max());
 				index_t list_size = static_cast<index_t>(list.size());
 
-				if (tail != null_index) list[tail].prior = list_size;
+				if (tail != null_index) LIKELY list[tail].prior = list_size;
 				index_t next = tail;
 				tail = list_size;
-				if (head == null_index) head = tail;
+				if (head == null_index) UNLIKELY head = tail;
 
 				list.emplace_back(std::move(value), null_index, next);
 			}
@@ -877,19 +894,19 @@ namespace guiorgy::detail {
 				node.removed = false;
 #endif
 
-				if (tail != null_index) list[tail].prior = index;
+				if (tail != null_index) LIKELY list[tail].prior = index;
 				tail = index;
-				if (head == null_index) head = tail;
+				if (head == null_index) UNLIKELY head = tail;
 
 				return value;
 			} else {
 				assert(list.size() <= std::numeric_limits<index_t>::max());
 				index_t list_size = static_cast<index_t>(list.size());
 
-				if (tail != null_index) list[tail].prior = list_size;
+				if (tail != null_index) LIKELY list[tail].prior = list_size;
 				index_t next = tail;
 				tail = list_size;
-				if (head == null_index) head = tail;
+				if (head == null_index) UNLIKELY head = tail;
 
 				return list.emplace_back(null_index, next, std::forward<ValueArgs>(value_args)...).value;
 			}
@@ -917,7 +934,7 @@ namespace guiorgy::detail {
 #endif
 			free_indices.put(head);
 			head = _front.prior;
-			if (head == null_index) tail = null_index;
+			if (head == null_index) UNLIKELY tail = null_index;
 			else list[head].next = null_index;
 			return _front;
 		}
@@ -952,7 +969,7 @@ namespace guiorgy::detail {
 #endif
 			free_indices.put(tail);
 			tail = _back.next;
-			if (tail == null_index) head = null_index;
+			if (tail == null_index) UNLIKELY head = null_index;
 			else list[tail].next = null_index;
 			return _back;
 		}
@@ -1833,6 +1850,18 @@ namespace guiorgy {
 		}
 	};
 } // guiorgy
+
+// Restore LIKELY and UNLIKELY if they were already defined.
+#ifdef GUIORGY_LIKELY_BEFORE
+	#undef LIKELY
+	#define LIKELY GUIORGY_LIKELY_BEFORE
+	#undef GUIORGY_LIKELY_BEFORE
+#endif
+#ifdef GUIORGY_UNLIKELY_BEFORE
+	#undef UNLIKELY
+	#define UNLIKELY GUIORGY_UNLIKELY_BEFORE
+	#undef GUIORGY_UNLIKELY_BEFORE
+#endif
 
 // Restore nodiscard if it was already defined.
 #ifdef GUIORGY_nodiscard_BEFORE
