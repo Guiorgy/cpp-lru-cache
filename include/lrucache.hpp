@@ -360,6 +360,7 @@ namespace guiorgy::detail {
 	// Remarks:
 	//   - The size of the container must not exceed the maximum value representable by index_t plus one.
 	//   - The size limitation is not enforced within the container, the user must ensure that this condition is not violated.
+	//   - The removed elements are not deleted immediately, instead they are replaced when new elements are put into the container.
 	template<typename T, typename index_t = std::size_t>
 	class vector_set final {
 		std::vector<T> set{};
@@ -532,10 +533,11 @@ namespace guiorgy::detail {
 			}
 		}
 
-		// Removes the next element in the set and returns it.
+		// Removes the next element in the set and returns a reference to it.
 		// If from_head is always true, vector_set effectively acts like a vector backed stack.
+		// References to the removed element are not invalidated, since the element is deleted lazily.
 		template<const bool from_head = true>
-		[[nodiscard]] T take() {
+		[[nodiscard]] T& take_ref() {
 			assert(!_empty);
 
 			if constexpr (from_head) {
@@ -549,6 +551,13 @@ namespace guiorgy::detail {
 				else tail = next_index<true>(tail);
 				return _tail;
 			}
+		}
+
+		// Removes the next element in the set and returns it.
+		// If from_head is always true, vector_set effectively acts like a vector backed stack.
+		template<const bool from_head = true>
+		[[nodiscard]] T take() {
+			return take_ref<from_head>();
 		}
 
 		// Erases all elements from the set. After this call, size() returns zero.
