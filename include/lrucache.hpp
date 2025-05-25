@@ -1636,6 +1636,9 @@ namespace guiorgy {
 	// used in the evaluation of a constant expression (constexpr).
 	// When filled, the container uses the Least Recently Used replacement policy to store subsequent elements.
 	// Remarks:
+	//   - The inserted values and their members don't have stable memory addresses as they may be copied/moved when the cache grows.
+	//     If that is required, or values are too expensive to copy/move, either use std::unique_ptr<value_t> or something similar
+	//     as the value type instead, or tell lru_cache to preallocate the needed storage by using reserve().
 	//   - The removed elements are not deleted immediately, instead they are replaced when new elements are put into the container.
 	//   - When using std::unordered_map:
 	//     - lru_cache is default constructible.
