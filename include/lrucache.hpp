@@ -610,8 +610,9 @@ namespace guiorgy::detail {
 		// Iterators to the removed node are invalidated. Other iterators are not affected.
 		// If mark_removed is false, then the removed node is not marked as removed and is not added to the free_indices set.
 		// Set mark_removed to false only if the node is to be reincluded back into the list at a different location immediately after the removal.
+		template<const bool mark_removed = true>
 		[[nodiscard("Especially if mark_removed is set to false. Use erase_node(const index_t at) instead")]]
-		list_node& remove_node(const index_t at, const bool mark_removed = true) {
+		list_node& remove_node(const index_t at) {
 			assert(at < list.size());
 #ifndef NDEBUG
 			assert(!list[at].removed);
@@ -641,7 +642,7 @@ namespace guiorgy::detail {
 				tail = null_index;
 			}
 
-			if (mark_removed) {
+			if constexpr (mark_removed) {
 				free_indices.put(at);
 #ifndef NDEBUG
 				_at.removed = true;
@@ -655,14 +656,15 @@ namespace guiorgy::detail {
 		// References to the removed node are not invalidated, since the node is just marked as removed and added to the free_indices set.
 		// Iterators to the removed node are invalidated. Other iterators are not affected.
 		void erase_node(const index_t at) {
-			[[maybe_unused]] list_node& discard = remove_node(at, true);
+			[[maybe_unused]] list_node& discard = remove_node<true>(at);
 		}
 
 		// Moves the node at the specified location to before/after another node and returns a reference to the moved node.
 		// References to the moved/destination node are not invalidated, since only the prior and next members of the node are updated.
 		// Iterators to the moved node are invalidated. Other iterators, including the iterators to the node at the movement destination, are not affected.
 		// If before is true, then the node is moved before the node at the destination, otherwise, the node is moved after the destination.
-		list_node& move_node(const index_t from, const index_t to, const bool before = true) {
+		template<const bool before = true>
+		list_node& move_node(const index_t from, const index_t to) {
 			assert(head != null_index);
 			assert(from < list.size());
 			assert(to < list.size());
@@ -673,10 +675,10 @@ namespace guiorgy::detail {
 
 			if (from == to) UNLIKELY return list[from];
 
-			list_node& _from = remove_node(from, false);
+			list_node& _from = remove_node<false>(from);
 			list_node& _to = list[to];
 
-			if (before) {
+			if constexpr (before) {
 				_from.prior = _to.prior;
 				_from.next = to;
 				_to.prior = from;
@@ -719,7 +721,7 @@ namespace guiorgy::detail {
 
 			if (from == head) UNLIKELY return list[head];
 
-			list_node& _from = remove_node(from, false);
+			list_node& _from = remove_node<false>(from);
 
 			_from.prior = head;
 			_from.next = null_index;
@@ -741,7 +743,7 @@ namespace guiorgy::detail {
 
 			if (from == tail) UNLIKELY return list[tail];
 
-			list_node& _from = remove_node(from, false);
+			list_node& _from = remove_node<false>(from);
 
 			_from.prior = null_index;
 			_from.next = tail;
@@ -1068,7 +1070,7 @@ namespace guiorgy::detail {
 		// Iterators to the removed element are invalidated. Other iterators are not affected.
 		template<const bool reverse>
 		T& erase(const _iterator<false, reverse> it) {
-			return remove_node(it.forward_index(), true).value;
+			return remove_node<true>(it.forward_index()).value;
 		}
 
 		// Erases all elements from the list. After this call, size() returns zero.
@@ -1315,7 +1317,7 @@ namespace guiorgy::detail {
 
 		// See remove_node for details.
 		T& _erase_value_at(const index_t position) {
-			return remove_node(position, true).value;
+			return remove_node<true>(position).value;
 		}
 
 		// See move_node_to_front for details.
