@@ -514,6 +514,8 @@ namespace guiorgy::detail {
 		// This assumes T is an unsigned integer.
 		// Only meant to be used by vector_list.
 		void _clear_and_fill_range(const std::size_t count) {
+			static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "This is only meant to be used by vector_list");
+
 			if (count == 0u) UNLIKELY {
 				clear();
 				return;
