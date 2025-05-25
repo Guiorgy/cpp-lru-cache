@@ -374,18 +374,30 @@ namespace guiorgy::detail {
 		// Puts the given element into the set.
 		void put(const T& value) {
 			if (_empty) LIKELY {
+				assert(head == tail);
+
 				_empty = false;
 
-				if (set.size() == 0u) UNLIKELY {
+				if (set.empty()) UNLIKELY {
+					assert(head == 0u);
+
 					set.push_back(value);
 				} else {
+					assert(head < set.size());
+
 					set[head] = value;
 				}
 			} else {
 				index_t next_head = next_index(head);
 
 				if (next_head == tail) UNLIKELY {
+					assert(size() == set.size());
+
 					set.push_back(value);
+
+					if (tail == 0u) UNLIKELY {
+						++head;
+					}
 				} else {
 					head = next_head;
 					set[head] = value;
@@ -398,18 +410,30 @@ namespace guiorgy::detail {
 		// Puts the given element into the set.
 		void put(T&& value) {
 			if (_empty) LIKELY {
+				assert(head == tail);
+
 				_empty = false;
 
-				if (set.size() == 0u) UNLIKELY {
+				if (set.empty()) UNLIKELY {
+					assert(head == 0u);
+
 					set.push_back(std::move(value));
 				} else {
+					assert(head < set.size());
+
 					set[head] = std::move(value);
 				}
 			} else {
 				index_t next_head = next_index(head);
 
 				if (next_head == tail) UNLIKELY {
+					assert(set.size() == set.size());
+
 					set.push_back(std::move(value));
+
+					if (tail == 0u) UNLIKELY {
+						++head;
+					}
 				} else {
 					head = next_head;
 					set[head] = std::move(value);
@@ -423,18 +447,30 @@ namespace guiorgy::detail {
 		template<typename... ValueArgs>
 		void emplace(ValueArgs&&... value_args) {
 			if (_empty) LIKELY {
+				assert(head == tail);
+
 				_empty = false;
 
-				if (set.size() == 0u) UNLIKELY {
+				if (set.empty()) UNLIKELY {
+					assert(head == 0u);
+
 					set.emplace_back(std::forward<ValueArgs>(value_args)...);
 				} else {
+					assert(head < set.size());
+
 					emplace(&set[head], std::forward<ValueArgs>(value_args)...);
 				}
 			} else {
 				index_t next_head = next_index(head);
 
 				if (next_head == tail) UNLIKELY {
+					assert(set.size() == set.size());
+
 					set.emplace_back(std::forward<ValueArgs>(value_args)...);
+
+					if (tail == 0u) UNLIKELY {
+						++head;
+					}
 				} else {
 					head = next_head;
 					emplace(&set[head], std::forward<ValueArgs>(value_args)...);
@@ -456,8 +492,8 @@ namespace guiorgy::detail {
 			assert(!_empty);
 
 			T _front = set[tail];
-			tail = next_index(tail);
 			if (tail == head) LIKELY _empty = true;
+			else tail = next_index(tail);
 			return _front;
 		}
 
