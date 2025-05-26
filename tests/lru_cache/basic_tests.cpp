@@ -288,3 +288,35 @@ TEST(TEST_GROUP, HandlesPutsAfterRemoval) {
 	size_t size = cache_lru.size();
 	EXPECT_EQ(record_count, size);
 }
+
+TEST(TEST_GROUP, HandlesTouch) {
+	constexpr int record_count = 50;
+
+	guiorgy::lru_cache<int, int, record_count> cache_lru;
+
+	for (int i = 0; i < record_count; ++i) {
+		cache_lru.put(i, i);
+	}
+
+	EXPECT_TRUE(cache_lru.exists(0));
+	cache_lru.put(record_count, record_count);
+	EXPECT_FALSE(cache_lru.exists(0));
+
+	EXPECT_TRUE(cache_lru.exists(1));
+	EXPECT_TRUE(cache_lru.exists(2));
+	cache_lru.touch(1);
+	cache_lru.put(record_count + 1, record_count + 1);
+	EXPECT_TRUE(cache_lru.exists(1));
+	EXPECT_FALSE(cache_lru.exists(2));
+
+	cache_lru.touch(1);
+	for (int i = 0; i < record_count - 1; ++i) {
+		cache_lru.put(-i, i);
+	}
+	EXPECT_TRUE(cache_lru.exists(1));
+	cache_lru.put(-record_count, record_count);
+	EXPECT_FALSE(cache_lru.exists(1));
+
+	size_t size = cache_lru.size();
+	EXPECT_EQ(record_count, size);
+}
