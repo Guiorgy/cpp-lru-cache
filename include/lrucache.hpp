@@ -2409,6 +2409,7 @@ namespace guiorgy {
 		}
 
 		// Checks if the container contains an element with the given key.
+		// This does not change the order in which elements are to be rewritten in.
 		[[nodiscard]] bool exists(const key_t& key) const {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
@@ -2416,6 +2417,48 @@ namespace guiorgy {
 			assert(it == this->_cache_items_map.cend() || list_key_match_map_key(it));
 
 			return it != this->_cache_items_map.cend();
+		}
+
+		// Returns true and moves the value that is mapped to the given key to the 
+		// bottom of the removal order, or false if such key does not already exist.
+		// Use key_exists to hint to the compiler for which case to optimize for.
+		template<const Likelihood key_exists = Likelihood::Unknown>
+		bool touch(const key_t& key) {
+			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
+
+			map_iterator_t it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
+
+			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
+			if constexpr (key_exists == Likelihood::Unknown) {
+				if (it != this->_cache_items_map.end()) {
+					this->_cache_items_list._move_value_at_to_front(it->second);
+					return true;
+				} else {
+					return false;
+				}
+			} else if constexpr (key_exists == Likelihood::Likely) {
+				if (it != this->_cache_items_map.end()) LIKELY {
+					this->_cache_items_list._move_value_at_to_front(it->second);
+					return true;
+				} else {
+					return false;
+				}
+			} else if constexpr (key_exists == Likelihood::Unlikely) {
+				if (it != this->_cache_items_map.end()) UNLIKELY {
+					this->_cache_items_list._move_value_at_to_front(it->second);
+					return true;
+				} else {
+					return false;
+				}
+			}
+		}
+
+		// See the touch above for details.
+		// Use key_likely_exists to hint to the compiler for which case to optimize for.
+		template<const bool key_likely_exists>
+		bool touch(const key_t& key) {
+			return touch<likelihood(key_likely_exists)>(key);
 		}
 
 		// Returns the number of elements in the container.
