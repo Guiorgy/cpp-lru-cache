@@ -2,7 +2,7 @@
 #include "gtest/gtest.h"
 #include "alloc_utils.hpp"
 
-#define TEST_GROUP BasicAllocationTests
+#define TEST_GROUP AllocUtilsTests
 
 TEST(TEST_GROUP, NewAllocationAccounted) {
 	reset_allocation_count();
