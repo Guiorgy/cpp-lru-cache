@@ -1,7 +1,8 @@
 #include "lrucache.hpp"
+#include "hashmap.hpp"
 
-#define NO_PREALLOCATE guiorgy::lru_cache<int, int, 1, false>
-#define PREALLOCATE guiorgy::lru_cache<int, int, 1, true>
+#define NO_PREALLOCATE test_lru_cache<int, int, 1, false>
+#define PREALLOCATE test_lru_cache<int, int, 1, true>
 
 #if LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_UNORDERED_MAP
 	// preallocate = false (default)
