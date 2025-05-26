@@ -1416,6 +1416,11 @@ namespace guiorgy::detail {
 			return get_node(position).value;
 		}
 
+		// See get_node for details.
+		[[nodiscard]] const T& _get_value_at(const index_t position) const {
+			return get_node(position).value;
+		}
+
 		// See remove_node for details.
 		T& _erase_value_at(const index_t position) {
 			return remove_node<true>(position).value;
@@ -1508,6 +1513,7 @@ namespace guiorgy::detail {
 		using key_value_pair_t = std::pair<key_t, value_t>;
 		using list_index_t = typename vector_list<key_value_pair_t, max_size>::index_t;
 		using map_iterator_t = typename map_t<key_t, list_index_t>::iterator;
+		using map_const_iterator_t = typename map_t<key_t, list_index_t>::const_iterator;
 
 		static constexpr bool map_has_emplace_hint = has_emplace_hint_v<map_t<key_t, list_index_t>>;
 		static constexpr bool map_has_insert_with_hint = has_insert_with_hint_v<map_t<key_t, list_index_t>>;
@@ -1679,6 +1685,7 @@ namespace guiorgy {
 		using key_value_pair_t = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::key_value_pair_t;
 		using list_index_t = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::list_index_t;
 		using map_iterator_t = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::map_iterator_t;
+		using map_const_iterator_t = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::map_const_iterator_t;
 
 		// Checks whether the given likelihood value is a valid Likelihood enum value.
 		static constexpr bool is_valid_likelihood(const Likelihood likelihood) noexcept {
@@ -1689,6 +1696,17 @@ namespace guiorgy {
 		// The Likelihood::Unknown value is impossible to get this way.
 		static constexpr Likelihood likelihood(const bool likely) noexcept {
 			return likely ? Likelihood::Likely : Likelihood::Unlikely;
+		}
+
+		// Checks whether the key inside the map matches the key inside the list element that the map points to.
+		// Remarks:
+		//   - This assumes that the key exists in the map.
+		//   - Only used for debug assertions.
+		[[nodiscard]] inline bool list_key_match_map_key(const map_const_iterator_t map_it) const {
+			assert(map_it != this->_cache_items_map.cend());
+
+			const map_const_iterator_t list_it = this->_cache_items_map.find(this->_cache_items_list._get_value_at(map_it->second).first);
+			return list_it == map_it;
 		}
 
 	public:
@@ -1704,7 +1722,10 @@ namespace guiorgy {
 		// Use key_exists and cache_full to hint to the compiler for which case to optimize for.
 		template<const Likelihood key_exists = Likelihood::Unknown, const Likelihood cache_full = Likelihood::Unknown>
 		void put(const key_t& key, const value_t& value) {
+			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
+
 			map_iterator_t it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
@@ -1790,7 +1811,10 @@ namespace guiorgy {
 		// Use key_exists and cache_full to hint to the compiler for which case to optimize for.
 		template<const Likelihood key_exists = Likelihood::Unknown, const Likelihood cache_full = Likelihood::Unknown>
 		void put(const key_t& key, value_t&& value) {
+			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
+
 			map_iterator_t it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
@@ -1876,7 +1900,10 @@ namespace guiorgy {
 		// Use key_exists and cache_full to hint to the compiler for which case to optimize for.
 		template<const Likelihood key_exists = Likelihood::Unknown, const Likelihood cache_full = Likelihood::Unknown, typename... ValueArgs>
 		const value_t& emplace(const key_t& key, ValueArgs&&... value_args) {
+			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
+
 			map_iterator_t it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
@@ -1973,7 +2000,10 @@ namespace guiorgy {
 		// Use key_exists to hint to the compiler for which case to optimize for.
 		template<const Likelihood key_exists = Likelihood::Unknown>
 		[[nodiscard]] const std::optional<value_t> get(const key_t& key) {
+			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
+
 			map_iterator_t it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
@@ -2012,7 +2042,10 @@ namespace guiorgy {
 		//     modifying the cache (inserting/removing elements), so use with caution.
 		template<const Likelihood key_exists = Likelihood::Unknown>
 		[[nodiscard]] const std::optional<std::reference_wrapper<const value_t>> get_ref(const key_t& key) {
+			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
+
 			map_iterator_t it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
@@ -2048,7 +2081,10 @@ namespace guiorgy {
 		// Use key_exists to hint to the compiler for which case to optimize for.
 		template<const Likelihood key_exists = Likelihood::Unknown>
 		[[nodiscard]] bool try_get(const key_t& key, value_t& value_out) {
+			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
+
 			map_iterator_t it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
@@ -2091,7 +2127,10 @@ namespace guiorgy {
 		//     modifying the cache (inserting/removing elements), so use with caution.
 		template<const Likelihood key_exists = Likelihood::Unknown>
 		[[nodiscard]] bool try_get_ref(const key_t& key, const value_t*& value_out) {
+			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
+
 			map_iterator_t it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
@@ -2132,7 +2171,10 @@ namespace guiorgy {
 		template<const Likelihood key_exists = Likelihood::Unknown>
 		[[nodiscard("Use erase(const key_t& key) instead")]]
 		std::optional<value_t> remove(const key_t& key) {
+			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
+
 			map_iterator_t it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
@@ -2180,7 +2222,10 @@ namespace guiorgy {
 		template<const Likelihood key_exists = Likelihood::Unknown>
 		[[nodiscard("Use erase(const key_t& key) instead")]]
 		std::optional<std::reference_wrapper<value_t>> remove_ref(const key_t& key) {
+			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
+
 			map_iterator_t it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
@@ -2225,7 +2270,10 @@ namespace guiorgy {
 		template<const Likelihood key_exists = Likelihood::Unknown>
 		[[nodiscard("Use erase(const key_t& key) instead")]]
 		bool try_remove(const key_t& key, value_t& value_out) {
+			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
+
 			map_iterator_t it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
@@ -2274,7 +2322,10 @@ namespace guiorgy {
 		template<const Likelihood key_exists = Likelihood::Unknown>
 		[[nodiscard("Use erase(const key_t& key) instead")]]
 		bool try_remove_ref(const key_t& key, const value_t*& value_out) {
+			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
+
 			map_iterator_t it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
@@ -2317,7 +2368,10 @@ namespace guiorgy {
 		// Use key_exists to hint to the compiler for which case to optimize for.
 		template<const Likelihood key_exists = Likelihood::Unknown>
 		bool erase(const key_t& key) {
+			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
+
 			map_iterator_t it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
@@ -2356,7 +2410,12 @@ namespace guiorgy {
 
 		// Checks if the container contains an element with the given key.
 		[[nodiscard]] bool exists(const key_t& key) const {
-			return this->_cache_items_map.find(key) != this->_cache_items_map.end();
+			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
+
+			const map_const_iterator_t it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.cend() || list_key_match_map_key(it));
+
+			return it != this->_cache_items_map.cend();
 		}
 
 		// Returns the number of elements in the container.
