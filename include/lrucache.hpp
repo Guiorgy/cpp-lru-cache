@@ -50,13 +50,19 @@
 // Forward declarations.
 namespace guiorgy {
 	// Forward declaration of lru_cache.
-	template<typename key_t, typename value_t, const std::size_t max_size, const bool preallocate, typename hash_function, typename key_equality_predicate>
+	template<typename, typename, const std::size_t, const bool, typename, typename>
 	class lru_cache;
 
 	namespace detail {
 		// Forward declaration of vector_list.
-		template<typename T, const std::size_t max_size>
+		template<typename, const std::size_t>
 		class vector_list;
+
+		class NoValueType;
+		template<typename>
+		class DefaultHashFunction;
+		template<typename>
+		class DefaultKeyEqualityPredicate;
 	} // detail
 } // guiorgy
 
@@ -155,6 +161,37 @@ namespace guiorgy::detail {
 	// Helper for has_insert_with_hint.
 	template<typename T>
 	inline constexpr bool has_insert_with_hint_v = has_insert_with_hint<T>::value;
+
+	// Extracts the template arguments from a std::unordered_map-like hashmap class template.
+	template<typename HashMap>
+	struct hash_map_template;
+	template<template<typename...> class HashMapTemplate, typename Key, typename Value, typename Hash, typename KeyEqual, typename... OtherArgs>
+	struct hash_map_template<HashMapTemplate<Key, Value, Hash, KeyEqual, OtherArgs...>> final {
+		using hashmap_type = HashMapTemplate<Key, Value, Hash, KeyEqual, OtherArgs...>;
+
+		using key_type = Key;
+		using value_type = Value;
+		using hash_function = Hash;
+		using key_equality_predicate = KeyEqual;
+		using other_arguments = std::tuple<OtherArgs...>;
+
+		static constexpr std::size_t argument_count = 4u + std::tuple_size_v<other_arguments>;
+	};
+
+	// Extracts the template arguments from a std::unordered_set-like hashset class template.
+	template<typename HashSet>
+	struct hash_set_template;
+	template<template<typename...> class HashSetTemplate, typename Key, typename Hash, typename KeyEqual, typename... OtherArgs>
+	struct hash_set_template<HashSetTemplate<Key, Hash, KeyEqual, OtherArgs...>> final {
+		using hashset_type = HashSetTemplate<Key, Hash, KeyEqual, OtherArgs...>;
+
+		using key_type = Key;
+		using hash_function = Hash;
+		using key_equality_predicate = KeyEqual;
+		using other_arguments = std::tuple<OtherArgs...>;
+
+		static constexpr std::size_t argument_count = 3u + std::tuple_size_v<other_arguments>;
+	};
 } // guiorgy::detail
 
 // Utils.
@@ -1314,8 +1351,120 @@ namespace guiorgy::detail {
 	};
 } // guiorgy::detail
 
+// Wrappers.
+namespace guiorgy::detail {
+	template<
+		template<typename...> class hashmap_or_set_template,
+		typename key_type,
+		typename value_type,
+		typename hash_function = DefaultHashFunction<key_type>,
+		typename key_equality_predicate = DefaultKeyEqualityPredicate<key_type>,
+		typename... other_args
+	>
+	class hash_map_or_set_wrapper final {
+		static_assert(
+			std::is_same_v<key_equality_predicate, DefaultKeyEqualityPredicate<key_type>>
+			|| !std::is_same_v<hash_function, DefaultHashFunction<key_type>>,
+			"hash_function can't be default if key_equality_predicate is not default"
+		);
+		static_assert(
+			!std::is_same_v<key_equality_predicate, DefaultKeyEqualityPredicate<key_type>>
+			|| sizeof...(other_args) == 0u,
+			"other_args can't be defined if key_equality_predicate is default"
+		);
+
+		// TODO
+		template<
+			template<typename...> class hash_map_template,
+			typename Key,
+			typename Value,
+			typename Hash = DefaultHashFunction<Key>,
+			typename KeyEqual = DefaultKeyEqualityPredicate<Key>,
+			typename... OtherArgs
+		>
+		struct hash_map_or_void final {
+			using type = typename std::conditional_t<
+				std::is_same_v<Hash, DefaultHashFunction<Key>>,
+				hash_map_template<Key, Value>,
+				typename std::conditional_t<
+					std::is_same_v<KeyEqual, DefaultKeyEqualityPredicate<Key>>,
+					hash_map_template<Key, Value, Hash>,
+					hash_map_template<Key, Value, Hash, KeyEqual, OtherArgs...>
+				>
+			>;
+		};
+		template<
+			template<typename...> class hash_map_template,
+			typename Key,
+			typename Hash,
+			typename KeyEqual,
+			typename... OtherArgs
+		>
+		struct hash_map_or_void<hash_map_template, Key, NoValueType, Hash, KeyEqual, OtherArgs...> {
+			using type = void;
+		};
+		template<
+			template<typename...> class hash_map_template,
+			typename Key,
+			typename Value,
+			typename Hash = DefaultHashFunction<Key>,
+			typename KeyEqual = DefaultKeyEqualityPredicate<Key>,
+			typename... OtherArgs
+		>
+		using hash_map_or_void_t = hash_map_or_void<hash_map_template, Key, Value, Hash, KeyEqual, OtherArgs...>::type;
+
+		// TODO
+		template<
+			template<typename...> class set_template,
+			typename Key,
+			typename Value,
+			typename Hash = DefaultHashFunction<Key>,
+			typename KeyEqual = DefaultKeyEqualityPredicate<Key>,
+			typename... OtherArgs
+		>
+		struct hash_set_or_void final {
+			using type = void;
+		};
+		template<
+			template<typename...> class hash_set_template,
+			typename Key,
+			typename Hash,
+			typename KeyEqual,
+			typename... OtherArgs
+		>
+		struct hash_set_or_void<hash_set_template, Key, NoValueType, Hash, KeyEqual, OtherArgs...> {
+			using type = typename std::conditional_t<
+				std::is_same_v<Hash, DefaultHashFunction<Key>>,
+				hash_set_template<Key>,
+				typename std::conditional_t<
+					std::is_same_v<KeyEqual, DefaultKeyEqualityPredicate<Key>>,
+					hash_set_template<Key, Hash>,
+					hash_set_template<Key, Hash, KeyEqual, OtherArgs...>
+				>
+			>;
+		};
+		template<
+			template<typename...> class hash_set_template,
+			typename Key,
+			typename Value,
+			typename Hash = DefaultHashFunction<Key>,
+			typename KeyEqual = DefaultKeyEqualityPredicate<Key>,
+			typename... OtherArgs
+		>
+		using hash_set_or_void_t = hash_set_or_void<hash_set_template, Key, Value, Hash, KeyEqual, OtherArgs...>::type;
+
+	public:
+		using hashmap_type = typename hash_map_or_void_t<hashmap_or_set_template, key_type, value_type, hash_function, key_equality_predicate, other_args...>;
+		using hashset_type = typename hash_set_or_void_t<hashmap_or_set_template, key_type, value_type, hash_function, key_equality_predicate, other_args...>;
+
+		
+	};
+} // guiorgy::detail
+
 // lru_cache details.
 namespace guiorgy::detail {
+	// TODO
+	class NoValueType final {};
 	// Placeholders to indicate that the underlying hashmap should use its default hash function and key equality predicate.
 	template<typename key_type>
 	class DefaultHashFunction final {};

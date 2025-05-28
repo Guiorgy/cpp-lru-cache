@@ -73,3 +73,7 @@ make test
 # make sanitize
 # ./full-test.sh
 ```
+
+### Branch Goal
+
+Since the list contains both the key and value, we don't need to keep a key duplicate inside the map, we could use a hashset instead and custom wrappers for the hash function and key equality predecate that retrieve the key from the list. This would result in slower execution, but if the key is a large object, like long strings, it would reduce memory usage.
