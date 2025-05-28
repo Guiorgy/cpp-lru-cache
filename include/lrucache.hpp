@@ -272,6 +272,27 @@ namespace guiorgy::detail {
 	// Helper for has_insert_with_hint.
 	template<typename T>
 	inline constexpr bool has_insert_with_hint_v = has_insert_with_hint<T>::value;
+
+	// SFINAE to check if the specified type has an insert member function similar to std::unordered_map.
+	// The template returned when matching fails.
+	template<typename, typename = void>
+	struct has_insert final : std::false_type {};
+	// The template returned when matching succeeds.
+	template<typename T>
+	struct has_insert<
+		T,
+		std::void_t<
+			typename std::enable_if_t<is_pair_v<typename T::value_type>>,
+			decltype(
+				std::declval<T&>().insert(
+					std::declval<typename T::value_type&&>()
+				)
+			)
+		>
+	> final : std::true_type {};
+	// Helper for has_insert.
+	template<typename T>
+	inline constexpr bool has_insert_v = has_insert<T>::value;
 } // guiorgy::detail
 
 // Utils.
@@ -1517,6 +1538,7 @@ namespace guiorgy::detail {
 
 		static constexpr bool map_has_emplace_hint = has_emplace_hint_v<map_t<key_t, list_index_t>>;
 		static constexpr bool map_has_insert_with_hint = has_insert_with_hint_v<map_t<key_t, list_index_t>>;
+		static constexpr bool map_has_insert = detail::has_insert_v<map_t<key_t, list_index_t>>;
 
 	public:
 		using const_iterator = typename vector_list<key_value_pair_t, max_size>::const_iterator;
@@ -1788,6 +1810,8 @@ namespace guiorgy {
 				this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
 			} else if constexpr (this->map_has_insert_with_hint) {
 				this->_cache_items_map.insert(it, std::make_pair(key, this->_cache_items_list._first_value_index()));
+			} else if constexpr (this->map_has_insert) {
+				this->_cache_items_map.insert(std::make_pair(key, this->_cache_items_list._first_value_index()));
 			} else {
 				this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
 			}
@@ -1877,6 +1901,8 @@ namespace guiorgy {
 				this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
 			} else if constexpr (this->map_has_insert_with_hint) {
 				this->_cache_items_map.insert(it, std::make_pair(key, this->_cache_items_list._first_value_index()));
+			} else if constexpr (this->map_has_insert) {
+				this->_cache_items_map.insert(std::make_pair(key, this->_cache_items_list._first_value_index()));
 			} else {
 				this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
 			}
@@ -1977,6 +2003,8 @@ namespace guiorgy {
 				this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
 			} else if constexpr (this->map_has_insert_with_hint) {
 				this->_cache_items_map.insert(it, std::make_pair(key, this->_cache_items_list._first_value_index()));
+			} else if constexpr (this->map_has_insert) {
+				this->_cache_items_map.insert(std::make_pair(key, this->_cache_items_list._first_value_index()));
 			} else {
 				this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
 			}
