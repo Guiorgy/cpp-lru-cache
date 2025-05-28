@@ -228,72 +228,276 @@ namespace guiorgy::detail {
 	// Helper for is_pair.
 	template<typename T>
 	inline constexpr bool is_pair_v = is_pair<T>::value;
+} // guiorgy::detail
 
+// Type qualifiert trait utils.
+namespace guiorgy::detail {
+	// The base type of the TypeQualifier flags enum.
+	using TypeQualifierBaseType = std::uint_fast8_t;
+
+	// Represents C++ type qualifiers. This is a flags enum.
+	enum struct TypeQualifier : TypeQualifierBaseType {
+		None                    = 0b0000'0000u,                    // T
+		Const                   = 0b0000'0001u,                    // const T
+		RightConst              = 0b0000'0010u,                    // T const (equivalent to const T)
+		Pointer                 = 0b0000'0100u,                    // T*
+		Reference               = 0b0000'1000u,                    // T&
+		RValueReference         = 0b0001'0000u,                    // T&&
+
+		// Flag combinations.
+		ConstPointer            = Const | Pointer,                 // const T*
+		ConstReference          = Const | Reference,               // const T&
+		ConstRValueReference    = Const | RValueReference,         // const T&&
+		PointerConst            = Pointer | RightConst,            // T* const
+		ConstPointerConst       = Const | Pointer | RightConst,    // const T* const
+		PointerReference        = Pointer | Reference,             // T*&
+		ConstPointerReference   = Const | Pointer | Reference      // const T*&
+	};
+
+	// Checks whether the specified value is a valid TypeQualifier flag combination.
+	inline constexpr bool is_valid_type_qualifier(const TypeQualifier type_qualifier) noexcept {
+		return
+			type_qualifier == TypeQualifier::None
+			|| type_qualifier == TypeQualifier::Const
+			|| type_qualifier == TypeQualifier::RightConst
+			|| type_qualifier == TypeQualifier::Pointer
+			|| type_qualifier == TypeQualifier::Reference
+			|| type_qualifier == TypeQualifier::RValueReference
+			|| type_qualifier == TypeQualifier::ConstPointer
+			|| type_qualifier == TypeQualifier::ConstReference
+			|| type_qualifier == TypeQualifier::ConstRValueReference
+			|| type_qualifier == TypeQualifier::PointerConst
+			|| type_qualifier == TypeQualifier::ConstPointerConst
+			|| type_qualifier == TypeQualifier::PointerReference
+			|| type_qualifier == TypeQualifier::ConstPointerReference;
+	}
+
+	// Bitwise nagation operator for the TypeQualifier flags enum.
+	inline constexpr TypeQualifier operator~(const TypeQualifier x) noexcept {
+		const TypeQualifierBaseType _x = static_cast<TypeQualifierBaseType>(x);
+
+		return static_cast<TypeQualifier>(~_x);
+	}
+
+	// Bitwise or operator for the TypeQualifier flags enum.
+	inline constexpr TypeQualifier operator|(const TypeQualifier a, const TypeQualifier b) noexcept {
+		const TypeQualifierBaseType _a = static_cast<TypeQualifierBaseType>(a);
+		const TypeQualifierBaseType _b = static_cast<TypeQualifierBaseType>(b);
+
+		return static_cast<TypeQualifier>(_a | _b);
+	}
+	inline constexpr TypeQualifier& operator|=(TypeQualifier& a, const TypeQualifier b) noexcept {
+		a = a | b;
+		return a;
+	}
+
+	// Bitwise and operator for the TypeQualifier flags enum.
+	inline constexpr bool operator&(const TypeQualifier a, const TypeQualifier b) noexcept {
+		const TypeQualifierBaseType _a = static_cast<TypeQualifierBaseType>(a);
+		const TypeQualifierBaseType _b = static_cast<TypeQualifierBaseType>(b);
+		const TypeQualifierBaseType _none = static_cast<TypeQualifierBaseType>(TypeQualifier::None);
+
+		return (_a & _b) != _none;
+	}
+
+	// Bitwise XOR operator for the TypeQualifier flags enum.
+	inline constexpr TypeQualifier operator^(const TypeQualifier a, const TypeQualifier b) noexcept {
+		const TypeQualifierBaseType _a = static_cast<TypeQualifierBaseType>(a);
+		const TypeQualifierBaseType _b = static_cast<TypeQualifierBaseType>(b);
+
+		return static_cast<TypeQualifier>(_a ^ _b);
+	}
+	inline constexpr TypeQualifier& operator^=(TypeQualifier& a, const TypeQualifier b) noexcept {
+		a = a ^ b;
+		return a;
+	}
+
+	// Boolean nagation operator for the TypeQualifier flags enum.
+	inline constexpr bool operator!(const TypeQualifier x) noexcept {
+		return x == TypeQualifier::None;
+	}
+
+	// Binary substraction operator for the TypeQualifier flags enum.
+	// This is a equivalent to (a & ~b), in ther words, disable the bits that are enabled in the second flag.
+	inline constexpr TypeQualifier operator-(const TypeQualifier a, const TypeQualifier b) noexcept {
+		const TypeQualifierBaseType _a = static_cast<TypeQualifierBaseType>(a);
+		const TypeQualifierBaseType _b = static_cast<TypeQualifierBaseType>(b);
+
+		return static_cast<TypeQualifier>(_a & (~_b));
+	}
+	inline constexpr TypeQualifier& operator-=(TypeQualifier& a, const TypeQualifier b) noexcept {
+		a = a - b;
+		return a;
+	}
+
+	// Removes all qualifiers from a type.
+	template<typename T>
+	using remove_qualifiers = std::remove_cv_t<std::remove_reference_t<T>>;
+
+	// Applies the specified qualifiers to the type.
+	template<typename, const TypeQualifier type_qualifier>
+	struct apply_qualifier final {
+		static_assert(is_valid_type_qualifier(type_qualifier), "Invalid TypeQualifier");
+	};
+
+	// Returns T.
+	template<typename T>
+	struct apply_qualifier<T, TypeQualifier::None> {
+		using type = remove_qualifiers<T>;
+	};
+
+	// Returns const T.
+	template<typename T>
+	struct apply_qualifier<T, TypeQualifier::Const> {
+		using type = const remove_qualifiers<T>;
+	};
+	template<typename T>
+	struct apply_qualifier<T, TypeQualifier::RightConst> {
+		using type = const remove_qualifiers<T>;
+	};
+
+	// Returns T*.
+	template<typename T>
+	struct apply_qualifier<T, TypeQualifier::Pointer> {
+		using type = remove_qualifiers<T>*;
+	};
+
+	// Returns T&.
+	template<typename T>
+	struct apply_qualifier<T, TypeQualifier::Reference> {
+		using type = remove_qualifiers<T>&;
+	};
+
+	// Returns T&&.
+	template<typename T>
+	struct apply_qualifier<T, TypeQualifier::RValueReference> {
+		using type = remove_qualifiers<T>&&;
+	};
+
+	// Returns const T*.
+	template<typename T>
+	struct apply_qualifier<T, TypeQualifier::ConstPointer> {
+		using type = const remove_qualifiers<T>*;
+	};
+
+	// Returns T* const.
+	template<typename T>
+	struct apply_qualifier<T, TypeQualifier::PointerConst> {
+		using type = remove_qualifiers<T>* const;
+	};
+
+	// Returns const T* const.
+	template<typename T>
+	struct apply_qualifier<T, TypeQualifier::ConstPointerConst> {
+		using type = const remove_qualifiers<T>* const;
+	};
+
+	// Returns const T&.
+	template<typename T>
+	struct apply_qualifier<T, TypeQualifier::ConstReference> {
+		using type = const remove_qualifiers<T>&;
+	};
+
+	// Returns const T&&.
+	template<typename T>
+	struct apply_qualifier<T, TypeQualifier::ConstRValueReference> {
+		using type = const remove_qualifiers<T>&&;
+	};
+
+	// Returns T*&.
+	template<typename T>
+	struct apply_qualifier<T, TypeQualifier::PointerReference> {
+		using type = remove_qualifiers<T>*&;
+	};
+
+	// Returns const T*&.
+	template<typename T>
+	struct apply_qualifier<T, TypeQualifier::ConstPointerReference> {
+		using type = const remove_qualifiers<T>*&;
+	};
+
+	// Helper for apply_qualifier.
+	template<typename T, const TypeQualifier type_qualifier>
+	using apply_qualifier_t = typename apply_qualifier<T, type_qualifier>::type;
+} // guiorgy::detail
+
+// Type trait utils for hashmap.
+namespace guiorgy::detail::hashmap {
 	// SFINAE to check if the specified type has an emplace_hint member function similar to std::unordered_map.
 	// The template returned when matching fails.
-	template<typename, typename = void>
+	template<typename, const TypeQualifier key_qualifier = TypeQualifier::None, const TypeQualifier mapped_qualifier = TypeQualifier::None, typename = void>
 	struct has_emplace_hint final : std::false_type {};
 	// The template returned when matching succeeds.
-	template<typename T>
+	template<typename T, const TypeQualifier key_qualifier, const TypeQualifier mapped_qualifier>
 	struct has_emplace_hint<
 		T,
+		key_qualifier,
+		mapped_qualifier,
 		std::void_t<
+			typename T::const_iterator,
+			typename T::key_type,
+			typename T::mapped_type,
 			decltype(
 				std::declval<T&>().emplace_hint(
 					std::declval<typename T::const_iterator>(),
-					std::declval<typename T::key_type&&>(),
-					std::declval<typename T::mapped_type&&>()
+					std::declval<apply_qualifier_t<typename T::key_type, key_qualifier>>(),
+					std::declval<apply_qualifier_t<typename T::mapped_type, mapped_qualifier>>()
 				)
 			)
 		>
 	> final : std::true_type {};
 	// Helper for has_emplace_hint.
-	template<typename T>
-	inline constexpr bool has_emplace_hint_v = has_emplace_hint<T>::value;
+	template<typename T, const TypeQualifier key_qualifier = TypeQualifier::None, const TypeQualifier mapped_qualifier = TypeQualifier::None>
+	inline constexpr bool has_emplace_hint_v = has_emplace_hint<T, key_qualifier, mapped_qualifier>::value;
 
 	// SFINAE to check if the specified type has an insert member function that takes an iterator hint similar to std::unordered_map.
 	// The template returned when matching fails.
-	template<typename, typename = void>
+	template<typename, const TypeQualifier value_qualifier = TypeQualifier::None, typename = void>
 	struct has_insert_with_hint final : std::false_type {};
 	// The template returned when matching succeeds.
-	template<typename T>
+	template<typename T, const TypeQualifier value_qualifier>
 	struct has_insert_with_hint<
 		T,
+		value_qualifier,
 		std::void_t<
+			typename T::const_iterator,
+			typename T::value_type,
 			typename std::enable_if_t<is_pair_v<typename T::value_type>>,
 			decltype(
 				std::declval<T&>().insert(
-					std::declval<typename T::iterator>(),
-					std::declval<typename T::value_type&&>()
+					std::declval<typename T::const_iterator>(),
+					std::declval<apply_qualifier_t<typename T::value_type, value_qualifier>>()
 				)
 			)
 		>
 	> final : std::true_type {};
 	// Helper for has_insert_with_hint.
-	template<typename T>
-	inline constexpr bool has_insert_with_hint_v = has_insert_with_hint<T>::value;
+	template<typename T, const TypeQualifier value_qualifier = TypeQualifier::None>
+	inline constexpr bool has_insert_with_hint_v = has_insert_with_hint<T, value_qualifier>::value;
 
 	// SFINAE to check if the specified type has an insert member function similar to std::unordered_map.
 	// The template returned when matching fails.
-	template<typename, typename = void>
+	template<typename, const TypeQualifier value_qualifier = TypeQualifier::None, typename = void>
 	struct has_insert final : std::false_type {};
 	// The template returned when matching succeeds.
-	template<typename T>
+	template<typename T, const TypeQualifier value_qualifier>
 	struct has_insert<
 		T,
+		value_qualifier,
 		std::void_t<
+			typename T::value_type,
 			typename std::enable_if_t<is_pair_v<typename T::value_type>>,
 			decltype(
 				std::declval<T&>().insert(
-					std::declval<typename T::value_type&&>()
+					std::declval<apply_qualifier_t<typename T::value_type, value_qualifier>>()
 				)
 			)
 		>
 	> final : std::true_type {};
 	// Helper for has_insert.
-	template<typename T>
-	inline constexpr bool has_insert_v = has_insert<T>::value;
-} // guiorgy::detail
+	template<typename T, const TypeQualifier value_qualifier = TypeQualifier::None>
+	inline constexpr bool has_insert_v = has_insert<T, value_qualifier>::value;
+} // guiorgy::detail::hashmap
 
 // Utils.
 namespace guiorgy::detail {
@@ -1536,9 +1740,16 @@ namespace guiorgy::detail {
 		using map_iterator_t = typename map_t<key_t, list_index_t>::iterator;
 		using map_const_iterator_t = typename map_t<key_t, list_index_t>::const_iterator;
 
-		static constexpr bool map_has_emplace_hint = has_emplace_hint_v<map_t<key_t, list_index_t>>;
-		static constexpr bool map_has_insert_with_hint = has_insert_with_hint_v<map_t<key_t, list_index_t>>;
-		static constexpr bool map_has_insert = detail::has_insert_v<map_t<key_t, list_index_t>>;
+		static constexpr bool map_has_emplace_hint =
+			hashmap::has_emplace_hint_v<map_t<key_t, list_index_t>, TypeQualifier::ConstReference, TypeQualifier::None>
+			|| hashmap::has_emplace_hint_v<map_t<key_t, list_index_t>, TypeQualifier::ConstReference, TypeQualifier::ConstReference>
+			|| hashmap::has_emplace_hint_v<map_t<key_t, list_index_t>, TypeQualifier::ConstReference, TypeQualifier::RValueReference>;
+		static constexpr bool map_has_insert_with_hint =
+			hashmap::has_insert_with_hint_v<map_t<key_t, list_index_t>, TypeQualifier::ConstReference>
+			|| hashmap::has_insert_with_hint_v<map_t<key_t, list_index_t>, TypeQualifier::RValueReference>;
+		static constexpr bool map_has_insert =
+			hashmap::has_insert_v<map_t<key_t, list_index_t>, TypeQualifier::ConstReference>
+			|| hashmap::has_insert_v<map_t<key_t, list_index_t>, TypeQualifier::RValueReference>;
 
 	public:
 		using const_iterator = typename vector_list<key_value_pair_t, max_size>::const_iterator;
