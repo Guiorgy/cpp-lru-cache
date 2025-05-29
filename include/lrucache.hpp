@@ -1622,6 +1622,8 @@ namespace guiorgy::detail {
 // lru_cache public.
 namespace guiorgy {
 	// A hint to the likelihood of a condition being true.
+	// Remarks:
+	//   - This has no effect in C++ < 20.
 	enum struct Likelihood : std::uint_fast8_t {
 		Unknown,	// No attribute used
 		Likely,		// [[likely]] attribute used
