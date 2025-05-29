@@ -1,10 +1,11 @@
 #include "gtest/gtest.h"
 #include "lrucache.hpp"
+#include "hashmap.hpp"
 
 #define TEST_GROUP LruCacheBasicTests
 
 TEST(TEST_GROUP, SimplePut) {
-	guiorgy::lru_cache<int, int, 1> cache_lru;
+	guiorgy::lru_cache<int, int, 1, HASH_MAP_TYPE> cache_lru;
 	cache_lru.put(7, 777);
 
 	EXPECT_TRUE(cache_lru.exists(7));
@@ -13,14 +14,14 @@ TEST(TEST_GROUP, SimplePut) {
 }
 
 TEST(TEST_GROUP, MissingValue) {
-	guiorgy::lru_cache<int, int, 1> cache_lru;
+	guiorgy::lru_cache<int, int, 1, HASH_MAP_TYPE> cache_lru;
 	auto cached = cache_lru.get(7);
 
 	EXPECT_FALSE(cached.has_value());
 }
 
 TEST(TEST_GROUP, MissingAfterManualRemoval) {
-	guiorgy::lru_cache<int, int, 1> cache_lru;
+	guiorgy::lru_cache<int, int, 1, HASH_MAP_TYPE> cache_lru;
 	cache_lru.put(7, 777);
 	cache_lru.erase(7);
 	auto cached = cache_lru.get(7);
@@ -30,7 +31,7 @@ TEST(TEST_GROUP, MissingAfterManualRemoval) {
 }
 
 TEST(TEST_GROUP, SizeIs0AfterClear) {
-	guiorgy::lru_cache<int, int, 1> cache_lru;
+	guiorgy::lru_cache<int, int, 1, HASH_MAP_TYPE> cache_lru;
 	cache_lru.put(7, 777);
 
 	EXPECT_EQ(1, cache_lru.size());
@@ -40,7 +41,7 @@ TEST(TEST_GROUP, SizeIs0AfterClear) {
 }
 
 TEST(TEST_GROUP, PutWithHints) {
-	guiorgy::lru_cache<int, int, 5> cache_lru;
+	guiorgy::lru_cache<int, int, 5, HASH_MAP_TYPE> cache_lru;
 
 	cache_lru.put(1, 111);
 	EXPECT_TRUE(cache_lru.exists(1));
@@ -69,7 +70,7 @@ TEST(TEST_GROUP, PutWithHints) {
 }
 
 TEST(TEST_GROUP, IteratorWithOneElement) {
-	guiorgy::lru_cache<int, int, 1> cache_lru;
+	guiorgy::lru_cache<int, int, 1, HASH_MAP_TYPE> cache_lru;
 	cache_lru.put(7, 777);
 
 	EXPECT_EQ(7, cache_lru.begin()->first);
@@ -83,7 +84,7 @@ TEST(TEST_GROUP, IteratorWithOneElement) {
 }
 
 TEST(TEST_GROUP, IteratorConversion) {
-	using lru_cache_t = guiorgy::lru_cache<int, int, 1>;
+	using lru_cache_t = guiorgy::lru_cache<int, int, 1, HASH_MAP_TYPE>;
 
 	EXPECT_TRUE((std::is_same_v<lru_cache_t::iterator, lru_cache_t::const_iterator>));
 	EXPECT_TRUE((std::is_same_v<lru_cache_t::reverse_iterator, lru_cache_t::const_reverse_iterator>));
@@ -184,7 +185,7 @@ TEST(TEST_GROUP, KeepsAllValuesWithinCapacity) {
 	constexpr int record_count = 100;
 	constexpr int test_capacity = 50;
 
-	guiorgy::lru_cache<int, int, test_capacity> cache_lru;
+	guiorgy::lru_cache<int, int, test_capacity, HASH_MAP_TYPE> cache_lru;
 
 	for (int i = 0; i < record_count; ++i) {
 		cache_lru.put(i, i);
@@ -209,7 +210,7 @@ TEST(TEST_GROUP, KeepsAllValuesWithinCapacity) {
 TEST(TEST_GROUP, HandlesOverwrites) {
 	constexpr int record_count = 50;
 
-	guiorgy::lru_cache<int, int, record_count> cache_lru;
+	guiorgy::lru_cache<int, int, record_count, HASH_MAP_TYPE> cache_lru;
 
 	for (int i = 0; i < record_count; ++i) {
 		cache_lru.put(i, i);
@@ -234,7 +235,7 @@ TEST(TEST_GROUP, HandlesOverwrites) {
 TEST(TEST_GROUP, HandlesRemovals) {
 	constexpr int record_count = 50;
 
-	guiorgy::lru_cache<int, int, record_count> cache_lru;
+	guiorgy::lru_cache<int, int, record_count, HASH_MAP_TYPE> cache_lru;
 
 	for (int i = 0; i < record_count; ++i) {
 		cache_lru.put(i, i);
@@ -263,7 +264,7 @@ TEST(TEST_GROUP, HandlesRemovals) {
 TEST(TEST_GROUP, HandlesPutsAfterRemoval) {
 	constexpr int record_count = 50;
 
-	guiorgy::lru_cache<int, int, record_count> cache_lru;
+	guiorgy::lru_cache<int, int, record_count, HASH_MAP_TYPE> cache_lru;
 
 	for (int i = 0; i < record_count; ++i) {
 		cache_lru.put(i, i);
@@ -292,7 +293,7 @@ TEST(TEST_GROUP, HandlesPutsAfterRemoval) {
 TEST(TEST_GROUP, HandlesTouch) {
 	constexpr int record_count = 50;
 
-	guiorgy::lru_cache<int, int, record_count> cache_lru;
+	guiorgy::lru_cache<int, int, record_count, HASH_MAP_TYPE> cache_lru;
 
 	for (int i = 0; i < record_count; ++i) {
 		cache_lru.put(i, i);
