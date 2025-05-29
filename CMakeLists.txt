@@ -65,10 +65,6 @@ elseif (HASH_MAP_IMPLEMENTATION STREQUAL "STL")
     message(STATUS "Using std::unordered_map as the hashmap implementation")
 
     add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=STL_UNORDERED_MAP)
-elseif (HASH_MAP_IMPLEMENTATION STREQUAL "STL_PMR")
-    message(STATUS "Using std::pmr::unordered_map with std::pmr::unsynchronized_pool_resource as the hashmap implementation")
-
-    add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=STL_PMR_UNORDERED_MAP)
 elseif (HASH_MAP_IMPLEMENTATION STREQUAL "ABSEIL")
     message(STATUS "Using absl::flat_hash_map as the hashmap implementation")
 

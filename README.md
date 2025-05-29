@@ -15,8 +15,9 @@ An LRU (Least Recently Used) cache for C++ 17 based on hashmap and a packed link
 guiorgy::lru_cache<std::string, std::string, 3> cache;
 
 /**Preallocates the necessary memory to avoid reallocations.
-   Alternatively you can set the fourth template argument
-   (bool preallocate) to true during declaration */
+   Alternatively you can use guiorgy::lru_cache_opts with
+   guiorgy::LruCacheOptions::Preallocate, which will execute
+   reserve() during initialization */
 cache.reserve();
 
 cache.put("one", "one");
@@ -33,31 +34,31 @@ const std::string& from_cache_2 = cache.get_ref("two")->get();
 
 ### Change the underlying hashmap implementation
 
-The underlying hashmap implementation can be changed from the default STL `std::unordered_map` to the following:
+The underlying hashmap implementation can be changed from the default STL `std::unordered_map` to any other that has the following members similar to `std::unordered_map`:
 
-- [STL](https://en.cppreference.com/w/cpp/container/unordered_map) `std::unordered_map` (`STL_UNORDERED_MAP`)
-- [STL std::pmr](https://en.cppreference.com/w/cpp/container/unordered_map) `std::pmr::unordered_map` (`STL_PMR_UNORDERED_MAP`)
-- [Abseil](https://github.com/abseil/abseil-cpp) `absl::flat_hash_map` (`ABSEIL_FLAT_HASH_MAP`)
-- [Tessil Sparse](https://github.com/Tessil/sparse-map) `tsl::sparse_map` (`TESSIL_SPARSE_MAP`)
-- [Tessil Robin](https://github.com/Tessil/sparse-map) `tsl::robin_map` (`TESSIL_ROBIN_MAP`)
-- [Tessil Hopscotch](https://github.com/Tessil/sparse-map) `tsl::hopscotch_map` (`TESSIL_HOPSCOTCH_MAP`)
-- [Ankerl](https://github.com/martinus/unordered_dense) `ankerl::unordered_dense::map` (`ANKERL_UNORDERED_DENSE_MAP`)
-- [Ankerl Segmented](https://github.com/martinus/unordered_dense) `ankerl::unordered_dense::segmented_map` (`ANKERL_UNORDERED_DENSE_SEGMENTED_MAP`)
+- todo
 
-To switch to the desired implementation, set the `LRU_CACHE_HASH_MAP_IMPLEMENTATION` compiler definition to the desired value. For example:
-
-- Compiler
-
-    ```shell
-    g++ ... -DLRU_CACHE_HASH_MAP_IMPLEMENTATION=ABSEIL_FLAT_HASH_MAP
-    ```
-
-- Source
+To switch to the desired implementation, specify it as a template argument:
 
     ```c++
-    #define LRU_CACHE_HASH_MAP_IMPLEMENTATION ABSEIL_FLAT_HASH_MAP
-    #include "lrucache.hpp"
+    guiorgy::lru_cache<std::string, std::string, 3, absl::flat_hash_map> cache;
     ```
+
+You can also change the default hash function and key equality predecate:
+
+    ```c++
+    guiorgy::lru_cache<std::string, std::string, 3, absl::flat_hash_map, std::hash<std::string>, std::equal_to<std::string>> cache;
+    ```
+
+The following hashmap implementations are tested by executing full-test.sh:
+
+- [STL](https://en.cppreference.com/w/cpp/container/unordered_map) `std::unordered_map`
+- [Abseil](https://github.com/abseil/abseil-cpp) `absl::flat_hash_map`
+- [Tessil Sparse](https://github.com/Tessil/sparse-map) `tsl::sparse_map`
+- [Tessil Robin](https://github.com/Tessil/sparse-map) `tsl::robin_map`
+- [Tessil Hopscotch](https://github.com/Tessil/sparse-map) `tsl::hopscotch_map`
+- [Ankerl](https://github.com/martinus/unordered_dense) `ankerl::unordered_dense::map`
+- [Ankerl Segmented](https://github.com/martinus/unordered_dense) `ankerl::unordered_dense::segmented_map`
 
 To decide which implementation to use, check out the amazing round of [benchmarks](https://martin.ankerl.com/2022/08/27/hashmap-bench-01/) for many map implementations done by Martin Leitner-Ankerl.
 
@@ -66,7 +67,7 @@ To decide which implementation to use, check out the amazing round of [benchmark
 ```shell
 cd build
 cmake ..
-# cmake -DCMAKE_BUILD_TYPE=Debug -DHASH_MAP_IMPLEMENTATION=STL|STL_PMR|ABSEIL|TESSIL_SPARSE|TESSIL_ROBIN|TESSIL_HOP|ANKERL|ANKERL_SEG ..
+# cmake -DCMAKE_BUILD_TYPE=Debug -DHASH_MAP_IMPLEMENTATION=STL|ABSEIL|TESSIL_SPARSE|TESSIL_ROBIN|TESSIL_HOP|ANKERL|ANKERL_SEG ..
 make test
 # make sanitize
 # ./full-test.sh

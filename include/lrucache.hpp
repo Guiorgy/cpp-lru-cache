@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <unordered_map>
 #include <type_traits>
 #include <functional>
 #include <optional>
@@ -46,136 +47,21 @@
 	#define UNLIKELY
 #endif
 
-/* Define possible implementations and store old definitions to restore later in case of a conflict */
-// STL std::unordered_map
-#ifdef STL_UNORDERED_MAP
-	#define GUIORGY_LRU_CACHE_STL_UNORDERED_MAP_BEFORE STL_UNORDERED_MAP
-	#undef STL_UNORDERED_MAP
-#endif
-#define STL_UNORDERED_MAP 10
-// STL std::pmr::unordered_map with std::pmr::unsynchronized_pool_resource
-#ifdef STL_PMR_UNORDERED_MAP
-	#define GUIORGY_LRU_CACHE_STL_PMR_UNORDERED_MAP_BEFORE STL_PMR_UNORDERED_MAP
-	#undef STL_PMR_UNORDERED_MAP
-#endif
-#define STL_PMR_UNORDERED_MAP 11
+// Forward declarations.
+namespace guiorgy {
+	namespace detail {
+		// Forward declaration of LruCacheOptions.
+		enum struct LruCacheOptions : std::uint_fast8_t;
 
-// Abseil absl::flat_hash_map
-#ifdef ABSEIL_FLAT_HASH_MAP
-	#define GUIORGY_LRU_CACHE_ABSEIL_FLAT_HASH_MAP_BEFORE ABSEIL_FLAT_HASH_MAP
-	#undef ABSEIL_FLAT_HASH_MAP
-#endif
-#define ABSEIL_FLAT_HASH_MAP 20
+		// Forward declaration of lru_cache_opts.
+		template<const LruCacheOptions, typename, typename, const std::size_t, template<typename...> class, typename, typename, typename...>
+		class lru_cache_opts;
 
-// Tessil tsl::sparse_map
-#ifdef TESSIL_SPARSE_MAP
-	#define GUIORGY_LRU_CACHE_TESSIL_SPARSE_MAP_BEFORE TESSIL_SPARSE_MAP
-	#undef TESSIL_SPARSE_MAP
-#endif
-#define TESSIL_SPARSE_MAP 30
-// Tessil tsl::robin_map
-#ifdef TESSIL_ROBIN_MAP
-	#define GUIORGY_LRU_CACHE_TESSIL_ROBIN_MAP_BEFORE TESSIL_ROBIN_MAP
-	#undef TESSIL_ROBIN_MAP
-#endif
-#define TESSIL_ROBIN_MAP 31
-// Tessil tsl::hopscotch_map
-#ifdef TESSIL_HOPSCOTCH_MAP
-	#define GUIORGY_LRU_CACHE_TESSIL_HOPSCOTCH_MAP_BEFORE TESSIL_HOPSCOTCH_MAP
-	#undef TESSIL_HOPSCOTCH_MAP
-#endif
-#define TESSIL_HOPSCOTCH_MAP 32
-
-// Ankerl ankerl::unordered_dense::map
-#ifdef ANKERL_UNORDERED_DENSE_MAP
-	#define GUIORGY_LRU_CACHE_ANKERL_UNORDERED_DENSE_MAP_BEFORE ANKERL_UNORDERED_DENSE_MAP
-	#undef ANKERL_UNORDERED_DENSE_MAP
-#endif
-#define ANKERL_UNORDERED_DENSE_MAP 40
-// Ankerl ankerl::unordered_dense::segmented_map
-#ifdef ANKERL_UNORDERED_DENSE_SEGMENTED_MAP
-	#define GUIORGY_LRU_CACHE_ANKERL_UNORDERED_DENSE_SEGMENTED_MAP_BEFORE ANKERL_UNORDERED_DENSE_SEGMENTED_MAP
-	#undef ANKERL_UNORDERED_DENSE_SEGMENTED_MAP
-#endif
-#define ANKERL_UNORDERED_DENSE_SEGMENTED_MAP 41
-
-// Set the default implementation
-#ifndef LRU_CACHE_HASH_MAP_IMPLEMENTATION
-	#define LRU_CACHE_HASH_MAP_IMPLEMENTATION STL_UNORDERED_MAP
-#endif
-
-// Use the correct headers for the selected implementation
-#if LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_UNORDERED_MAP
-	// STL std::unordered_map
-	#include <unordered_map>
-
-	#ifdef LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION
-		#pragma message("Using std::unordered_map as the hashmap for the LRU cache")
-	#endif
-#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_PMR_UNORDERED_MAP
-	// STL std::pmr::unordered_map with std::pmr::unsynchronized_pool_resource
-	#include <memory_resource>
-	#include <unordered_map>
-
-	#ifdef LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION
-		#pragma message("Using std::pmr::unordered_map as the hashmap for the LRU cache")
-	#endif
-#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ABSEIL_FLAT_HASH_MAP
-	// Abseil absl::flat_hash_map
-	#include "absl/container/flat_hash_map.h"
-
-	#ifdef LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION
-		#pragma message("Using absl::flat_hash_map as the hashmap for the LRU cache")
-	#endif
-#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == TESSIL_SPARSE_MAP
-	// Tessil tsl::sparse_map
-	#include "tsl/sparse_map.h"
-
-	#ifdef LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION
-		#pragma message("Using tsl::sparse_map as the hashmap for the LRU cache")
-	#endif
-#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == TESSIL_ROBIN_MAP
-	// Tessil tsl::robin_map
-	#include "tsl/robin_map.h"
-
-	#ifdef LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION
-		#pragma message("Using tsl::robin_map as the hashmap for the LRU cache")
-	#endif
-#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == TESSIL_HOPSCOTCH_MAP
-	// Tessil tsl::hopscotch_map
-	#include "tsl/hopscotch_map.h"
-
-	#ifdef LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION
-		#pragma message("Using tsl::hopscotch_map as the hashmap for the LRU cache")
-	#endif
-#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ANKERL_UNORDERED_DENSE_MAP
-	// Ankerl ankerl::unordered_dense::map
-	#include "ankerl/unordered_dense.h"
-
-	#ifdef LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION
-		#pragma message("Using ankerl::unordered_dense::map as the hashmap for the LRU cache")
-	#endif
-#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ANKERL_UNORDERED_DENSE_SEGMENTED_MAP
-	// Ankerl ankerl::unordered_dense::segmented_map
-	#include "ankerl/unordered_dense.h"
-
-	#ifdef LRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION
-		#pragma message("Using ankerl::unordered_dense::segmented_map as the hashmap for the LRU cache")
-	#endif
-#else
-	#ifdef VALUE_TO_STRING
-		#undef VALUE_TO_STRING
-	#endif
-	#ifdef VALUE
-		#undef VALUE
-	#endif
-	#define VALUE_TO_STRING(x) #x
-	#define VALUE(x) VALUE_TO_STRING(x)
-
-	#pragma message("LRU_CACHE_HASH_MAP_IMPLEMENTATION is set to " VALUE(LRU_CACHE_HASH_MAP_IMPLEMENTATION))
-	#pragma message("Possible valiues are STL_UNORDERED_MAP(std::unordered_map), STL_PMR_UNORDERED_MAP(std::pmr::unordered_map), ABSEIL_FLAT_HASH_MAP(absl::flat_hash_map), TESSIL_SPARSE_MAP(tsl::sparse_map), TESSIL_ROBIN_MAP(tsl::robin_map), TESSIL_HOPSCOTCH_MAP(tsl::hopscotch_map), ANKERL_UNORDERED_DENSE_MAP(ankerl::unordered_dense::map), ANKERL_UNORDERED_DENSE_SEGMENTED_MAP(ankerl::unordered_dense::segmented_map)")
-	#error "Unexpected value of LRU_CACHE_HASH_MAP_IMPLEMENTATION"
-#endif
+		// Forward declaration of vector_list.
+		template<typename, const std::size_t>
+		class vector_list;
+	} // detail
+} // guiorgy
 
 // Type trait utils.
 namespace guiorgy::detail {
@@ -497,6 +383,35 @@ namespace guiorgy::detail::hashmap {
 	// Helper for has_insert.
 	template<typename T, const TypeQualifier value_qualifier = TypeQualifier::None>
 	inline constexpr bool has_insert_v = has_insert<T, value_qualifier>::value;
+
+	// SFINAE to check if the specified type has an index operator[] similar to std::unordered_map.
+	// The template returned when matching fails.
+	template<typename, const TypeQualifier key_qualifier = TypeQualifier::None, const TypeQualifier mapped_qualifier = TypeQualifier::None, typename = void>
+	struct has_index_operator final : std::false_type {};
+	// The template returned when matching succeeds.
+	template<typename T, const TypeQualifier key_qualifier, const TypeQualifier mapped_qualifier>
+	struct has_index_operator<
+		T,
+		key_qualifier,
+		mapped_qualifier,
+		std::void_t<
+			typename T::key_type,
+			typename T::mapped_type,
+			typename std::enable_if_t<
+				std::is_same_v<
+					apply_qualifier_t<typename T::mapped_type, mapped_qualifier>,
+					decltype(
+						std::declval<T&>().operator[](
+							std::declval<apply_qualifier_t<typename T::key_type, key_qualifier>>()
+						)
+					)
+				>
+			>
+		>
+	> final : std::true_type {};
+	// Helper for has_index_operator.
+	template<typename T, const TypeQualifier key_qualifier = TypeQualifier::None, const TypeQualifier mapped_qualifier = TypeQualifier::None>
+	inline constexpr bool has_index_operator_v = has_index_operator<T, key_qualifier, mapped_qualifier>::value;
 } // guiorgy::detail::hashmap
 
 // Utils.
@@ -561,23 +476,6 @@ namespace guiorgy::detail {
 		return clamped_increment(x, std::numeric_limits<int_t>::max());
 	}
 }
-
-// Forward declarations.
-namespace guiorgy {
-	// Forward declaration of lru_cache.
-	template<typename key_t, typename value_t, const std::size_t max_size, const bool preallocate, typename hash_function, typename key_equality_predicate>
-	class lru_cache;
-
-	namespace detail {
-		// Forward declaration of lru_cache_storage_base.
-		template<typename key_t, typename value_t, const std::size_t max_size, typename hash_function, typename key_equality_predicate>
-		class lru_cache_storage_base;
-
-		// Forward declaration of vector_list.
-		template<typename T, const std::size_t max_size>
-		class vector_list;
-	} // detail
-} // guiorgy
 
 // Containers.
 namespace guiorgy::detail {
@@ -1614,16 +1512,12 @@ namespace guiorgy::detail {
 			return get_node(position);
 		}
 
-		// Declare lru_cache_storage_base as a friend to allow access to index_t.
-		template<typename kt, typename vt, const std::size_t ms, typename hf, typename kep>
-		friend class lru_cache_storage_base;
-
-		// Declare lru_cache as a friend to give access to the dangerous member functions below.
-		template<typename kt, typename vt, const std::size_t ms, const bool p, typename hf, typename kep>
-		friend class guiorgy::lru_cache;
+		// Declare lru_cache_opts as a friend to give access to the dangerous member functions below.
+		template<const LruCacheOptions, typename, typename, const std::size_t, template<typename...> class, typename, typename, typename...>
+		friend class lru_cache_opts;
 
 		// The functions below expose and operate internal indeces instead of using public iterators.
-		// They are only indtended to be used by lru_cache to avoid the overhead of using iterators.
+		// They are only indtended to be used by lru_cache_opts to avoid the overhead of using iterators.
 		// Use them with caution.
 
 		// See move_node_to_front for details.
@@ -1680,284 +1574,216 @@ namespace guiorgy::detail {
 // lru_cache details.
 namespace guiorgy::detail {
 	// Placeholders to indicate that the underlying hashmap should use its default hash function and key equality predicate.
-	template<typename key_t>
+	template<typename key_type>
 	class DefaultHashFunction final {};
-	template<typename key_t>
+	template<typename key_type>
 	class DefaultKeyEqualityPredicate final {};
 
-	// lru_cache_storage_base and lru_cache_base(<key_t, value_t, max_size>) are used
-	// to allow the conditional declaration of a default or custom constructor in C++ 17.
-	// For more details see: https://devblogs.microsoft.com/cppblog/conditionally-trivial-special-member-functions/
-	// Although, turns out std::vector is not trivially (default) constructible anyway, so this is actually pointless :P
+	// The base type of the LruCacheOptions flags enum.
+	using LruCacheOptionsBaseType = std::uint_fast8_t;
 
-	// The base class of lru_cache that defines the data members.
-	template<typename key_t, typename value_t, const std::size_t max_size, typename hash_function, typename key_equality_predicate>
-	class lru_cache_storage_base {
-		static_assert(std::is_same_v<key_equality_predicate, DefaultKeyEqualityPredicate<key_t>> || !std::is_same_v<hash_function, DefaultHashFunction<key_t>>, "hash_function can't be default if key_equality_predicate is not default");
+	// lru_cache_opts initialization options. This is a flags enum.
+	enum struct LruCacheOptions : LruCacheOptionsBaseType {
+		// No options set. Default initialization.
+		None			= 0b0000'0000u,
 
-		#ifdef STL_UNORDERED_MAP_LIKE_QUALIFIED_TYPE
-			#define STL_UNORDERED_MAP_LIKE_QUALIFIED_TYPE_BEFORE STL_UNORDERED_MAP_LIKE_QUALIFIED_TYPE
-			#undef STL_UNORDERED_MAP_LIKE_QUALIFIED_TYPE
-		#endif
-		#if LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_UNORDERED_MAP
-			#define STL_UNORDERED_MAP_LIKE_QUALIFIED_TYPE std::unordered_map
-		#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_PMR_UNORDERED_MAP
-			#define STL_UNORDERED_MAP_LIKE_QUALIFIED_TYPE std::pmr::unordered_map
-		#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ABSEIL_FLAT_HASH_MAP
-			#define STL_UNORDERED_MAP_LIKE_QUALIFIED_TYPE absl::flat_hash_map
-		#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == TESSIL_SPARSE_MAP
-			#define STL_UNORDERED_MAP_LIKE_QUALIFIED_TYPE tsl::sparse_map
-		#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == TESSIL_ROBIN_MAP
-			#define STL_UNORDERED_MAP_LIKE_QUALIFIED_TYPE tsl::robin_map
-		#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == TESSIL_HOPSCOTCH_MAP
-			#define STL_UNORDERED_MAP_LIKE_QUALIFIED_TYPE tsl::hopscotch_map
-		#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ANKERL_UNORDERED_DENSE_MAP
-			#define STL_UNORDERED_MAP_LIKE_QUALIFIED_TYPE ankerl::unordered_dense::map
-		#elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ANKERL_UNORDERED_DENSE_SEGMENTED_MAP
-			#define STL_UNORDERED_MAP_LIKE_QUALIFIED_TYPE ankerl::unordered_dense::segmented_map
-		#endif
-
-		template<typename kt, typename vt>
-		using map_t = typename std::conditional_t<
-			std::is_same_v<hash_function, DefaultHashFunction<kt>>,
-			STL_UNORDERED_MAP_LIKE_QUALIFIED_TYPE<kt, vt>,
-			typename std::conditional_t<
-				std::is_same_v<key_equality_predicate, DefaultKeyEqualityPredicate<kt>>,
-				STL_UNORDERED_MAP_LIKE_QUALIFIED_TYPE<kt, vt, hash_function>,
-				STL_UNORDERED_MAP_LIKE_QUALIFIED_TYPE<kt, vt, hash_function, key_equality_predicate>
-			>
-		>;
-
-		#undef STL_UNORDERED_MAP_LIKE_QUALIFIED_TYPE
-		#ifdef STL_UNORDERED_MAP_LIKE_QUALIFIED_TYPE_BEFORE
-			#define STL_UNORDERED_MAP_LIKE_QUALIFIED_TYPE STL_UNORDERED_MAP_LIKE_QUALIFIED_TYPE_BEFORE
-			#undef STL_UNORDERED_MAP_LIKE_QUALIFIED_TYPE_BEFORE
-		#endif
-
-	protected:
-		using key_value_pair_t = std::pair<key_t, value_t>;
-		using list_index_t = typename vector_list<key_value_pair_t, max_size>::index_t;
-		using map_iterator_t = typename map_t<key_t, list_index_t>::iterator;
-		using map_const_iterator_t = typename map_t<key_t, list_index_t>::const_iterator;
-
-		static constexpr bool map_has_emplace_hint =
-			hashmap::has_emplace_hint_v<map_t<key_t, list_index_t>, TypeQualifier::ConstReference, TypeQualifier::None>
-			|| hashmap::has_emplace_hint_v<map_t<key_t, list_index_t>, TypeQualifier::ConstReference, TypeQualifier::ConstReference>
-			|| hashmap::has_emplace_hint_v<map_t<key_t, list_index_t>, TypeQualifier::ConstReference, TypeQualifier::RValueReference>;
-		static constexpr bool map_has_insert_with_hint =
-			hashmap::has_insert_with_hint_v<map_t<key_t, list_index_t>, TypeQualifier::ConstReference>
-			|| hashmap::has_insert_with_hint_v<map_t<key_t, list_index_t>, TypeQualifier::RValueReference>;
-		static constexpr bool map_has_insert =
-			hashmap::has_insert_v<map_t<key_t, list_index_t>, TypeQualifier::ConstReference>
-			|| hashmap::has_insert_v<map_t<key_t, list_index_t>, TypeQualifier::RValueReference>;
-
-	public:
-		using const_iterator = typename vector_list<key_value_pair_t, max_size>::const_iterator;
-		using const_reverse_iterator = typename vector_list<key_value_pair_t, max_size>::const_reverse_iterator;
-		using iterator = typename vector_list<key_value_pair_t, max_size>::const_iterator;
-		using reverse_iterator = typename vector_list<key_value_pair_t, max_size>::const_reverse_iterator;
-
-	protected:
-		vector_list<key_value_pair_t, max_size> _cache_items_list{};
-
-		#if LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_PMR_UNORDERED_MAP
-			static constexpr std::size_t map_node_overhead_estimate = 24;
-			std::pmr::unsynchronized_pool_resource _unsynchronized_pool_resource{
-				std::pmr::pool_options{
-					/* max_blocks_per_chunk */ 64,
-					/* largest_required_pool_block */ sizeof(key_value_pair_t) + map_node_overhead_estimate
-				},
-				std::pmr::get_default_resource()
-			};
-			map_t<key_t, list_index_t> _cache_items_map{&_unsynchronized_pool_resource};
-		#else
-			map_t<key_t, list_index_t> _cache_items_map{};
-		#endif
+		// Preallocate the capacity of the cache to a value that's greater or equal to max_size.
+		Preallocate		= 0b0000'0001u
 	};
 
-	// The base class of lru_cache that defines the default constructors, destructor and assignments.
-	template<typename key_t, typename value_t, const std::size_t max_size, const bool preallocate = false, typename hash_function = DefaultHashFunction<key_t>, typename key_equality_predicate = DefaultKeyEqualityPredicate<key_t>>
-	class lru_cache_base : protected lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate> {
-	public:
-		lru_cache_base() = default;
-		~lru_cache_base() = default;
-		lru_cache_base(const lru_cache_base&) = default;
-		lru_cache_base(lru_cache_base&&) = default;
-		lru_cache_base& operator=(lru_cache_base const&) = default;
-		lru_cache_base& operator=(lru_cache_base &&) = default;
-	};
+	// Bitwise nagation operator for the LruCacheOptions flags enum.
+	inline constexpr LruCacheOptions operator~(const LruCacheOptions x) noexcept {
+		const LruCacheOptionsBaseType _x = static_cast<LruCacheOptionsBaseType>(x);
 
-	// The base class of lru_cache that defines the custom empty constructor and other default constructors, destructor and assignments.
-	template<typename key_t, typename value_t, const std::size_t max_size, typename hash_function, typename key_equality_predicate>
-	class lru_cache_base<key_t, value_t, max_size, true, hash_function, key_equality_predicate> : protected lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate> {
-	public:
-		using key_value_pair_t = typename lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::key_value_pair_t;
+		return static_cast<LruCacheOptions>(~_x);
+	}
 
-		lru_cache_base() {
-			this->_cache_items_list.reserve(max_size);
-			this->_cache_items_map.reserve(max_size);
-		}
-		~lru_cache_base() = default;
-		lru_cache_base(const lru_cache_base&) = default;
-		lru_cache_base(lru_cache_base&&) = default;
-		lru_cache_base& operator=(lru_cache_base const&) = default;
-		lru_cache_base& operator=(lru_cache_base &&) = default;
-	};
-} // guiorgy::detail
+	// Bitwise or operator for the LruCacheOptions flags enum.
+	inline constexpr LruCacheOptions operator|(const LruCacheOptions a, const LruCacheOptions b) noexcept {
+		const LruCacheOptionsBaseType _a = static_cast<LruCacheOptionsBaseType>(a);
+		const LruCacheOptionsBaseType _b = static_cast<LruCacheOptionsBaseType>(b);
 
-/* Restore old definitions if they were already defined */
-// STL std::unordered_map
-#ifdef GUIORGY_LRU_CACHE_STL_UNORDERED_MAP_BEFORE
-	#undef STL_UNORDERED_MAP
-	#define STL_UNORDERED_MAP GUIORGY_LRU_CACHE_STL_UNORDERED_MAP_BEFORE
-	#undef GUIORGY_LRU_CACHE_STL_UNORDERED_MAP_BEFORE
-#endif
-// STL std::pmr::unordered_map with std::pmr::unsynchronized_pool_resource
-#ifdef GUIORGY_LRU_CACHE_STL_PMR_UNORDERED_MAP_BEFORE
-	#undef STL_MPR_UNORDERED_MAP
-	#define STL_MPR_UNORDERED_MAP GUIORGY_LRU_CACHE_STL_PMR_UNORDERED_MAP_BEFORE
-	#undef GUIORGY_LRU_CACHE_STL_PMR_UNORDERED_MAP_BEFORE
-#endif
+		return static_cast<LruCacheOptions>(_a | _b);
+	}
+	inline constexpr LruCacheOptions& operator|=(LruCacheOptions& a, const LruCacheOptions b) noexcept {
+		a = a | b;
+		return a;
+	}
 
-// STL std::unordered_map
-#ifdef GUIORGY_LRU_CACHE_ABSEIL_FLAT_HASH_MAP_BEFORE
-	#undef ABSEIL_FLAT_HASH_MAP
-	#define ABSEIL_FLAT_HASH_MAP GUIORGY_LRU_CACHE_ABSEIL_FLAT_HASH_MAP_BEFORE
-	#undef GUIORGY_LRU_CACHE_ABSEIL_FLAT_HASH_MAP_BEFORE
-#endif
+	// Bitwise and operator for the LruCacheOptions flags enum.
+	inline constexpr bool operator&(const LruCacheOptions a, const LruCacheOptions b) noexcept {
+		const LruCacheOptionsBaseType _a = static_cast<LruCacheOptionsBaseType>(a);
+		const LruCacheOptionsBaseType _b = static_cast<LruCacheOptionsBaseType>(b);
+		const LruCacheOptionsBaseType _none = static_cast<LruCacheOptionsBaseType>(LruCacheOptions::None);
 
-// Tessil tsl::sparse_map
-#ifdef GUIORGY_LRU_CACHE_TESSIL_SPARSE_MAP_BEFORE
-	#undef TESSIL_SPARSE_MAP
-	#define TESSIL_SPARSE_MAP GUIORGY_LRU_CACHE_TESSIL_SPARSE_MAP_BEFORE
-	#undef GUIORGY_LRU_CACHE_TESSIL_SPARSE_MAP_BEFORE
-#endif
-// Tessil tsl::robin_map
-#ifdef GUIORGY_LRU_CACHE_TESSIL_ROBIN_MAP_BEFORE
-	#undef TESSIL_ROBIN_MAP
-	#define TESSIL_ROBIN_MAP GUIORGY_LRU_CACHE_TESSIL_ROBIN_MAP_BEFORE
-	#undef GUIORGY_LRU_CACHE_TESSIL_ROBIN_MAP_BEFORE
-#endif
-// Tessil tsl::hopscotch_map
-#ifdef GUIORGY_LRU_CACHE_TESSIL_HOPSCOTCH_MAP_BEFORE
-	#undef TESSIL_HOPSCOTCH_MAP
-	#define TESSIL_HOPSCOTCH_MAP GUIORGY_LRU_CACHE_TESSIL_HOPSCOTCH_MAP_BEFORE
-	#undef GUIORGY_LRU_CACHE_TESSIL_HOPSCOTCH_MAP_BEFORE
-#endif
+		return (_a & _b) != _none;
+	}
 
-// Ankerl ankerl::unordered_dense
-#ifdef GUIORGY_LRU_CACHE_ANKERL_UNORDERED_DENSE_MAP_BEFORE
-	#undef ANKERL_UNORDERED_DENSE_MAP
-	#define ANKERL_UNORDERED_DENSE_MAP GUIORGY_LRU_CACHE_ANKERL_UNORDERED_DENSE_MAP_BEFORE
-	#undef GUIORGY_LRU_CACHE_ANKERL_UNORDERED_DENSE_MAP_BEFORE
-#endif
-// Ankerl ankerl::unordered_dense::segmented_map
-#ifdef GUIORGY_LRU_CACHE_ANKERL_UNORDERED_DENSE_SEGMENTED_MAP_BEFORE
-	#undef ANKERL_UNORDERED_DENSE_SEGMENTED_MAP
-	#define ANKERL_UNORDERED_DENSE_SEGMENTED_MAP GUIORGY_LRU_CACHE_ANKERL_UNORDERED_DENSE_SEGMENTED_MAP_BEFORE
-	#undef GUIORGY_LRU_CACHE_ANKERL_UNORDERED_DENSE_SEGMENTED_MAP_BEFORE
-#endif
+	// Bitwise XOR operator for the LruCacheOptions flags enum.
+	inline constexpr LruCacheOptions operator^(const LruCacheOptions a, const LruCacheOptions b) noexcept {
+		const LruCacheOptionsBaseType _a = static_cast<LruCacheOptionsBaseType>(a);
+		const LruCacheOptionsBaseType _b = static_cast<LruCacheOptionsBaseType>(b);
 
-// lru_cache public.
-namespace guiorgy {
+		return static_cast<LruCacheOptions>(_a ^ _b);
+	}
+	inline constexpr LruCacheOptions& operator^=(LruCacheOptions& a, const LruCacheOptions b) noexcept {
+		a = a ^ b;
+		return a;
+	}
+
+	// Boolean nagation operator for the LruCacheOptions flags enum.
+	inline constexpr bool operator!(const LruCacheOptions x) noexcept {
+		return x == LruCacheOptions::None;
+	}
+
+	// Binary substraction operator for the LruCacheOptions flags enum.
+	// This is a equivalent to (a & ~b), in ther words, disable the bits that are enabled in the second flag.
+	inline constexpr LruCacheOptions operator-(const LruCacheOptions a, const LruCacheOptions b) noexcept {
+		const LruCacheOptionsBaseType _a = static_cast<LruCacheOptionsBaseType>(a);
+		const LruCacheOptionsBaseType _b = static_cast<LruCacheOptionsBaseType>(b);
+
+		return static_cast<LruCacheOptions>(_a & (~_b));
+	}
+	inline constexpr LruCacheOptions& operator-=(LruCacheOptions& a, const LruCacheOptions b) noexcept {
+		a = a - b;
+		return a;
+	}
+
+	// The base type of the Likelihood enum.
+	using LikelihoodBaseType = std::uint_fast8_t;
+
 	// A hint to the likelihood of a condition being true.
 	// Remarks:
 	//   - This has no effect in C++ < 20.
-	enum struct Likelihood : std::uint_fast8_t {
+	enum struct Likelihood : LikelihoodBaseType {
 		Unknown,	// No attribute used
 		Likely,		// [[likely]] attribute used
 		Unlikely	// [[unlikely]] attribute used
 	};
 
-	// A fixed size (if preallocate is true) or bounded (if preallocate is false) container that
-	// contains key-value pairs with unique keys. Search, insertion, and removal of elements have
-	// average constant-time complexity. Two keys are considered equivalent if key_equality_predicate
-	// predicate returns true when passed those keys. If two keys are equivalent, the hash_function
-	// hash function must return the same value for both keys. lru_cache can not be created and
-	// used in the evaluation of a constant expression (constexpr).
-	// When filled, the container uses the Least Recently Used replacement policy to store subsequent elements.
+	// Checks whether the given likelihood value is a valid Likelihood enum value.
+	inline constexpr bool is_valid_likelihood(const Likelihood likelihood) noexcept {
+		return likelihood == Likelihood::Unknown || likelihood == Likelihood::Likely || likelihood == Likelihood::Unlikely;
+	}
+
+	// Converts a bool to a Likelihood::Likely or Likelihood::Unlikely enum.
+	// The Likelihood::Unknown value is impossible to get this way.
+	inline constexpr Likelihood likelihood(const bool likely) noexcept {
+		return likely ? Likelihood::Likely : Likelihood::Unlikely;
+	}
+
+	// A size bounded container that contains key-value pairs with unique keys. Search, insertion, and removal of elements have
+	// average constant-time complexity. Two keys are considered equivalent if key_equality_predicate predicate returns true when
+	// passed those keys. If two keys are equivalent, the hash_function hash function must return the same value for both keys.
+	// lru_cache_opts can not be created and used in the evaluation of a constant expression (constexpr). When filled, the container
+	// uses the Least Recently Used replacement policy to store subsequent elements.
 	// Remarks:
 	//   - The inserted values and their members don't have stable memory addresses as they may be copied/moved when the cache grows.
 	//     If that is required, or values are too expensive to copy/move, either use std::unique_ptr<value_t> or something similar
-	//     as the value type instead, or tell lru_cache to preallocate the needed storage by using reserve().
+	//     as the value type instead, or tell lru_cache_opts to preallocate the needed storage by using reserve().
 	//   - The removed elements are not deleted immediately, instead they are replaced when new elements are put into the container.
-	//   - When using std::unordered_map:
-	//     - lru_cache is default constructible.
-	//     - lru_cache is not trivially (default) constructible.
-	//     - lru_cache is nothrow (default) constructible only if preallocate is false.
-	//     - lru_cache is copy constructible.
-	//     - lru_cache is not trivially copy constructible.
-	//     - lru_cache is not nothrow copy constructible.
-	//     - lru_cache is move constructible.
-	//     - lru_cache is not trivially move constructible.
-	//     - lru_cache is nothrow move constructible.
-	//   - When using std::pmr::unordered_map:
-	//     - lru_cache is default constructible.
-	//     - lru_cache is not trivially (default) constructible.
-	//     - lru_cache is not nothrow (default) constructible.
-	//     - lru_cache is not copy constructible.
-	//     - lru_cache is not trivially copy constructible.
-	//     - lru_cache is not nothrow copy constructible.
-	//     - lru_cache is not move constructible.
-	//     - lru_cache is not trivially move constructible.
-	//     - lru_cache is not nothrow move constructible.
-	//   - When using absl::flat_hash_map, tsl::sparse_map, tsl::robin_map, tsl::hopscotch_map, ankerl::unordered_dense::map or ankerl::unordered_dense::segmented_map:
-	//     - lru_cache is default constructible.
-	//     - lru_cache is not trivially (default) constructible.
-	//     - lru_cache is not nothrow (default) constructible.
-	//     - lru_cache is copy constructible.
-	//     - lru_cache is not trivially copy constructible.
-	//     - lru_cache is not nothrow copy constructible.
-	//     - lru_cache is move constructible.
-	//     - lru_cache is not trivially move constructible.
-	//     - lru_cache is nothrow move constructible.
-	template<typename key_t, typename value_t, const std::size_t max_size, const bool preallocate = false, typename hash_function = detail::DefaultHashFunction<key_t>, typename key_equality_predicate = detail::DefaultKeyEqualityPredicate<key_t>>
-	class lru_cache final : private detail::lru_cache_base<key_t, value_t, max_size, preallocate, hash_function, key_equality_predicate> {
+	//   - TODO: List the conditions that hashmap_template must satisfy and implement static_asserts to enforce that.
+	//   - TODO: Check for the existence of .reserve() and only use if available.
+	template<
+		const LruCacheOptions options,
+		typename key_type,
+		typename value_type,
+		const std::size_t max_size,
+		template<typename...> class hashmap_template = std::unordered_map,
+		typename hash_function = DefaultHashFunction<key_type>,
+		typename key_equality_predicate = DefaultKeyEqualityPredicate<key_type>,
+		typename... other_args
+	>
+	class lru_cache_opts final {
 		static_assert(max_size != 0u, "max_size can not be 0");
 
-		using key_value_pair_t = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::key_value_pair_t;
-		using list_index_t = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::list_index_t;
-		using map_iterator_t = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::map_iterator_t;
-		using map_const_iterator_t = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::map_const_iterator_t;
+		using key_value_pair_t = std::pair<key_type, value_type>;
+		using list_type = vector_list<key_value_pair_t, max_size>;
+		using list_index_type = typename list_type::index_t;
 
-		// Checks whether the given likelihood value is a valid Likelihood enum value.
-		static constexpr bool is_valid_likelihood(const Likelihood likelihood) noexcept {
-			return likelihood == Likelihood::Unknown || likelihood == Likelihood::Likely || likelihood == Likelihood::Unlikely;
+		static_assert(std::is_same_v<key_equality_predicate, DefaultKeyEqualityPredicate<key_type>> || !std::is_same_v<hash_function, DefaultHashFunction<key_type>>, "hash_function can't be default if key_equality_predicate is not default");
+		static_assert(!std::is_same_v<key_equality_predicate, DefaultKeyEqualityPredicate<key_type>> || sizeof...(other_args) == 0u, "other_args can't be defined if key_equality_predicate is default");
+		using hashmap_type = typename std::conditional_t<
+			std::is_same_v<hash_function, DefaultHashFunction<key_type>>,
+			hashmap_template<key_type, list_index_type>,
+			typename std::conditional_t<
+				std::is_same_v<key_equality_predicate, DefaultKeyEqualityPredicate<key_type>>,
+				hashmap_template<key_type, list_index_type, hash_function>,
+				hashmap_template<key_type, list_index_type, hash_function, key_equality_predicate, other_args...>
+			>
+		>;
+
+		using hashmap_iterator_type = typename hashmap_type::iterator;
+		using hashmap_const_iterator_type = typename hashmap_type::const_iterator;
+
+		static constexpr bool hashmap_has_emplace_hint =
+			hashmap::has_emplace_hint_v<hashmap_type, TypeQualifier::ConstReference, TypeQualifier::None>
+			|| hashmap::has_emplace_hint_v<hashmap_type, TypeQualifier::ConstReference, TypeQualifier::ConstReference>
+			|| hashmap::has_emplace_hint_v<hashmap_type, TypeQualifier::ConstReference, TypeQualifier::RValueReference>;
+		static constexpr bool hashmap_has_insert_with_hint =
+			hashmap::has_insert_with_hint_v<hashmap_type, TypeQualifier::ConstReference>
+			|| hashmap::has_insert_with_hint_v<hashmap_type, TypeQualifier::RValueReference>;
+		static constexpr bool hashmap_has_insert =
+			hashmap::has_insert_v<hashmap_type, TypeQualifier::ConstReference>
+			|| hashmap::has_insert_v<hashmap_type, TypeQualifier::RValueReference>;
+
+	public:
+		using iterator = typename list_type::const_iterator;
+		using const_iterator = typename list_type::const_iterator;
+		using reverse_iterator = typename list_type::const_reverse_iterator;
+		using const_reverse_iterator = typename list_type::const_reverse_iterator;
+
+	private:
+		list_type _cache_items_list{};
+		hashmap_type _cache_items_map{};
+
+	public:
+		template<typename... hashmap_args>
+		lru_cache_opts(hashmap_args&&... args) : _cache_items_list{}, _cache_items_map(std::forward<hashmap_args>(args)...) {
+			if constexpr (options != LruCacheOptions::None) {
+				if constexpr (options & LruCacheOptions::Preallocate) {
+					reserve();
+				}
+			}
 		}
 
-		// Converts a bool to a Likelihood::Likely or Likelihood::Unlikely enum.
-		// The Likelihood::Unknown value is impossible to get this way.
-		static constexpr Likelihood likelihood(const bool likely) noexcept {
-			return likely ? Likelihood::Likely : Likelihood::Unlikely;
+		template<typename... hashmap_args>
+		lru_cache_opts(const LruCacheOptions runtime_options, hashmap_args&&... args) : _cache_items_list{}, _cache_items_map(std::forward<hashmap_args>(args)...) {
+			static_assert(!options, "Runtime options override can only be used if compile-time options aren't used (are set to LruCacheOptions::None)");
+
+			if (runtime_options & LruCacheOptions::Preallocate) {
+				reserve();
+			}
 		}
+
+		~lru_cache_opts() = default;
+		lru_cache_opts(const lru_cache_opts&) = default;
+		lru_cache_opts(lru_cache_opts&&) = default;
+		lru_cache_opts& operator=(lru_cache_opts const&) = default;
+		lru_cache_opts& operator=(lru_cache_opts &&) = default;
 
 		// Checks whether the key inside the map matches the key inside the list element that the map points to.
 		// Remarks:
 		//   - This assumes that the key exists in the map.
 		//   - Only used for debug assertions.
-		[[nodiscard]] inline bool list_key_match_map_key(const map_const_iterator_t map_it) const {
+		[[nodiscard]] inline bool list_key_match_map_key(const hashmap_const_iterator_type map_it) const {
 			assert(map_it != this->_cache_items_map.cend());
 
-			const map_const_iterator_t list_it = this->_cache_items_map.find(this->_cache_items_list._get_value_at(map_it->second).first);
+			const hashmap_const_iterator_type list_it = this->_cache_items_map.find(this->_cache_items_list._get_value_at(map_it->second).first);
 			return list_it == map_it;
 		}
 
 	public:
-		using iterator = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::iterator;
-		using reverse_iterator = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::reverse_iterator;
-		using const_iterator = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::const_iterator;
-		using const_reverse_iterator = typename detail::lru_cache_storage_base<key_t, value_t, max_size, hash_function, key_equality_predicate>::const_reverse_iterator;
-
 		// If the key already exists in the container, copies value to the mapped value inside the container.
 		// If the key doesn't exist in the container, inserts a copy of value into the container.
 		// If a reallocation takes place after the operation, or the container size is already at max_size,
 		// all references and iterators are invalidated.
 		// Use key_exists and cache_full to hint to the compiler for which case to optimize for.
 		template<const Likelihood key_exists = Likelihood::Unknown, const Likelihood cache_full = Likelihood::Unknown>
-		void put(const key_t& key, const value_t& value) {
+		void put(const key_type& key, const value_type& value) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			map_iterator_t it = this->_cache_items_map.find(key);
+			hashmap_iterator_type it = this->_cache_items_map.find(key);
 			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
@@ -2017,11 +1843,11 @@ namespace guiorgy {
 				}
 			}
 
-			if constexpr (this->map_has_emplace_hint) {
+			if constexpr (this->hashmap_has_emplace_hint) {
 				this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
-			} else if constexpr (this->map_has_insert_with_hint) {
+			} else if constexpr (this->hashmap_has_insert_with_hint) {
 				this->_cache_items_map.insert(it, std::make_pair(key, this->_cache_items_list._first_value_index()));
-			} else if constexpr (this->map_has_insert) {
+			} else if constexpr (this->hashmap_has_insert) {
 				this->_cache_items_map.insert(std::make_pair(key, this->_cache_items_list._first_value_index()));
 			} else {
 				this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
@@ -2031,11 +1857,11 @@ namespace guiorgy {
 		// See the put above for details.
 		// Use key_likely_exists and cache_likely_full to hint to the compiler for which case to optimize for.
 		template<const bool key_likely_exists, const bool cache_likely_full>
-		void put(const key_t& key, const value_t& value) {
+		void put(const key_type& key, const value_type& value) {
 			put<likelihood(key_likely_exists), likelihood(cache_likely_full)>(key, value);
 		}
 		template<const bool key_likely_exists>
-		void put(const key_t& key, const value_t& value) {
+		void put(const key_type& key, const value_type& value) {
 			put<likelihood(key_likely_exists)>(key, value);
 		}
 
@@ -2045,10 +1871,10 @@ namespace guiorgy {
 		// all references and iterators are invalidated.
 		// Use key_exists and cache_full to hint to the compiler for which case to optimize for.
 		template<const Likelihood key_exists = Likelihood::Unknown, const Likelihood cache_full = Likelihood::Unknown>
-		void put(const key_t& key, value_t&& value) {
+		void put(const key_type& key, value_type&& value) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			map_iterator_t it = this->_cache_items_map.find(key);
+			hashmap_iterator_type it = this->_cache_items_map.find(key);
 			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
@@ -2108,11 +1934,11 @@ namespace guiorgy {
 				}
 			}
 
-			if constexpr (this->map_has_emplace_hint) {
+			if constexpr (this->hashmap_has_emplace_hint) {
 				this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
-			} else if constexpr (this->map_has_insert_with_hint) {
+			} else if constexpr (this->hashmap_has_insert_with_hint) {
 				this->_cache_items_map.insert(it, std::make_pair(key, this->_cache_items_list._first_value_index()));
-			} else if constexpr (this->map_has_insert) {
+			} else if constexpr (this->hashmap_has_insert) {
 				this->_cache_items_map.insert(std::make_pair(key, this->_cache_items_list._first_value_index()));
 			} else {
 				this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
@@ -2122,11 +1948,11 @@ namespace guiorgy {
 		// See the put above for details.
 		// Use key_likely_exists and cache_likely_full to hint to the compiler for which case to optimize for.
 		template<const bool key_likely_exists, const bool cache_likely_full>
-		void put(const key_t& key, value_t&& value) {
+		void put(const key_type& key, value_type&& value) {
 			put<likelihood(key_likely_exists), likelihood(cache_likely_full)>(key, std::move(value));
 		}
 		template<const bool key_likely_exists>
-		void put(const key_t& key, value_t&& value) {
+		void put(const key_type& key, value_type&& value) {
 			put<likelihood(key_likely_exists)>(key, std::move(value));
 		}
 
@@ -2136,40 +1962,40 @@ namespace guiorgy {
 		// all references and iterators are invalidated.
 		// Use key_exists and cache_full to hint to the compiler for which case to optimize for.
 		template<const Likelihood key_exists = Likelihood::Unknown, const Likelihood cache_full = Likelihood::Unknown, typename... ValueArgs>
-		const value_t& emplace(const key_t& key, ValueArgs&&... value_args) {
+		const value_type& emplace(const key_type& key, ValueArgs&&... value_args) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			map_iterator_t it = this->_cache_items_map.find(key);
+			hashmap_iterator_type it = this->_cache_items_map.find(key);
 			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
 				if (it != this->_cache_items_map.end()) {
-					value_t& value = this->_cache_items_list._get_value_at(it->second).second;
-					detail::emplace(&value, std::forward<ValueArgs>(value_args)...);
+					value_type& value = this->_cache_items_list._get_value_at(it->second).second;
+					emplace(&value, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_value_at_to_front(it->second);
 
 					return value;
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
 				if (it != this->_cache_items_map.end()) LIKELY {
-					value_t& value = this->_cache_items_list._get_value_at(it->second).second;
-					detail::emplace(&value, std::forward<ValueArgs>(value_args)...);
+					value_type& value = this->_cache_items_list._get_value_at(it->second).second;
+					emplace(&value, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_value_at_to_front(it->second);
 
 					return value;
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
 				if (it != this->_cache_items_map.end()) UNLIKELY {
-					value_t& value = this->_cache_items_list._get_value_at(it->second).second;
-					detail::emplace(&value, std::forward<ValueArgs>(value_args)...);
+					value_type& value = this->_cache_items_list._get_value_at(it->second).second;
+					emplace(&value, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_value_at_to_front(it->second);
 
 					return value;
 				}
 			}
 
-			value_t* value;
+			value_type* value;
 
 			static_assert(is_valid_likelihood(cache_full), "cache_full has an invalid enum value for Likelihood");
 			if constexpr (cache_full == Likelihood::Unknown) {
@@ -2177,7 +2003,7 @@ namespace guiorgy {
 					key_value_pair_t& last = this->_cache_items_list.back();
 					this->_cache_items_map.erase(last.first);
 					last.first = key;
-					detail::emplace(&last.second, std::forward<ValueArgs>(value_args)...);
+					emplace(&last.second, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_last_value_to_front();
 
 					value = &last.second;
@@ -2189,7 +2015,7 @@ namespace guiorgy {
 					key_value_pair_t& last = this->_cache_items_list.back();
 					this->_cache_items_map.erase(last.first);
 					last.first = key;
-					detail::emplace(&last.second, std::forward<ValueArgs>(value_args)...);
+					emplace(&last.second, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_last_value_to_front();
 
 					value = &last.second;
@@ -2201,7 +2027,7 @@ namespace guiorgy {
 					key_value_pair_t& last = this->_cache_items_list.back();
 					this->_cache_items_map.erase(last.first);
 					last.first = key;
-					detail::emplace(&last.second, std::forward<ValueArgs>(value_args)...);
+					emplace(&last.second, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_last_value_to_front();
 
 					value = &last.second;
@@ -2210,11 +2036,11 @@ namespace guiorgy {
 				}
 			}
 
-			if constexpr (this->map_has_emplace_hint) {
+			if constexpr (this->hashmap_has_emplace_hint) {
 				this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
-			} else if constexpr (this->map_has_insert_with_hint) {
+			} else if constexpr (this->hashmap_has_insert_with_hint) {
 				this->_cache_items_map.insert(it, std::make_pair(key, this->_cache_items_list._first_value_index()));
-			} else if constexpr (this->map_has_insert) {
+			} else if constexpr (this->hashmap_has_insert) {
 				this->_cache_items_map.insert(std::make_pair(key, this->_cache_items_list._first_value_index()));
 			} else {
 				this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
@@ -2226,11 +2052,11 @@ namespace guiorgy {
 		// See the emplace above for details.
 		// Use key_likely_exists and cache_likely_full to hint to the compiler for which case to optimize for.
 		template<const bool key_likely_exists, const bool cache_likely_full, typename... ValueArgs>
-		void emplace(const key_t& key, ValueArgs&&... value_args) {
+		void emplace(const key_type& key, ValueArgs&&... value_args) {
 			emplace<likelihood(key_likely_exists), likelihood(cache_likely_full)>(key, std::forward<ValueArgs>(value_args)...);
 		}
 		template<const bool key_likely_exists, typename... ValueArgs>
-		void emplace(const key_t& key, ValueArgs&&... value_args) {
+		void emplace(const key_type& key, ValueArgs&&... value_args) {
 			emplace<likelihood(key_likely_exists)>(key, std::forward<ValueArgs>(value_args)...);
 		}
 
@@ -2238,10 +2064,10 @@ namespace guiorgy {
 		// or an empty optional if such key does not already exist.
 		// Use key_exists to hint to the compiler for which case to optimize for.
 		template<const Likelihood key_exists = Likelihood::Unknown>
-		[[nodiscard]] const std::optional<value_t> get(const key_t& key) {
+		[[nodiscard]] const std::optional<value_type> get(const key_type& key) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			map_iterator_t it = this->_cache_items_map.find(key);
+			hashmap_iterator_type it = this->_cache_items_map.find(key);
 			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
@@ -2269,7 +2095,7 @@ namespace guiorgy {
 		// See the get above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
 		template<const bool key_likely_exists>
-		[[nodiscard]] const std::optional<value_t> get(const key_t& key) {
+		[[nodiscard]] const std::optional<value_type> get(const key_type& key) {
 			return get<likelihood(key_likely_exists)>(key);
 		}
 
@@ -2280,10 +2106,10 @@ namespace guiorgy {
 		//   - No guarantees are given about the underlying object lifetime when
 		//     modifying the cache (inserting/removing elements), so use with caution.
 		template<const Likelihood key_exists = Likelihood::Unknown>
-		[[nodiscard]] const std::optional<std::reference_wrapper<const value_t>> get_ref(const key_t& key) {
+		[[nodiscard]] const std::optional<std::reference_wrapper<const value_type>> get_ref(const key_type& key) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			map_iterator_t it = this->_cache_items_map.find(key);
+			hashmap_iterator_type it = this->_cache_items_map.find(key);
 			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
@@ -2311,7 +2137,7 @@ namespace guiorgy {
 		// See the get_ref above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
 		template<const bool key_likely_exists>
-		[[nodiscard]] const std::optional<std::reference_wrapper<const value_t>> get_ref(const key_t& key) {
+		[[nodiscard]] const std::optional<std::reference_wrapper<const value_type>> get_ref(const key_type& key) {
 			return get_ref<likelihood(key_likely_exists)>(key);
 		}
 
@@ -2319,10 +2145,10 @@ namespace guiorgy {
 		// the given value_out reference, or false if such key does not already exist.
 		// Use key_exists to hint to the compiler for which case to optimize for.
 		template<const Likelihood key_exists = Likelihood::Unknown>
-		[[nodiscard]] bool try_get(const key_t& key, value_t& value_out) {
+		[[nodiscard]] bool try_get(const key_type& key, value_type& value_out) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			map_iterator_t it = this->_cache_items_map.find(key);
+			hashmap_iterator_type it = this->_cache_items_map.find(key);
 			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
@@ -2353,7 +2179,7 @@ namespace guiorgy {
 		// See the try_get above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
 		template<const bool key_likely_exists>
-		[[nodiscard]] bool try_get(const key_t& key, value_t& value_out) {
+		[[nodiscard]] bool try_get(const key_type& key, value_type& value_out) {
 			return try_get<likelihood(key_likely_exists)>(key, value_out);
 		}
 
@@ -2365,10 +2191,10 @@ namespace guiorgy {
 		//   - No guarantees are given about the underlying object lifetime when
 		//     modifying the cache (inserting/removing elements), so use with caution.
 		template<const Likelihood key_exists = Likelihood::Unknown>
-		[[nodiscard]] bool try_get_ref(const key_t& key, const value_t*& value_out) {
+		[[nodiscard]] bool try_get_ref(const key_type& key, const value_type*& value_out) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			map_iterator_t it = this->_cache_items_map.find(key);
+			hashmap_iterator_type it = this->_cache_items_map.find(key);
 			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
@@ -2399,7 +2225,7 @@ namespace guiorgy {
 		// See the try_get_ref above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
 		template<const bool key_likely_exists>
-		[[nodiscard]] bool try_get_ref(const key_t& key, const value_t*& value_out) {
+		[[nodiscard]] bool try_get_ref(const key_type& key, const value_type*& value_out) {
 			return try_get_ref<likelihood(key_likely_exists)>(key, value_out);
 		}
 
@@ -2408,17 +2234,17 @@ namespace guiorgy {
 		// otherwise, returns an empty optional.
 		// Use key_exists to hint to the compiler for which case to optimize for.
 		template<const Likelihood key_exists = Likelihood::Unknown>
-		[[nodiscard("Use erase(const key_t& key) instead")]]
-		std::optional<value_t> remove(const key_t& key) {
+		[[nodiscard("Use erase(const key_type& key) instead")]]
+		std::optional<value_type> remove(const key_type& key) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			map_iterator_t it = this->_cache_items_map.find(key);
+			hashmap_iterator_type it = this->_cache_items_map.find(key);
 			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
 				if (it != this->_cache_items_map.end()) {
-					value_t& value = this->_cache_items_list._erase_value_at(it->second).second;
+					value_type& value = this->_cache_items_list._erase_value_at(it->second).second;
 					this->_cache_items_map.erase(it);
 					return value;
 				} else {
@@ -2426,7 +2252,7 @@ namespace guiorgy {
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
 				if (it != this->_cache_items_map.end()) LIKELY {
-					value_t& value = this->_cache_items_list._erase_value_at(it->second).second;
+					value_type& value = this->_cache_items_list._erase_value_at(it->second).second;
 					this->_cache_items_map.erase(it);
 					return value;
 				} else {
@@ -2434,7 +2260,7 @@ namespace guiorgy {
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
 				if (it != this->_cache_items_map.end()) UNLIKELY {
-					value_t& value = this->_cache_items_list._erase_value_at(it->second).second;
+					value_type& value = this->_cache_items_list._erase_value_at(it->second).second;
 					this->_cache_items_map.erase(it);
 					return value;
 				} else {
@@ -2446,8 +2272,8 @@ namespace guiorgy {
 		// See the remove above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
 		template<const bool key_likely_exists>
-		[[nodiscard("Use erase(const key_t& key) instead")]]
-		std::optional<value_t> remove(const key_t& key) {
+		[[nodiscard("Use erase(const key_type& key) instead")]]
+		std::optional<value_type> remove(const key_type& key) {
 			return remove<likelihood(key_likely_exists)>(key);
 		}
 
@@ -2459,17 +2285,17 @@ namespace guiorgy {
 		//   - No guarantees are given about the underlying object lifetime when
 		//     modifying the cache (inserting/removing elements), so use with caution.
 		template<const Likelihood key_exists = Likelihood::Unknown>
-		[[nodiscard("Use erase(const key_t& key) instead")]]
-		std::optional<std::reference_wrapper<value_t>> remove_ref(const key_t& key) {
+		[[nodiscard("Use erase(const key_type& key) instead")]]
+		std::optional<std::reference_wrapper<value_type>> remove_ref(const key_type& key) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			map_iterator_t it = this->_cache_items_map.find(key);
+			hashmap_iterator_type it = this->_cache_items_map.find(key);
 			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
 				if (it != this->_cache_items_map.end()) {
-					value_t& value = this->_cache_items_list._erase_value_at(it->second).second;
+					value_type& value = this->_cache_items_list._erase_value_at(it->second).second;
 					this->_cache_items_map.erase(it);
 					return std::make_optional(std::ref(value));
 				} else {
@@ -2477,7 +2303,7 @@ namespace guiorgy {
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
 				if (it != this->_cache_items_map.end()) LIKELY {
-					value_t& value = this->_cache_items_list._erase_value_at(it->second).second;
+					value_type& value = this->_cache_items_list._erase_value_at(it->second).second;
 					this->_cache_items_map.erase(it);
 					return std::make_optional(std::ref(value));
 				} else {
@@ -2485,7 +2311,7 @@ namespace guiorgy {
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
 				if (it != this->_cache_items_map.end()) UNLIKELY {
-					value_t& value = this->_cache_items_list._erase_value_at(it->second).second;
+					value_type& value = this->_cache_items_list._erase_value_at(it->second).second;
 					this->_cache_items_map.erase(it);
 					return std::make_optional(std::ref(value));
 				} else {
@@ -2497,8 +2323,8 @@ namespace guiorgy {
 		// See the remove_ref above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
 		template<const bool key_likely_exists>
-		[[nodiscard("Use erase(const key_t& key) instead")]]
-		std::optional<std::reference_wrapper<value_t>> remove_ref(const key_t& key) {
+		[[nodiscard("Use erase(const key_type& key) instead")]]
+		std::optional<std::reference_wrapper<value_type>> remove_ref(const key_type& key) {
 			return remove_ref<likelihood(key_likely_exists)>(key);
 		}
 
@@ -2507,11 +2333,11 @@ namespace guiorgy {
 		// into the given value_out reference, or false if such key does not exist.
 		// Use key_exists to hint to the compiler for which case to optimize for.
 		template<const Likelihood key_exists = Likelihood::Unknown>
-		[[nodiscard("Use erase(const key_t& key) instead")]]
-		bool try_remove(const key_t& key, value_t& value_out) {
+		[[nodiscard("Use erase(const key_type& key) instead")]]
+		bool try_remove(const key_type& key, value_type& value_out) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			map_iterator_t it = this->_cache_items_map.find(key);
+			hashmap_iterator_type it = this->_cache_items_map.find(key);
 			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
@@ -2545,8 +2371,8 @@ namespace guiorgy {
 		// See the try_remove above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
 		template<const bool key_likely_exists>
-		[[nodiscard("Use erase(const key_t& key) instead")]]
-		bool try_remove(const key_t& key, value_t& value_out) {
+		[[nodiscard("Use erase(const key_type& key) instead")]]
+		bool try_remove(const key_type& key, value_type& value_out) {
 			return try_remove<likelihood(key_likely_exists)>(key, value_out);
 		}
 
@@ -2559,11 +2385,11 @@ namespace guiorgy {
 		//   - No guarantees are given about the underlying object lifetime when
 		//     modifying the cache (inserting/removing elements), so use with caution.
 		template<const Likelihood key_exists = Likelihood::Unknown>
-		[[nodiscard("Use erase(const key_t& key) instead")]]
-		bool try_remove_ref(const key_t& key, const value_t*& value_out) {
+		[[nodiscard("Use erase(const key_type& key) instead")]]
+		bool try_remove_ref(const key_type& key, const value_type*& value_out) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			map_iterator_t it = this->_cache_items_map.find(key);
+			hashmap_iterator_type it = this->_cache_items_map.find(key);
 			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
@@ -2597,8 +2423,8 @@ namespace guiorgy {
 		// See the try_remove_ref above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
 		template<const bool key_likely_exists>
-		[[nodiscard("Use erase(const key_t& key) instead")]]
-		bool try_remove_ref(const key_t& key, const value_t*& value_out) {
+		[[nodiscard("Use erase(const key_type& key) instead")]]
+		bool try_remove_ref(const key_type& key, const value_type*& value_out) {
 			return try_remove_ref<likelihood(key_likely_exists)>(key, value_out);
 		}
 
@@ -2606,10 +2432,10 @@ namespace guiorgy {
 		// given key and returns true, or false if such key does not exist.
 		// Use key_exists to hint to the compiler for which case to optimize for.
 		template<const Likelihood key_exists = Likelihood::Unknown>
-		bool erase(const key_t& key) {
+		bool erase(const key_type& key) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			map_iterator_t it = this->_cache_items_map.find(key);
+			hashmap_iterator_type it = this->_cache_items_map.find(key);
 			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
@@ -2643,16 +2469,16 @@ namespace guiorgy {
 		// See the erase above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
 		template<const bool key_likely_exists>
-		bool erase(const key_t& key) {
+		bool erase(const key_type& key) {
 			return erase<likelihood(key_likely_exists)>(key);
 		}
 
 		// Checks if the container contains an element with the given key.
 		// This does not change the order in which elements are to be rewritten in.
-		[[nodiscard]] bool exists(const key_t& key) const {
+		[[nodiscard]] bool exists(const key_type& key) const {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			const map_const_iterator_t it = this->_cache_items_map.find(key);
+			const hashmap_const_iterator_type it = this->_cache_items_map.find(key);
 			assert(it == this->_cache_items_map.cend() || list_key_match_map_key(it));
 
 			return it != this->_cache_items_map.cend();
@@ -2662,10 +2488,10 @@ namespace guiorgy {
 		// bottom of the removal order, or false if such key does not already exist.
 		// Use key_exists to hint to the compiler for which case to optimize for.
 		template<const Likelihood key_exists = Likelihood::Unknown>
-		bool touch(const key_t& key) {
+		bool touch(const key_type& key) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			map_iterator_t it = this->_cache_items_map.find(key);
+			hashmap_iterator_type it = this->_cache_items_map.find(key);
 			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
@@ -2696,7 +2522,7 @@ namespace guiorgy {
 		// See the touch above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
 		template<const bool key_likely_exists>
-		bool touch(const key_t& key) {
+		bool touch(const key_type& key) {
 			return touch<likelihood(key_likely_exists)>(key);
 		}
 
@@ -2790,6 +2616,73 @@ namespace guiorgy {
 			return crend();
 		}
 	};
+
+	// A helper type alias for lru_cache_opts with LruCacheOptions::None as the options.
+	template<
+		typename key_type,
+		typename value_type,
+		const std::size_t max_size,
+		template<typename...> class hashmap_template = std::unordered_map,
+		typename hash_function = detail::DefaultHashFunction<key_type>,
+		typename key_equality_predicate = detail::DefaultKeyEqualityPredicate<key_type>,
+		typename... other_args
+	>
+	using lru_cache = lru_cache_opts<LruCacheOptions::None, key_type, value_type, max_size, hashmap_template, hash_function, key_equality_predicate, other_args...>;
+} // guiorgy::detail
+
+// lru_cache public.
+namespace guiorgy {
+	// See detail::LruCacheOptions for details.
+	using LruCacheOptions = detail::LruCacheOptions;
+
+	// See detail::Likelihood for details.
+	using Likelihood = detail::Likelihood;
+
+	// See detail::lru_cache_opts for details.
+	template<
+		const LruCacheOptions options,
+		typename key_type,
+		typename value_type,
+		const std::size_t max_size,
+		template<typename...> class hashmap_template = std::unordered_map,
+		typename hash_function = detail::DefaultHashFunction<key_type>,
+		typename key_equality_predicate = detail::DefaultKeyEqualityPredicate<key_type>,
+		typename... other_args
+	>
+	using lru_cache_opts = detail::lru_cache_opts<options, key_type, value_type, max_size, hashmap_template, hash_function, key_equality_predicate, other_args...>;
+
+	// A helper type alias for lru_cache_opts with default hash_function and key_equality_predicate.
+	template<
+		const LruCacheOptions options,
+		typename key_type,
+		typename value_type,
+		const std::size_t max_size,
+		template<typename...> class hashmap_template = std::unordered_map,
+		typename... other_args
+	>
+	using lru_cache_defhke_opts = lru_cache_opts<options, key_type, value_type, max_size, hashmap_template, detail::DefaultHashFunction<key_type>, detail::DefaultKeyEqualityPredicate<key_type>, other_args...>;
+
+	// See detail::lru_cache for details.
+	template<
+		typename key_type,
+		typename value_type,
+		const std::size_t max_size,
+		template<typename...> class hashmap_template = std::unordered_map,
+		typename hash_function = detail::DefaultHashFunction<key_type>,
+		typename key_equality_predicate = detail::DefaultKeyEqualityPredicate<key_type>,
+		typename... other_args
+	>
+	using lru_cache = detail::lru_cache<key_type, value_type, max_size, hashmap_template, hash_function, key_equality_predicate, other_args...>;
+
+	// A helper type alias for lru_cache_defhke_opts with LruCacheOptions::None as the options.
+	template<
+		typename key_type,
+		typename value_type,
+		const std::size_t max_size,
+		template<typename...> class hashmap_template = std::unordered_map,
+		typename... other_args
+	>
+	using lru_cache_defhke = lru_cache_defhke_opts<LruCacheOptions::None, key_type, value_type, max_size, hashmap_template, other_args...>;
 } // guiorgy
 
 // Restore LIKELY and UNLIKELY if they were already defined.
