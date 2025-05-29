@@ -12,7 +12,7 @@ An LRU (Least Recently Used) cache for C++ 17 based on hashmap and a packed link
 /**Creates cache with maximum size of three. When the 
    size in achieved every next element will replace the 
    least recently used one */
-lru_cache<std::string, std::string, 3> cache;
+guiorgy::lru_cache<std::string, std::string, 3> cache;
 
 /**Preallocates the necessary memory to avoid reallocations.
    Alternatively you can set the fourth template argument
