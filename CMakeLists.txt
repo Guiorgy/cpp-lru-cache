@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.14...3.29)
 
 project(CPP-LRU-CACHE-TEST LANGUAGES CXX)
 
+include(CheckIPOSupported)
 include(FetchContent)
 include(CTest)
 
@@ -18,6 +19,15 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror -fmax-errors=10")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g3 -fno-omit-frame-pointer")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -g -DNDEBUG")
+
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT ERROR_OUTPUT LANGUAGES CXX)
+    if (IPO_SUPPORTED)
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+    else()
+        message(WARNING "IPO/LTO is not supported: ${ERROR_OUTPUT}")
+    endif()
+endif()
 
 set(MORE_WARNING_FLAGS "")
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
