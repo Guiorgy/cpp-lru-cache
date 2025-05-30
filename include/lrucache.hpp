@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <utility>
 #include <limits>
+#include <memory>
 #include <vector>
 
 // A helper macro to drop the explanation argument of the [[nodiscard]] attribute on C++ versions that don't support it.
@@ -366,6 +367,40 @@ namespace guiorgy::detail::hashmap {
 
 // Utils.
 namespace guiorgy::detail {
+	#if __cplusplus < 202002L	// C++20
+		// Returns the address of obj (implicitly converted to void*).
+		// Based on LWG issue 3870 resolution.
+		template<typename T>
+		inline constexpr void* voidify(T& obj) noexcept(noexcept(std::addressof(std::declval<T&>()))) {
+			return std::addressof(obj);
+		}
+
+		// Backport of std::construct_at.
+		// Based on cppreference.
+		template<typename T, typename... Args>
+		inline constexpr T* construct_at(T* location, Args&&... args)
+			noexcept(
+				noexcept(voidify(std::declval<T&>()))
+				&& noexcept(::new (std::declval<void*>()) T(std::declval<Args>()...))
+			) {
+			if constexpr (std::is_array_v<T>) {
+				static_assert(sizeof...(Args) == 0, "If std::is_array_v<T> is true and sizeof...(Args) is nonzero, the program is ill-formed");
+
+				return ::new (voidify(*location)) T[1]();
+			} else {
+				return ::new (voidify(*location)) T(std::forward<Args>(args)...);
+			}
+		}
+	#else
+		template<typename T, typename... Args>
+		inline constexpr T* construct_at(T* location, Args&&... args)
+			noexcept(
+				noexcept(std::construct_at(std::declval<T*>(), std::forward<Args>(std::declval<Args>())...))
+			) {
+			return std::construct_at(location, std::forward<Args>(args)...);
+		}
+	#endif
+
 	// Emplaces a new object in place of the old.
 	// If replace is set to false, assumes that the destination is uninitialized.
 	// Remarks:
@@ -375,18 +410,27 @@ namespace guiorgy::detail {
 	inline T& emplace(T* destination, Args&&... args)
 		noexcept(
 			(!replace || std::is_nothrow_destructible_v<T>)
-			&& std::is_nothrow_constructible_v<T, Args...>
+			&& noexcept(construct_at(std::declval<T*>(), std::forward<Args>(std::declval<Args>())...))
 		) {
 		assert(destination != nullptr);
 
 		if constexpr (replace) {
 			static_assert(std::is_destructible_v<T>, "T needs to be destructible to allow emplacement");
 
-			(*destination).~T();
+			std::destroy_at(destination);
 		}
 
-		::new (destination) T(std::forward<Args>(args)...);
-		return *destination;
+		return *construct_at(destination, std::forward<Args>(args)...);
+	}
+
+	// Helper for emplace.
+	template<typename T, const bool replace = !std::is_trivially_destructible_v<T>, typename... Args>
+	inline T& emplace(T& destination, Args&&... args)
+		noexcept(
+			noexcept(std::addressof(std::declval<T&>()))
+			&& noexcept(emplace<T, replace, Args...>(std::declval<T*>(), std::forward<Args>(std::declval<Args>())...))
+		) {
+		return emplace<T, replace, Args...>(std::addressof(destination), std::forward<Args>(args)...);
 	}
 
 	// Emplaces a new object in place.
@@ -666,7 +710,7 @@ namespace guiorgy::detail {
 				} else {
 					assert(head < set.size());
 
-					emplace(&set[head], std::forward<ValueArgs>(value_args)...);
+					emplace(set[head], std::forward<ValueArgs>(value_args)...);
 				}
 			} else {
 				index_t next_head = next_index(head);
@@ -681,7 +725,7 @@ namespace guiorgy::detail {
 					}
 				} else {
 					head = next_head;
-					emplace(&set[head], std::forward<ValueArgs>(value_args)...);
+					emplace(set[head], std::forward<ValueArgs>(value_args)...);
 				}
 			}
 
@@ -826,7 +870,7 @@ namespace guiorgy::detail {
 
 			template<typename... ValueArgs>
 			T& emplace_value(ValueArgs&&... value_args) {
-				return emplace(&value, std::forward<ValueArgs>(value_args)...);
+				return emplace(value, std::forward<ValueArgs>(value_args)...);
 			}
 
 			list_node() = delete;
@@ -1962,7 +2006,7 @@ namespace guiorgy::detail {
 			if constexpr (key_exists == Likelihood::Unknown) {
 				if (it != this->_cache_items_map.end()) {
 					value_type& value = this->_cache_items_list._get_value_at(it->second).second;
-					emplace(&value, std::forward<ValueArgs>(value_args)...);
+					emplace(value, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_value_at_to_front(it->second);
 
 					return value;
@@ -1970,7 +2014,7 @@ namespace guiorgy::detail {
 			} else if constexpr (key_exists == Likelihood::Likely) {
 				if (it != this->_cache_items_map.end()) LIKELY {
 					value_type& value = this->_cache_items_list._get_value_at(it->second).second;
-					emplace(&value, std::forward<ValueArgs>(value_args)...);
+					emplace(value, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_value_at_to_front(it->second);
 
 					return value;
@@ -1978,7 +2022,7 @@ namespace guiorgy::detail {
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
 				if (it != this->_cache_items_map.end()) UNLIKELY {
 					value_type& value = this->_cache_items_list._get_value_at(it->second).second;
-					emplace(&value, std::forward<ValueArgs>(value_args)...);
+					emplace(value, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_value_at_to_front(it->second);
 
 					return value;
@@ -1993,7 +2037,7 @@ namespace guiorgy::detail {
 					key_value_pair_t& last = this->_cache_items_list.back();
 					this->_cache_items_map.erase(last.first);
 					last.first = key;
-					emplace(&last.second, std::forward<ValueArgs>(value_args)...);
+					emplace(last.second, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_last_value_to_front();
 
 					value = &last.second;
@@ -2005,7 +2049,7 @@ namespace guiorgy::detail {
 					key_value_pair_t& last = this->_cache_items_list.back();
 					this->_cache_items_map.erase(last.first);
 					last.first = key;
-					emplace(&last.second, std::forward<ValueArgs>(value_args)...);
+					emplace(last.second, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_last_value_to_front();
 
 					value = &last.second;
@@ -2017,7 +2061,7 @@ namespace guiorgy::detail {
 					key_value_pair_t& last = this->_cache_items_list.back();
 					this->_cache_items_map.erase(last.first);
 					last.first = key;
-					emplace(&last.second, std::forward<ValueArgs>(value_args)...);
+					emplace(last.second, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_last_value_to_front();
 
 					value = &last.second;
