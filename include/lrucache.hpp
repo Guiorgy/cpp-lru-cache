@@ -50,6 +50,10 @@
 // Forward declarations.
 namespace guiorgy {
 	namespace detail {
+		// Forward declaration of is_flags_enum.
+		template<typename>
+		struct is_flags_enum;
+
 		// Forward declaration of LruCacheOptions.
 		enum struct LruCacheOptions : std::uint_fast8_t;
 
@@ -158,63 +162,9 @@ namespace guiorgy::detail {
 			|| type_qualifier == TypeQualifier::ConstPointerReference;
 	}
 
-	// Bitwise nagation operator for the TypeQualifier flags enum.
-	inline constexpr TypeQualifier operator~(const TypeQualifier x) noexcept {
-		const TypeQualifierBaseType _x = static_cast<TypeQualifierBaseType>(x);
-
-		return static_cast<TypeQualifier>(~_x);
-	}
-
-	// Bitwise or operator for the TypeQualifier flags enum.
-	inline constexpr TypeQualifier operator|(const TypeQualifier a, const TypeQualifier b) noexcept {
-		const TypeQualifierBaseType _a = static_cast<TypeQualifierBaseType>(a);
-		const TypeQualifierBaseType _b = static_cast<TypeQualifierBaseType>(b);
-
-		return static_cast<TypeQualifier>(_a | _b);
-	}
-	inline constexpr TypeQualifier& operator|=(TypeQualifier& a, const TypeQualifier b) noexcept {
-		a = a | b;
-		return a;
-	}
-
-	// Bitwise and operator for the TypeQualifier flags enum.
-	inline constexpr bool operator&(const TypeQualifier a, const TypeQualifier b) noexcept {
-		const TypeQualifierBaseType _a = static_cast<TypeQualifierBaseType>(a);
-		const TypeQualifierBaseType _b = static_cast<TypeQualifierBaseType>(b);
-		const TypeQualifierBaseType _none = static_cast<TypeQualifierBaseType>(TypeQualifier::None);
-
-		return (_a & _b) != _none;
-	}
-
-	// Bitwise XOR operator for the TypeQualifier flags enum.
-	inline constexpr TypeQualifier operator^(const TypeQualifier a, const TypeQualifier b) noexcept {
-		const TypeQualifierBaseType _a = static_cast<TypeQualifierBaseType>(a);
-		const TypeQualifierBaseType _b = static_cast<TypeQualifierBaseType>(b);
-
-		return static_cast<TypeQualifier>(_a ^ _b);
-	}
-	inline constexpr TypeQualifier& operator^=(TypeQualifier& a, const TypeQualifier b) noexcept {
-		a = a ^ b;
-		return a;
-	}
-
-	// Boolean nagation operator for the TypeQualifier flags enum.
-	inline constexpr bool operator!(const TypeQualifier x) noexcept {
-		return x == TypeQualifier::None;
-	}
-
-	// Binary substraction operator for the TypeQualifier flags enum.
-	// This is a equivalent to (a & ~b), in ther words, disable the bits that are enabled in the second flag.
-	inline constexpr TypeQualifier operator-(const TypeQualifier a, const TypeQualifier b) noexcept {
-		const TypeQualifierBaseType _a = static_cast<TypeQualifierBaseType>(a);
-		const TypeQualifierBaseType _b = static_cast<TypeQualifierBaseType>(b);
-
-		return static_cast<TypeQualifier>(_a & (~_b));
-	}
-	inline constexpr TypeQualifier& operator-=(TypeQualifier& a, const TypeQualifier b) noexcept {
-		a = a - b;
-		return a;
-	}
+	// Define the flags enum operators for TypeQualifier.
+	template<>
+	struct is_flags_enum<TypeQualifier> final : std::true_type {};
 
 	// Removes all qualifiers from a type.
 	template<typename T>
@@ -476,6 +426,100 @@ namespace guiorgy::detail {
 		return clamped_increment(x, std::numeric_limits<int_t>::max());
 	}
 }
+
+// Template operators for flags enums.
+namespace guiorgy::detail {
+	/*
+	To enable the below operators for a specific flags enum, define the following template specialization for the said enum type:
+
+	template<>
+	struct is_flags_enum<EnumType> final : std::true_type {};
+	*/
+
+	// By default don't match any type.
+	template<typename T>
+	struct is_flags_enum final : std::false_type {};
+
+	// Helper for is_flags_enum.
+	template<typename T>
+	inline constexpr bool is_flags_enum_v = is_flags_enum<T>::value;
+
+	// Bitwise nagation operator for the the flags enum.
+	template<typename EnumType>
+	inline constexpr std::enable_if_t<is_flags_enum_v<EnumType>, EnumType> operator~(const EnumType x) noexcept {
+		using EnumBaseType = typename std::underlying_type_t<EnumType>;
+		const EnumBaseType _x = static_cast<EnumBaseType>(x);
+
+		return static_cast<EnumType>(~_x);
+	}
+
+	// Bitwise or operator for the flags flags enum.
+	template<typename EnumType>
+	inline constexpr std::enable_if_t<is_flags_enum_v<EnumType>, EnumType> operator|(const EnumType a, const EnumType b) noexcept {
+		using EnumBaseType = typename std::underlying_type_t<EnumType>;
+		const EnumBaseType _a = static_cast<EnumBaseType>(a);
+		const EnumBaseType _b = static_cast<EnumBaseType>(b);
+
+		return static_cast<EnumType>(_a | _b);
+	}
+	template<typename EnumType>
+	inline constexpr std::enable_if_t<is_flags_enum_v<EnumType>, EnumType>& operator|=(EnumType& a, const EnumType b) noexcept {
+		a = a | b;
+		return a;
+	}
+
+	// Bitwise and operator for the flags flags enum.
+	template<typename EnumType>
+	inline constexpr std::enable_if_t<is_flags_enum_v<EnumType>, bool> operator&(const EnumType a, const EnumType b) noexcept {
+		using EnumBaseType = typename std::underlying_type_t<EnumType>;
+		const EnumBaseType _a = static_cast<EnumBaseType>(a);
+		const EnumBaseType _b = static_cast<EnumBaseType>(b);
+		const EnumBaseType _none = static_cast<EnumBaseType>(0u);
+
+		return (_a & _b) != _none;
+	}
+
+	// Bitwise XOR operator for the flags flags enum.
+	template<typename EnumType>
+	inline constexpr std::enable_if_t<is_flags_enum_v<EnumType>, EnumType> operator^(const EnumType a, const EnumType b) noexcept {
+		using EnumBaseType = typename std::underlying_type_t<EnumType>;
+		const EnumBaseType _a = static_cast<EnumBaseType>(a);
+		const EnumBaseType _b = static_cast<EnumBaseType>(b);
+
+		return static_cast<EnumType>(_a ^ _b);
+	}
+	template<typename EnumType>
+	inline constexpr std::enable_if_t<is_flags_enum_v<EnumType>, EnumType>& operator^=(EnumType& a, const EnumType b) noexcept {
+		a = a ^ b;
+		return a;
+	}
+
+	// Boolean nagation operator for the flags flags enum.
+	template<typename EnumType>
+	inline constexpr bool operator!(const EnumType x) noexcept {
+		using EnumBaseType = typename std::underlying_type_t<EnumType>;
+		const EnumBaseType _x = static_cast<EnumBaseType>(x);
+		const EnumBaseType _none = static_cast<EnumBaseType>(0u);
+
+		return _x == _none;
+	}
+
+	// Binary substraction operator for the flags flags enum.
+	// This is a equivalent to (a & ~b), in ther words, disable the bits that are enabled in the second flag.
+	template<typename EnumType>
+	inline constexpr std::enable_if_t<is_flags_enum_v<EnumType>, EnumType> operator-(const EnumType a, const EnumType b) noexcept {
+		using EnumBaseType = typename std::underlying_type_t<EnumType>;
+		const EnumBaseType _a = static_cast<EnumBaseType>(a);
+		const EnumBaseType _b = static_cast<EnumBaseType>(b);
+
+		return static_cast<EnumType>(_a & (~_b));
+	}
+	template<typename EnumType>
+	inline constexpr std::enable_if_t<is_flags_enum_v<EnumType>, EnumType>& operator-=(EnumType& a, const EnumType b) noexcept {
+		a = a - b;
+		return a;
+	}
+} // guiorgy::detail
 
 // Containers.
 namespace guiorgy::detail {
@@ -1591,63 +1635,9 @@ namespace guiorgy::detail {
 		Preallocate		= 0b0000'0001u
 	};
 
-	// Bitwise nagation operator for the LruCacheOptions flags enum.
-	inline constexpr LruCacheOptions operator~(const LruCacheOptions x) noexcept {
-		const LruCacheOptionsBaseType _x = static_cast<LruCacheOptionsBaseType>(x);
-
-		return static_cast<LruCacheOptions>(~_x);
-	}
-
-	// Bitwise or operator for the LruCacheOptions flags enum.
-	inline constexpr LruCacheOptions operator|(const LruCacheOptions a, const LruCacheOptions b) noexcept {
-		const LruCacheOptionsBaseType _a = static_cast<LruCacheOptionsBaseType>(a);
-		const LruCacheOptionsBaseType _b = static_cast<LruCacheOptionsBaseType>(b);
-
-		return static_cast<LruCacheOptions>(_a | _b);
-	}
-	inline constexpr LruCacheOptions& operator|=(LruCacheOptions& a, const LruCacheOptions b) noexcept {
-		a = a | b;
-		return a;
-	}
-
-	// Bitwise and operator for the LruCacheOptions flags enum.
-	inline constexpr bool operator&(const LruCacheOptions a, const LruCacheOptions b) noexcept {
-		const LruCacheOptionsBaseType _a = static_cast<LruCacheOptionsBaseType>(a);
-		const LruCacheOptionsBaseType _b = static_cast<LruCacheOptionsBaseType>(b);
-		const LruCacheOptionsBaseType _none = static_cast<LruCacheOptionsBaseType>(LruCacheOptions::None);
-
-		return (_a & _b) != _none;
-	}
-
-	// Bitwise XOR operator for the LruCacheOptions flags enum.
-	inline constexpr LruCacheOptions operator^(const LruCacheOptions a, const LruCacheOptions b) noexcept {
-		const LruCacheOptionsBaseType _a = static_cast<LruCacheOptionsBaseType>(a);
-		const LruCacheOptionsBaseType _b = static_cast<LruCacheOptionsBaseType>(b);
-
-		return static_cast<LruCacheOptions>(_a ^ _b);
-	}
-	inline constexpr LruCacheOptions& operator^=(LruCacheOptions& a, const LruCacheOptions b) noexcept {
-		a = a ^ b;
-		return a;
-	}
-
-	// Boolean nagation operator for the LruCacheOptions flags enum.
-	inline constexpr bool operator!(const LruCacheOptions x) noexcept {
-		return x == LruCacheOptions::None;
-	}
-
-	// Binary substraction operator for the LruCacheOptions flags enum.
-	// This is a equivalent to (a & ~b), in ther words, disable the bits that are enabled in the second flag.
-	inline constexpr LruCacheOptions operator-(const LruCacheOptions a, const LruCacheOptions b) noexcept {
-		const LruCacheOptionsBaseType _a = static_cast<LruCacheOptionsBaseType>(a);
-		const LruCacheOptionsBaseType _b = static_cast<LruCacheOptionsBaseType>(b);
-
-		return static_cast<LruCacheOptions>(_a & (~_b));
-	}
-	inline constexpr LruCacheOptions& operator-=(LruCacheOptions& a, const LruCacheOptions b) noexcept {
-		a = a - b;
-		return a;
-	}
+	// Define the flags enum operators for LruCacheOptions.
+	template<>
+	struct is_flags_enum<LruCacheOptions> final : std::true_type {};
 
 	// The base type of the Likelihood enum.
 	using LikelihoodBaseType = std::uint_fast8_t;
