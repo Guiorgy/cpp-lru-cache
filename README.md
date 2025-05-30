@@ -50,15 +50,15 @@ You can also change the default hash function and key equality predecate:
     guiorgy::lru_cache<std::string, std::string, 3, absl::flat_hash_map, std::hash<std::string>, std::equal_to<std::string>> cache;
     ```
 
-The following hashmap implementations are tested by executing full-test.sh:
+The following hashmap implementation versions are tested by executing full-test.sh:
 
 - [STL](https://en.cppreference.com/w/cpp/container/unordered_map) `std::unordered_map`
-- [Abseil](https://github.com/abseil/abseil-cpp) `absl::flat_hash_map`
-- [Tessil Sparse](https://github.com/Tessil/sparse-map) `tsl::sparse_map`
-- [Tessil Robin](https://github.com/Tessil/sparse-map) `tsl::robin_map`
-- [Tessil Hopscotch](https://github.com/Tessil/sparse-map) `tsl::hopscotch_map`
-- [Ankerl](https://github.com/martinus/unordered_dense) `ankerl::unordered_dense::map`
-- [Ankerl Segmented](https://github.com/martinus/unordered_dense) `ankerl::unordered_dense::segmented_map`
+- [Abseil](https://github.com/abseil/abseil-cpp) `absl::flat_hash_map` (20250512.0)
+- [Tessil Sparse](https://github.com/Tessil/sparse-map) `tsl::sparse_map` (v0.6.2)
+- [Tessil Robin](https://github.com/Tessil/sparse-map) `tsl::robin_map` (v1.4.0)
+- [Tessil Hopscotch](https://github.com/Tessil/sparse-map) `tsl::hopscotch_map` (v2.3.1)
+- [Ankerl](https://github.com/martinus/unordered_dense) `ankerl::unordered_dense::map` (v4.5.0)
+- [Ankerl Segmented](https://github.com/martinus/unordered_dense) `ankerl::unordered_dense::segmented_map` (v4.5.0)
 
 To decide which implementation to use, check out the amazing round of [benchmarks](https://martin.ankerl.com/2022/08/27/hashmap-bench-01/) for many map implementations done by Martin Leitner-Ankerl.
 
