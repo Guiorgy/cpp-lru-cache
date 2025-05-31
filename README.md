@@ -87,4 +87,5 @@ make test
 - Add tests for [folly::F14ValueMap](https://github.com/facebook/folly)
 - Add tests for [emhash8::HashMap](https://github.com/ktprime/emhash)
 - More tests
+- Fuzzing
 - Benchmarks
