@@ -657,7 +657,7 @@ namespace guiorgy::detail {
 				index_t next_head = next_index(head);
 
 				if (next_head == tail) UNLIKELY {
-					assert(set.size() == set.size());
+					assert(size() == set.size());
 
 					set.push_back(std::move(value));
 
@@ -694,7 +694,7 @@ namespace guiorgy::detail {
 				index_t next_head = next_index(head);
 
 				if (next_head == tail) UNLIKELY {
-					assert(set.size() == set.size());
+					assert(size() == set.size());
 
 					set.emplace_back(std::forward<ValueArgs>(value_args)...);
 
