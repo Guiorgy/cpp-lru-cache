@@ -397,7 +397,7 @@ namespace guiorgy::detail {
 			noexcept(
 				noexcept(std::construct_at(std::declval<T*>(), std::forward<Args>(std::declval<Args>())...))
 			) {
-			return std::construct_at(location, std::forward<Args>(args)...);
+			return static_cast<T*>(std::construct_at(location, std::forward<Args>(args)...));
 		}
 	#endif
 
@@ -574,6 +574,8 @@ namespace guiorgy::detail {
 	//   - The removed elements are not deleted immediately, instead they are replaced when new elements are put into the container.
 	template<typename T, typename index_t = std::size_t>
 	class vector_set final {
+		static_assert(std::is_integral_v<index_t> && std::is_unsigned_v<index_t>, "index_t must be an unsigned integer type");
+
 		std::vector<T> set{};
 		index_t head = 0u;
 		index_t tail = 0u;
@@ -968,7 +970,7 @@ namespace guiorgy::detail {
 		// References to the removed node are not invalidated, since the node is just marked as removed and added to the free_indices set.
 		// Iterators to the removed node are invalidated. Other iterators are not affected.
 		void erase_node(const index_t at) {
-			[[maybe_unused]] list_node& discard = remove_node<true>(at);
+			[[maybe_unused]] const list_node& discard = remove_node<true>(at);
 		}
 
 		// Moves the node at the specified location to before/after another node and returns a reference to the moved node.
@@ -1555,7 +1557,7 @@ namespace guiorgy::detail {
 
 			_iterator operator++(int) {
 				_iterator temp = *this;
-				++(*this);
+				this->operator++();
 				return temp;
 			}
 
@@ -1571,7 +1573,7 @@ namespace guiorgy::detail {
 
 			_iterator operator--(int) {
 				_iterator temp = *this;
-				--(*this);
+				this->operator--();
 				return temp;
 			}
 
@@ -1773,7 +1775,7 @@ namespace guiorgy::detail {
 
 	public:
 		template<typename... hashmap_args>
-		lru_cache_opts(hashmap_args&&... args) : _cache_items_list{}, _cache_items_map(std::forward<hashmap_args>(args)...) {
+		explicit lru_cache_opts(hashmap_args&&... args) : _cache_items_list{}, _cache_items_map(std::forward<hashmap_args>(args)...) {
 			if constexpr (options != LruCacheOptions::None) {
 				if constexpr (options & LruCacheOptions::Preallocate) {
 					reserve();
@@ -1782,7 +1784,7 @@ namespace guiorgy::detail {
 		}
 
 		template<typename... hashmap_args>
-		lru_cache_opts(const LruCacheOptions runtime_options, hashmap_args&&... args) : _cache_items_list{}, _cache_items_map(std::forward<hashmap_args>(args)...) {
+		explicit lru_cache_opts(const LruCacheOptions runtime_options, hashmap_args&&... args) : _cache_items_list{}, _cache_items_map(std::forward<hashmap_args>(args)...) {
 			static_assert(!options, "Runtime options override can only be used if compile-time options aren't used (are set to LruCacheOptions::None)");
 
 			if (runtime_options & LruCacheOptions::Preallocate) {
@@ -1842,6 +1844,8 @@ namespace guiorgy::detail {
 
 					return;
 				}
+			} else {
+				static_assert(max_size == 0u, "Unhandled value of Likelihood");
 			}
 
 			static_assert(is_valid_likelihood(cache_full), "cache_full has an invalid enum value for Likelihood");
@@ -1875,6 +1879,8 @@ namespace guiorgy::detail {
 				} else {
 					this->_cache_items_list.emplace_front(key, value);
 				}
+			} else {
+				static_assert(max_size == 0u, "Unhandled value of Likelihood");
 			}
 
 			if constexpr (this->hashmap_has_emplace_hint) {
@@ -1933,6 +1939,8 @@ namespace guiorgy::detail {
 
 					return;
 				}
+			} else {
+				static_assert(max_size == 0u, "Unhandled value of Likelihood");
 			}
 
 			static_assert(is_valid_likelihood(cache_full), "cache_full has an invalid enum value for Likelihood");
@@ -1966,6 +1974,8 @@ namespace guiorgy::detail {
 				} else {
 					this->_cache_items_list.emplace_front(key, std::move(value));
 				}
+			} else {
+				static_assert(max_size == 0u, "Unhandled value of Likelihood");
 			}
 
 			if constexpr (this->hashmap_has_emplace_hint) {
@@ -2027,9 +2037,11 @@ namespace guiorgy::detail {
 
 					return value;
 				}
+			} else {
+				static_assert(max_size == 0u, "Unhandled value of Likelihood");
 			}
 
-			value_type* value;
+			value_type* value = nullptr;
 
 			static_assert(is_valid_likelihood(cache_full), "cache_full has an invalid enum value for Likelihood");
 			if constexpr (cache_full == Likelihood::Unknown) {
@@ -2068,6 +2080,8 @@ namespace guiorgy::detail {
 				} else {
 					value = &(this->_cache_items_list.emplace_front(key, std::forward<ValueArgs>(value_args)...));
 				}
+			} else {
+				static_assert(max_size == 0u, "Unhandled value of Likelihood");
 			}
 
 			if constexpr (this->hashmap_has_emplace_hint) {
@@ -2123,6 +2137,8 @@ namespace guiorgy::detail {
 				} else {
 					return std::nullopt;
 				}
+			} else {
+				static_assert(max_size == 0u, "Unhandled value of Likelihood");
 			}
 		}
 
@@ -2165,6 +2181,8 @@ namespace guiorgy::detail {
 				} else {
 					return std::nullopt;
 				}
+			} else {
+				static_assert(max_size == 0u, "Unhandled value of Likelihood");
 			}
 		}
 
@@ -2207,6 +2225,8 @@ namespace guiorgy::detail {
 				} else {
 					return false;
 				}
+			} else {
+				static_assert(max_size == 0u, "Unhandled value of Likelihood");
 			}
 		}
 
@@ -2253,6 +2273,8 @@ namespace guiorgy::detail {
 				} else {
 					return false;
 				}
+			} else {
+				static_assert(max_size == 0u, "Unhandled value of Likelihood");
 			}
 		}
 
@@ -2300,6 +2322,8 @@ namespace guiorgy::detail {
 				} else {
 					return std::nullopt;
 				}
+			} else {
+				static_assert(max_size == 0u, "Unhandled value of Likelihood");
 			}
 		}
 
@@ -2351,6 +2375,8 @@ namespace guiorgy::detail {
 				} else {
 					return std::nullopt;
 				}
+			} else {
+				static_assert(max_size == 0u, "Unhandled value of Likelihood");
 			}
 		}
 
@@ -2399,6 +2425,8 @@ namespace guiorgy::detail {
 				} else {
 					return false;
 				}
+			} else {
+				static_assert(max_size == 0u, "Unhandled value of Likelihood");
 			}
 		}
 
@@ -2451,6 +2479,8 @@ namespace guiorgy::detail {
 				} else {
 					return false;
 				}
+			} else {
+				static_assert(max_size == 0u, "Unhandled value of Likelihood");
 			}
 		}
 
@@ -2497,6 +2527,8 @@ namespace guiorgy::detail {
 				} else {
 					return false;
 				}
+			} else {
+				static_assert(max_size == 0u, "Unhandled value of Likelihood");
 			}
 		}
 
@@ -2550,6 +2582,8 @@ namespace guiorgy::detail {
 				} else {
 					return false;
 				}
+			} else {
+				static_assert(max_size == 0u, "Unhandled value of Likelihood");
 			}
 		}
 
