@@ -2,6 +2,14 @@ cmake_minimum_required(VERSION 3.14...3.29)
 
 project(CPP-LRU-CACHE-TEST LANGUAGES CXX)
 
+if (CMAKE_VERSION VERSION_LESS 3.21)
+    string(COMPARE EQUAL "${PROJECT_SOURCE_DIR}" "${CMAKE_SOURCE_DIR}" PROJECT_IS_TOP_LEVEL)
+endif()
+if (NOT PROJECT_IS_TOP_LEVEL)
+    message(WARNING "lru-cache is a single header only library that doesn't need to be built and linked separately. This CMake project is only used for testing and is not meant to be included in another. Just add the include directory into the list of include directories.")
+    return()
+endif()
+
 include(CheckIPOSupported)
 include(FetchContent)
 include(CTest)
