@@ -30,6 +30,7 @@ How to run tests:
 ```shell
 cd build
 cmake ..
+# cmake -DCMAKE_BUILD_TYPE=Debug -DCPPCHECK=ON ..
 make test
 # make sanitize
 ```
