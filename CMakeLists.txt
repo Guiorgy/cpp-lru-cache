@@ -236,6 +236,30 @@ foreach(name_and_include IN LISTS HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES)
 endforeach()
 set(HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES ${TMP})
 
+option(CPPCHECK "Analyze source using the Cppcheck static code analyzer" ON)
+if (CPPCHECK)
+    find_program(CMAKE_CXX_CPPCHECK cppcheck)
+    if (CMAKE_CXX_CPPCHECK)
+        list(
+            APPEND CMAKE_CXX_CPPCHECK
+            "--std=c++${CMAKE_CXX_STANDARD}"
+            "--enable=warning"
+            "--inconclusive"
+            "--force"
+            "--inline-suppr"
+            "-Dnodiscard=nodiscard"
+            "-DLIKELY=[[likely]]"
+            "-DUNLIKELY=[[unlikely]]"
+            "-ULRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION"
+            "-DVALUE_TO_STRING"
+            "-DVALUE"
+            "--error-exitcode=1"
+        )
+    else()
+        message(WARNING "Cppcheck not found. Skipping cppcheck code analyzer")
+    endif()
+endif()
+
 file(GLOB_RECURSE TESTS ${PROJECT_SOURCE_DIR}/tests/*.cpp)
 add_executable(cpp-lru-cache-test ${TESTS})
 
@@ -274,6 +298,8 @@ else()
         COMMAND cmake --build .
     )
 endif()
+
+set(CMAKE_CXX_CPPCHECK "")
 
 find_program(VALGRIND_EXECUTABLE valgrind)
 if (VALGRIND_EXECUTABLE)
