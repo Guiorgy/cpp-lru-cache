@@ -79,7 +79,8 @@ make test
 
 - Make it possible to pass a custom map container as a template parameter (as long as it has std::unordered_map-like API that we need)
 - Use std::array internally instead of std::vector when the Preallocate option is set
-- Optionally allow the use of std::deque internally instead of std::vector, when pointer/reference stability is needed and/or when copy/move is too expensive during vector growth
+- Optionally allow the use of std::deque internally instead of std::vector, when pointer/reference stability for value is needed and/or when copy/move is too expensive during vector growth
+- Optionally use a set instead of a map, when pointer/reference stability for key is needed and/or when copy/move is too expensive
 - Optionally disable element removal to save a bit of space on tracking "empty" nodes that can be rewritten
 - Readd tests for std::pmr::unordered_map
 - Add tests for [gtl::parallel_flat_hash_map](https://github.com/greg7mdp/gtl)
