@@ -38,7 +38,7 @@ if ($create) {
 
   # Install dependencies
   Write-Output "Installing dependencies: cmake, valgrind, unbuffer"
-  docker exec -it "$container" bash -c 'apt-get -qq update && apt-get -qq install cmake valgrind expect'
+  docker exec -it "$container" bash -c 'apt-get -qq update && apt-get -qq install cmake valgrind cppcheck expect'
 
   # Stop container
   docker stop "$container" *>$null

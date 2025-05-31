@@ -31,7 +31,7 @@ build_and_run_tests() {
   mkdir -p "$build_dir"
   cd "$build_dir"
 
-  local cmake_args="-DCMAKE_BUILD_TYPE=$build_type -DHASH_MAP_IMPLEMENTATION=$hm_impl"
+  local cmake_args="-DCMAKE_BUILD_TYPE=$build_type -DCPPCHECK=ON -DHASH_MAP_IMPLEMENTATION=$hm_impl"
   if [ $DEV -eq 1 ]; then
     cmake_args="$cmake_args -Wdev -Werror=dev -Wdeprecated -Werror=deprecated --warn-uninitialized --loglevel=VERBOSE"
   fi
