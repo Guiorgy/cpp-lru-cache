@@ -114,6 +114,30 @@ else()
     )
 endif()
 
+option(CPPCHECK "Analyze source using the Cppcheck static code analyzer" ON)
+if (CPPCHECK)
+    find_program(CMAKE_CXX_CPPCHECK cppcheck)
+    if (CMAKE_CXX_CPPCHECK)
+        list(
+            APPEND CMAKE_CXX_CPPCHECK
+            "--std=c++${CMAKE_CXX_STANDARD}"
+            "--enable=warning"
+            "--inconclusive"
+            "--force"
+            "--inline-suppr"
+            "-Dnodiscard=nodiscard"
+            "-DLIKELY=[[likely]]"
+            "-DUNLIKELY=[[unlikely]]"
+            "-ULRU_CACHE_PRINT_HASH_MAP_IMPLEMENTATION"
+            "-DVALUE_TO_STRING"
+            "-DVALUE"
+            "--error-exitcode=1"
+        )
+    else()
+        message(WARNING "Cppcheck not found. Skipping cppcheck code analyzer")
+    endif()
+endif()
+
 file(GLOB TESTS ${PROJECT_SOURCE_DIR}/tests/*.cpp)
 add_executable(cpp-lru-cache-test ${TESTS})
 
@@ -133,6 +157,8 @@ add_test(
     NAME cpp-lru-cache-test
     COMMAND cpp-lru-cache-test --verbose --gtest_color=yes
 )
+
+set(CMAKE_CXX_CPPCHECK "")
 
 find_program(VALGRIND_EXECUTABLE valgrind)
 if (VALGRIND_EXECUTABLE)
