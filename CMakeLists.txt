@@ -277,7 +277,7 @@ endif()
 
 find_program(VALGRIND_EXECUTABLE valgrind)
 if (VALGRIND_EXECUTABLE)
-    add_executable(cpp-lru-cache-test-sanitize ${TESTS})
+    add_executable(cpp-lru-cache-test-sanitize EXCLUDE_FROM_ALL ${TESTS})
     target_compile_options(cpp-lru-cache-test-sanitize PRIVATE "SHELL:${MORE_WARNING_FLAGS}")
     target_compile_definitions(cpp-lru-cache-test-sanitize PRIVATE SKIP_ALLOCATION_TESTS)
 
