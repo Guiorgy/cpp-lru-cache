@@ -118,6 +118,34 @@ namespace guiorgy::detail {
 	template<const std::size_t max_value>
 	using uint_fit_fast_t = typename uint_fit_fast<max_value>::type;
 
+	// Check if the specific type is nothrow move constructible, or nothrow copy constructible if it isn't move constructible.
+	template<typename T>
+	struct is_nothrow_move_or_copy_constructible final :
+		std::conditional_t<
+			std::is_move_constructible_v<T>
+				? std::is_nothrow_move_constructible_v<T>
+				: (std::is_copy_constructible_v<T> && std::is_nothrow_copy_constructible_v<T>),
+			std::true_type,
+			std::false_type
+		> {};
+	// Helper for is_nothrow_move_or_copy_constructible.
+	template<typename T>
+	inline constexpr bool is_nothrow_move_or_copy_constructible_v = is_nothrow_move_or_copy_constructible<T>::value;
+
+	// Check if the specific type is nothrow move assignable, or nothrow copy assignable if it isn't move assignable.
+	template<typename T>
+	struct is_nothrow_move_or_copy_assignable final :
+		std::conditional_t<
+			std::is_move_assignable_v<T>
+				? std::is_nothrow_move_assignable_v<T>
+				: (std::is_copy_assignable_v<T> && std::is_nothrow_copy_assignable_v<T>),
+			std::true_type,
+			std::false_type
+		> {};
+	// Helper for is_nothrow_move_or_copy_assignable.
+	template<typename T>
+	inline constexpr bool is_nothrow_move_or_copy_assignable_v = is_nothrow_move_or_copy_assignable<T>::value;
+
 	// SFINAE to check if the specified type is a std::pair.
 	// The template returned when matching fails.
 	template<typename, typename = void>
@@ -878,6 +906,7 @@ namespace guiorgy::detail {
 	//   - The size of the container must not exceed the maximum value representable by index_t plus one.
 	//   - The size limitation is not enforced within the container, the user must ensure that this condition is not violated.
 	//   - The removed elements are not deleted immediately, instead they are replaced when new elements are put into the container.
+	//   - Index operator[] of the internal std::vector are assumed to be noexcept, in other words, no out of bounds access is performed.
 	template<typename T, typename _index_t = std::size_t>
 	class vector_set final {
 		static_assert(std::is_integral_v<_index_t> && std::is_unsigned_v<_index_t>, "_index_t must be an unsigned integer type");
@@ -934,7 +963,11 @@ namespace guiorgy::detail {
 		}
 
 		// Puts the given element into the set.
-		void put(const T& value) {
+		void put(const T& value)
+			noexcept(
+				noexcept(std::declval<std::vector<T>>().push_back(std::declval<const T&>()))
+				&& std::is_nothrow_copy_assignable_v<T>
+			) {
 			if (_empty) LIKELY {
 				assert(head == tail);
 
@@ -970,7 +1003,11 @@ namespace guiorgy::detail {
 		}
 
 		// Puts the given element into the set.
-		void put(T&& value) {
+		void put(T&& value)
+			noexcept(
+				noexcept(std::declval<std::vector<T>>().push_back(std::declval<T&&>()))
+				&& is_nothrow_move_or_copy_assignable_v<T>
+			) {
 			if (_empty) LIKELY {
 				assert(head == tail);
 
@@ -1007,7 +1044,11 @@ namespace guiorgy::detail {
 
 		// Emplaces the given element into the set.
 		template<typename... ValueArgs>
-		void emplace(ValueArgs&&... value_args) {
+		void emplace(ValueArgs&&... value_args)
+			noexcept(
+				noexcept(std::declval<std::vector<T>>().emplace_back(std::declval<ValueArgs>()...))
+				&& noexcept(detail::emplace(std::declval<T&>(), std::declval<ValueArgs>()...))
+			) {
 			if (_empty) LIKELY {
 				assert(head == tail);
 
@@ -1047,7 +1088,7 @@ namespace guiorgy::detail {
 		//   - Calling peek and accessing the returned element when the set was empty
 		//     results in undefined behaviour.
 		template<const bool from_head = true>
-		[[nodiscard]] T& peek() const {
+		[[nodiscard]] T& peek() const noexcept {
 			assert(!_empty);
 
 			if constexpr (from_head) {
@@ -1064,7 +1105,7 @@ namespace guiorgy::detail {
 		//   - Calling take_ref and accessing the returned element when the set was empty
 		//     results in undefined behaviour.
 		template<const bool from_head = true>
-		[[nodiscard]] T& take_ref() {
+		[[nodiscard]] T& take_ref() noexcept {
 			assert(!_empty);
 
 			if constexpr (from_head) {
@@ -1086,13 +1127,13 @@ namespace guiorgy::detail {
 		//   - Calling take and accessing the returned element when the set was empty
 		//     results in undefined behaviour.
 		template<const bool from_head = true>
-		[[nodiscard]] T take() {
+		[[nodiscard]] T take() noexcept {
 			return take_ref<from_head>();
 		}
 
 		// Erases all elements from the set. After this call, size() returns zero.
 		// References referring to contained elements are not invalidated, since the elements are deleted lazily.
-		void clear() {
+		void clear() noexcept {
 			_empty = true;
 			head = 0u;
 			tail = 0u;
@@ -1144,6 +1185,7 @@ namespace guiorgy::detail {
 	//   - The size of the list must not exceed max_size.
 	//   - The size limitation is not enforced within the container, the user must ensure that this condition is not violated.
 	//   - The removed elements are not deleted immediately, instead they are marked as free and replaced when new elements are pushed into the container.
+	//   - Index operator[] of the internal std::vector are assumed to be noexcept, in other words, no out of bounds access is performed.
 	template<typename T, const std::size_t max_size = std::numeric_limits<std::size_t>::max() - 1u>
 	class vector_list final {
 		using index_t = uint_fit_t<max_size>;
@@ -1160,7 +1202,8 @@ namespace guiorgy::detail {
 			bool removed; // For debug assertions to check the correctness of the list.
 #endif
 
-			list_node_value_first(const index_t _prior, const index_t _next, const T& _value) :
+			list_node_value_first(const index_t _prior, const index_t _next, const T& _value)
+				noexcept(std::is_nothrow_copy_assignable_v<T>) :
 				value(_value),
 				prior(_prior),
 				next(_next)
@@ -1169,7 +1212,8 @@ namespace guiorgy::detail {
 #endif
 				{}
 
-			list_node_value_first(const index_t _prior, const index_t _next, T&& _value) :
+			list_node_value_first(const index_t _prior, const index_t _next, T&& _value)
+				noexcept(is_nothrow_move_or_copy_assignable_v<T>) :
 				value(std::move(_value)),
 				prior(_prior),
 				next(_next)
@@ -1179,7 +1223,8 @@ namespace guiorgy::detail {
 				{}
 
 			template<typename... ValueArgs>
-			list_node_value_first(const index_t _prior, const index_t _next, ValueArgs&&... value_args) :
+			list_node_value_first(const index_t _prior, const index_t _next, ValueArgs&&... value_args)
+				noexcept(std::is_nothrow_constructible_v<T, ValueArgs...>) :
 				value(std::forward<ValueArgs>(value_args)...),
 				prior(_prior),
 				next(_next)
@@ -1189,7 +1234,8 @@ namespace guiorgy::detail {
 				{}
 
 			template<typename... ValueArgs>
-			T& emplace_value(ValueArgs&&... value_args) {
+			T& emplace_value(ValueArgs&&... value_args)
+				noexcept(noexcept(emplace(std::declval<T&>(), std::declval<ValueArgs>()...))) {
 				return emplace(value, std::forward<ValueArgs>(value_args)...);
 			}
 
@@ -1211,7 +1257,8 @@ namespace guiorgy::detail {
 			bool removed; // For debug assertions to check the correctness of the list.
 #endif
 
-			list_node_value_last(const index_t _prior, const index_t _next, const T& _value) :
+			list_node_value_last(const index_t _prior, const index_t _next, const T& _value)
+				noexcept(std::is_nothrow_copy_assignable_v<T>) :
 				prior(_prior),
 				next(_next),
 				value(_value)
@@ -1220,7 +1267,8 @@ namespace guiorgy::detail {
 #endif
 				{}
 
-			list_node_value_last(const index_t _prior, const index_t _next, T&& _value) :
+			list_node_value_last(const index_t _prior, const index_t _next, T&& _value)
+				noexcept(is_nothrow_move_or_copy_assignable_v<T>) :
 				prior(_prior),
 				next(_next),
 				value(std::move(_value))
@@ -1230,7 +1278,8 @@ namespace guiorgy::detail {
 				{}
 
 			template<typename... ValueArgs>
-			list_node_value_last(const index_t _prior, const index_t _next, ValueArgs&&... value_args) :
+			list_node_value_last(const index_t _prior, const index_t _next, ValueArgs&&... value_args)
+				noexcept(std::is_nothrow_constructible_v<T, ValueArgs...>) :
 				prior(_prior),
 				next(_next),
 				value(std::forward<ValueArgs>(value_args)...)
@@ -1240,7 +1289,8 @@ namespace guiorgy::detail {
 				{}
 
 			template<typename... ValueArgs>
-			T& emplace_value(ValueArgs&&... value_args) {
+			T& emplace_value(ValueArgs&&... value_args)
+				noexcept(noexcept(emplace(std::declval<T&>(), std::declval<ValueArgs>()...))) {
 				return emplace(value, std::forward<ValueArgs>(value_args)...);
 			}
 
@@ -1272,7 +1322,7 @@ namespace guiorgy::detail {
 		vector_set<index_t, index_t> free_indices{};
 
 		// Returns a reference to the node at the specified location.
-		[[nodiscard]] list_node& get_node(const index_t at) {
+		[[nodiscard]] list_node& get_node(const index_t at) noexcept {
 			assert(at < list.size());
 #ifndef NDEBUG
 			assert(!list[at].removed);
@@ -1282,7 +1332,7 @@ namespace guiorgy::detail {
 		}
 
 		// Returns a const reference to the node at the specified location.
-		[[nodiscard]] const list_node& get_node(const index_t at) const {
+		[[nodiscard]] const list_node& get_node(const index_t at) const noexcept {
 			assert(at < list.size());
 #ifndef NDEBUG
 			assert(!list[at].removed);
@@ -1298,7 +1348,8 @@ namespace guiorgy::detail {
 		// Set mark_removed to false only if the node is to be reincluded back into the list at a different location immediately after the removal.
 		template<const bool mark_removed = true>
 		[[nodiscard("Especially if mark_removed is set to false. Use erase_node(const index_t at) instead")]]
-		list_node& remove_node(const index_t at) {
+		list_node& remove_node(const index_t at)
+			noexcept(!mark_removed || noexcept(std::declval<vector_set<index_t, index_t>>().put(std::declval<index_t>()))) {
 			assert(at < list.size());
 #ifndef NDEBUG
 			assert(!list[at].removed);
@@ -1341,7 +1392,8 @@ namespace guiorgy::detail {
 		// Removes the node at the specified location.
 		// References to the removed node are not invalidated, since the node is just marked as removed and added to the free_indices set.
 		// Iterators to the removed node are invalidated. Other iterators are not affected.
-		void erase_node(const index_t at) {
+		void erase_node(const index_t at)
+			noexcept(noexcept(remove_node<true>(std::declval<index_t>()))) {
 			[[maybe_unused]] const list_node& discard = remove_node<true>(at);
 		}
 
@@ -1350,7 +1402,8 @@ namespace guiorgy::detail {
 		// Iterators to the moved node are invalidated. Other iterators, including the iterators to the node at the movement destination, are not affected.
 		// If before is true, then the node is moved before the node at the destination, otherwise, the node is moved after the destination.
 		template<const bool before = true>
-		list_node& move_node(const index_t from, const index_t to) {
+		list_node& move_node(const index_t from, const index_t to)
+			noexcept(noexcept(remove_node<false>(std::declval<index_t>()))) {
 			assert(head != null_index);
 			assert(from < list.size());
 			assert(to < list.size());
@@ -1398,7 +1451,8 @@ namespace guiorgy::detail {
 		// Moves the node at the specified location to the front of the list and returns a reference to the moved node.
 		// References to the moved/head node are not invalidated, since only the prior and next members of the node are updated.
 		// Iterators to the moved node are invalidated. Other iterators, including the iterators to the head node, are not affected.
-		list_node& move_node_to_front(const index_t from) {
+		list_node& move_node_to_front(const index_t from)
+			noexcept(noexcept(remove_node<false>(std::declval<index_t>()))) {
 			assert(head != null_index);
 			assert(from < list.size());
 #ifndef NDEBUG
@@ -1420,7 +1474,8 @@ namespace guiorgy::detail {
 		// Moves the node at the specified location to the back of the list and returns a reference to the moved node.
 		// References to the moved/tail node are not invalidated, since only the prior and next members of the node are updated.
 		// Iterators to the moved node are invalidated. Other iterators, including the iterators to the tail node, are not affected.
-		list_node& move_node_to_back(const index_t from) {
+		list_node& move_node_to_back(const index_t from)
+			noexcept(noexcept(remove_node<false>(std::declval<index_t>()))) {
 			assert(tail != null_index);
 			assert(from < list.size());
 #ifndef NDEBUG
@@ -1441,7 +1496,11 @@ namespace guiorgy::detail {
 
 	public:
 		// Increases the capacity of the list (the total number of elements that the list can hold without requiring a reallocation) to a value that's greater or equal to capacity.
-		void reserve(const std::size_t capacity = max_size) {
+		void reserve(const std::size_t capacity = max_size)
+			noexcept(
+				noexcept(std::declval<std::vector<list_node>>().reserve(std::declval<std::size_t>()))
+				&& noexcept(std::declval<vector_set<index_t, index_t>>().reserve(std::declval<std::size_t>()))
+			) {
 			assert(capacity <= max_size);
 
 			list.reserve(capacity);
@@ -1466,7 +1525,7 @@ namespace guiorgy::detail {
 		// Prepends a copy of value to the beginning of the list.
 		// If after the operation the new size() is greater than old capacity() a reallocation takes place, in which case all references are invalidated.
 		// No iterators are invalidated.
-		void push_front(const T& value) {
+		void push_front(const T& value) /*todo: noexcept*/ {
 			if (!free_indices.empty()) UNLIKELY {
 				index_t index = free_indices.take();
 				list_node& node = list[index];
@@ -1497,7 +1556,7 @@ namespace guiorgy::detail {
 		// Prepends value to the beginning of the list.
 		// If after the operation the new size() is greater than old capacity() a reallocation takes place, in which case all references are invalidated.
 		// No iterators are invalidated.
-		void push_front(T&& value) {
+		void push_front(T&& value) /*todo: noexcept*/ {
 			if (!free_indices.empty()) UNLIKELY {
 				index_t index = free_indices.take();
 				list_node& node = list[index];
@@ -1531,7 +1590,7 @@ namespace guiorgy::detail {
 		// If after the operation the new size() is greater than old capacity() a reallocation takes place, in which case all references are invalidated.
 		// No iterators are invalidated.
 		template<typename... ValueArgs>
-		T& emplace_front(ValueArgs&&... value_args) {
+		T& emplace_front(ValueArgs&&... value_args) /*todo: noexcept*/ {
 			if (!free_indices.empty()) UNLIKELY {
 				index_t index = free_indices.take();
 				list_node& node = list[index];
@@ -1566,7 +1625,7 @@ namespace guiorgy::detail {
 		// Appends a copy of value to the end of the list.
 		// If after the operation the new size() is greater than old capacity() a reallocation takes place, in which case all references are invalidated.
 		// No iterators are invalidated.
-		void push_back(const T& value) {
+		void push_back(const T& value) /*todo: noexcept*/ {
 			if (!free_indices.empty()) {
 				index_t index = free_indices.take();
 				list_node& node = list[index];
@@ -1597,7 +1656,7 @@ namespace guiorgy::detail {
 		// Appends value to the end of the list.
 		// If after the operation the new size() is greater than old capacity() a reallocation takes place, in which case all references are invalidated.
 		// No iterators are invalidated.
-		void push_back(T&& value) {
+		void push_back(T&& value) /*todo: noexcept*/ {
 			if (!free_indices.empty()) {
 				index_t index = free_indices.take();
 				list_node& node = list[index];
@@ -1631,7 +1690,7 @@ namespace guiorgy::detail {
 		// If after the operation the new size() is greater than old capacity() a reallocation takes place, in which case all references are invalidated.
 		// No iterators are invalidated.
 		template<typename... ValueArgs>
-		T& emplace_back(ValueArgs&&... value_args) {
+		T& emplace_back(ValueArgs&&... value_args) /*todo: noexcept*/ {
 			if (!free_indices.empty()) {
 				index_t index = free_indices.take();
 				list_node& node = list[index];
@@ -1664,7 +1723,15 @@ namespace guiorgy::detail {
 		}
 
 		// Returns a reference to the first element in the list.
-		[[nodiscard]] T& front() {
+		[[nodiscard]] const T& front() noexcept {
+			assert(head != null_index);
+			assert(size() != 0u);
+
+			return list[head].value;
+		}
+
+		// Returns a reference to the first element in the list.
+		[[nodiscard]] T& front() const noexcept {
 			assert(head != null_index);
 			assert(size() != 0u);
 
@@ -1674,7 +1741,8 @@ namespace guiorgy::detail {
 		// Removes the first element of the list and returns a reference to the removed element.
 		// References to the removed element are not invalidated, since the element is deleted lazily.
 		// Iterators to the removed element are invalidated. Other iterators are not affected.
-		T& pop_front_ref() {
+		T& pop_front_ref()
+			noexcept(noexcept(std::declval<vector_set<index_t, index_t>>().put(std::declval<index_t>()))) {
 			assert(head != null_index);
 			assert(size() != 0u);
 #ifndef NDEBUG
@@ -1698,12 +1766,20 @@ namespace guiorgy::detail {
 		// References to the removed element are not invalidated, since the element is deleted lazily.
 		// Iterators to the removed element are invalidated. Other iterators are not affected.
 		[[nodiscard("Use pop_front_ref() instead to avoid a needless copy of T")]]
-		T pop_front() {
+		T pop_front() noexcept(noexcept(pop_front_ref())) {
 			return pop_front_ref();
 		}
 
 		// Returns a reference to the last element in the list.
-		[[nodiscard]] T& back() {
+		[[nodiscard]] T& back() noexcept {
+			assert(tail != null_index);
+			assert(size() != 0u);
+
+			return list[tail].value;
+		}
+
+		// Returns a reference to the last element in the list.
+		[[nodiscard]] const T& back() const noexcept {
 			assert(tail != null_index);
 			assert(size() != 0u);
 
@@ -1713,7 +1789,8 @@ namespace guiorgy::detail {
 		// Removes the last element of the list and returns a reference to the removed element.
 		// References to the removed element are not invalidated, since the element is deleted lazily.
 		// Iterators to the removed element are invalidated. Other iterators are not affected.
-		T& pop_back_ref() {
+		T& pop_back_ref()
+			noexcept(noexcept(std::declval<vector_set<index_t, index_t>>().put(std::declval<index_t>()))) {
 			assert(tail != null_index);
 			assert(size() != 0u);
 #ifndef NDEBUG
@@ -1737,7 +1814,7 @@ namespace guiorgy::detail {
 		// References to the removed element are not invalidated, since the element is deleted lazily.
 		// Iterators to the removed element are invalidated. Other iterators are not affected.
 		[[nodiscard("Use pop_back_ref() instead to avoid a needless copy of T")]]
-		T pop_back() {
+		T pop_back() noexcept(noexcept(pop_back_ref())) {
 			return pop_back_ref();
 		}
 
@@ -1745,7 +1822,8 @@ namespace guiorgy::detail {
 		// References to the moved/front element are not invalidated.
 		// Iterators to the moved element are invalidated. Other iterators, including the iterators to the front element, are not affected.
 		template<const bool reverse>
-		T& move_to_front(const _iterator<false, reverse> it) {
+		T& move_to_front(const _iterator<false, reverse> it)
+			noexcept(noexcept(move_node_to_front(std::declval<index_t>()))) {
 			return move_node_to_front(it.forward_index()).value;
 		}
 
@@ -1753,7 +1831,8 @@ namespace guiorgy::detail {
 		// References to the moved/back element are not invalidated.
 		// Iterators to the moved element are invalidated. Other iterators, including the iterators to the back element, are not affected.
 		template<const bool reverse>
-		T& move_to_back(const _iterator<false, reverse> it) {
+		T& move_to_back(const _iterator<false, reverse> it)
+			noexcept(noexcept(move_node_to_back(std::declval<index_t>()))) {
 			return move_node_to_back(it.forward_index()).value;
 		}
 
@@ -1761,14 +1840,16 @@ namespace guiorgy::detail {
 		// References to the removed element are not invalidated, since the element is deleted lazily.
 		// Iterators to the removed element are invalidated. Other iterators are not affected.
 		template<const bool reverse>
-		T& erase(const _iterator<false, reverse> it) {
+		T& erase(const _iterator<false, reverse> it)
+			noexcept(noexcept(remove_node<true>(std::declval<index_t>()))) {
 			return remove_node<true>(it.forward_index()).value;
 		}
 
 		// Erases all elements from the list. After this call, size() returns zero.
 		// References referring to contained elements are not invalidated, since the elements are deleted lazily.
 		// Invalidates any iterators referring to contained elements.
-		void clear() {
+		void clear()
+			noexcept(noexcept(std::declval<vector_set<index_t, index_t>>()._clear_and_fill_range(std::declval<std::size_t>()))) {
 			free_indices._clear_and_fill_range(list.size());
 
 #ifndef NDEBUG
@@ -1875,11 +1956,10 @@ namespace guiorgy::detail {
 			list_pointer_t list;
 			index_t current_index;
 
-			_iterator(list_reference_t _list, const index_t _index) : list(&_list), current_index(_index) {}
-
 			template<const bool from_reverse, const bool to_reverse>
-			static index_t reverse_index(list_pointer_t _list, const index_t index) {
+			static index_t reverse_index(list_pointer_t _list, const index_t index) noexcept {
 				static_assert(from_reverse != to_reverse);
+				assert(_list != nullptr);
 
 				if constexpr (!from_reverse) {
 					return index != null_index ? (*_list)[index].prior : null_index;
@@ -1888,14 +1968,16 @@ namespace guiorgy::detail {
 				}
 			}
 
+			_iterator(list_reference_t _list, const index_t _index) noexcept : list(&_list), current_index(_index) {}
+
 		public:
 			// Copy constructor from (reverse_)iterator to const_(reverse_)iterator.
 			template<const bool other_constant>
-			_iterator(const _iterator<other_constant, reverse>& it) : list(it.list), current_index(it.current_index) {}
+			_iterator(const _iterator<other_constant, reverse>& it) noexcept : list(it.list), current_index(it.current_index) {}
 
 			// Copy constructor from (const_)iterator to (const_)reverse_iterator and from (const_)reverse_iterator to (const_)iterator.
 			template<const bool other_reverse>
-			_iterator(const _iterator<constant, other_reverse>& it) : list(it.list), current_index(reverse_index<other_reverse, reverse>(it.list, it.current_index)) {}
+			_iterator(const _iterator<constant, other_reverse>& it) noexcept : list(it.list), current_index(reverse_index<other_reverse, reverse>(it.list, it.current_index)) {}
 
 			_iterator() = delete;
 			~_iterator() = default;
@@ -1911,20 +1993,28 @@ namespace guiorgy::detail {
 				if constexpr (!reverse) {
 					return current_index;
 				} else {
+					assert(list != nullptr);
+
 					return current_index == null_index ? list->tail : (*list)[current_index].next;
 				}
 			}
 
 		public:
-			reference operator*() const {
+			reference operator*() const noexcept(noexcept(forward_index())) {
+				assert(list != nullptr);
+
 				return (*list)[forward_index()].value;
 			}
 
-			pointer operator->() const {
+			pointer operator->() const noexcept(noexcept(forward_index())) {
+				assert(list != nullptr);
+
 				return &((*list)[forward_index()].value);
 			}
 
-			_iterator& operator++() {
+			_iterator& operator++() noexcept {
+				assert(list != nullptr);
+
 				if constexpr (!reverse) {
 					if (current_index != null_index) current_index = (*list)[current_index].prior;
 				} else {
@@ -1934,13 +2024,15 @@ namespace guiorgy::detail {
 				return *this;
 			}
 
-			_iterator operator++(int) {
+			_iterator operator++(int) noexcept {
 				_iterator temp = *this;
 				this->operator++();
 				return temp;
 			}
 
-			_iterator& operator--() {
+			_iterator& operator--() noexcept {
+				assert(list != nullptr);
+
 				if constexpr (!reverse) {
 					if (current_index != list->head) current_index = current_index == null_index ? list->tail : (*list)[current_index].next;
 				} else {
@@ -1950,7 +2042,7 @@ namespace guiorgy::detail {
 				return *this;
 			}
 
-			_iterator operator--(int) {
+			_iterator operator--(int) noexcept {
 				_iterator temp = *this;
 				this->operator--();
 				return temp;
@@ -1971,13 +2063,15 @@ namespace guiorgy::detail {
 	private:
 		// See get_node for details.
 		// This should only be used by _iterator;
-		[[nodiscard]] list_node& operator[](const index_t position) {
+		[[nodiscard]] list_node& operator[](const index_t position)
+			noexcept(noexcept(get_node(std::declval<index_t>()))) {
 			return get_node(position);
 		}
 
 		// See get_node for details.
 		// This should only be used by _iterator;
-		[[nodiscard]] const list_node& operator[](const index_t position) const {
+		[[nodiscard]] const list_node& operator[](const index_t position) const
+			noexcept(noexcept(get_node(std::declval<index_t>()))) {
 			return get_node(position);
 		}
 
@@ -1990,37 +2084,44 @@ namespace guiorgy::detail {
 		// Use them with caution.
 
 		// See move_node_to_front for details.
-		T& _move_value_at_to_front(const index_t position) {
+		T& _move_value_at_to_front(const index_t position)
+			noexcept(noexcept(move_node_to_front(std::declval<index_t>()))) {
 			return move_node_to_front(position).value;
 		}
 
 		// See move_node_to_back for details.
-		T& _move_value_at_to_back(const index_t position) {
+		T& _move_value_at_to_back(const index_t position)
+			noexcept(noexcept(move_node_to_back(std::declval<index_t>()))) {
 			return move_node_to_back(position).value;
 		}
 
 		// See get_node for details.
-		[[nodiscard]] T& _get_value_at(const index_t position) {
+		[[nodiscard]] T& _get_value_at(const index_t position)
+			noexcept(noexcept(get_node(std::declval<index_t>()))) {
 			return get_node(position).value;
 		}
 
 		// See get_node for details.
-		[[nodiscard]] const T& _get_value_at(const index_t position) const {
+		[[nodiscard]] const T& _get_value_at(const index_t position) const
+			noexcept(noexcept(get_node(std::declval<index_t>()))) {
 			return get_node(position).value;
 		}
 
 		// See remove_node for details.
-		T& _erase_value_at(const index_t position) {
+		T& _erase_value_at(const index_t position)
+			noexcept(noexcept(remove_node<true>(std::declval<index_t>()))) {
 			return remove_node<true>(position).value;
 		}
 
 		// See move_node_to_front for details.
-		T& _move_last_value_to_front() {
+		T& _move_last_value_to_front()
+			noexcept(noexcept(_move_value_at_to_front(std::declval<index_t>()))) {
 			return _move_value_at_to_front(tail);
 		}
 
 		// See move_node_to_back for details.
-		T& _move_first_value_to_back() {
+		T& _move_first_value_to_back()
+			noexcept(noexcept(_move_value_at_to_back(std::declval<index_t>()))) {
 			return _move_value_at_to_back(head);
 		}
 
