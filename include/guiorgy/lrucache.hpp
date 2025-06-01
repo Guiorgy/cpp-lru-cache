@@ -1003,7 +1003,7 @@ namespace guiorgy::detail {
 				} else {
 					assert(head < set.size());
 
-					emplace(set[head], std::forward<ValueArgs>(value_args)...);
+					detail::emplace(set[head], std::forward<ValueArgs>(value_args)...);
 				}
 
 				_empty = false;
@@ -1019,7 +1019,7 @@ namespace guiorgy::detail {
 						++head;
 					}
 				} else {
-					emplace(set[next_head], std::forward<ValueArgs>(value_args)...);
+					detail::emplace(set[next_head], std::forward<ValueArgs>(value_args)...);
 					head = next_head;
 				}
 			}
