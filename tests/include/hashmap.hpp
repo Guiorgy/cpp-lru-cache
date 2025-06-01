@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lrucache.hpp"
+#include "guiorgy/lrucache.hpp"
 
 // std::unordered_map
 #define STD_UNORDERED_MAP 10

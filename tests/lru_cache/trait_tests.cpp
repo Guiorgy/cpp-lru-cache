@@ -1,4 +1,4 @@
-#include "lrucache.hpp"
+#include "guiorgy/lrucache.hpp"
 #include "hashmap.hpp"
 
 #define NO_PREALLOCATE guiorgy::lru_cache<int, int, 1, HASH_MAP_TYPE>
