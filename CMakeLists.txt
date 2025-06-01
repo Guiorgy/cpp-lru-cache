@@ -73,14 +73,19 @@ else()
     )
 endif()
 
-include_directories(${PROJECT_SOURCE_DIR}/include)
-
 file(GLOB TESTS ${PROJECT_SOURCE_DIR}/tests/*.cpp)
 add_executable(cpp-lru-cache-test ${TESTS})
 
 target_compile_options(cpp-lru-cache-test PRIVATE "SHELL:${MORE_WARNING_FLAGS}")
 
-target_link_libraries(cpp-lru-cache-test gtest gtest_main)
+target_include_directories(
+    cpp-lru-cache-test PRIVATE
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(
+    cpp-lru-cache-test PRIVATE
+    gtest gtest_main
+)
 
 include(GoogleTest)
 add_test(
