@@ -1,7 +1,7 @@
 #ifndef SKIP_ALLOCATION_TESTS
 #include "gtest/gtest.h"
 #include "alloc_utils.hpp"
-#include "lrucache.hpp"
+#include "guiorgy/lrucache.hpp"
 #include "hashmap.hpp"
 
 #define TEST_GROUP LruCacheAllocationTests
