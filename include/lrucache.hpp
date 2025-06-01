@@ -469,7 +469,7 @@ namespace guiorgy::detail {
 	[[nodiscard]] inline constexpr int_t safe_increment(const int_t x) noexcept {
 		return clamped_increment(x, std::numeric_limits<int_t>::max());
 	}
-}
+} // guiorgy::detail
 
 // Template operators for flags enums.
 namespace guiorgy::detail {
