@@ -2448,12 +2448,12 @@ namespace guiorgy::detail {
 		// See the emplace above for details.
 		// Use key_likely_exists and cache_likely_full to hint to the compiler for which case to optimize for.
 		template<const bool key_likely_exists, const bool cache_likely_full, typename... ValueArgs>
-		void emplace(const key_type& key, ValueArgs&&... value_args) {
-			emplace<likelihood(key_likely_exists), likelihood(cache_likely_full)>(key, std::forward<ValueArgs>(value_args)...);
+		const value_type& emplace(const key_type& key, ValueArgs&&... value_args) {
+			return emplace<likelihood(key_likely_exists), likelihood(cache_likely_full)>(key, std::forward<ValueArgs>(value_args)...);
 		}
 		template<const bool key_likely_exists, typename... ValueArgs>
-		void emplace(const key_type& key, ValueArgs&&... value_args) {
-			emplace<likelihood(key_likely_exists)>(key, std::forward<ValueArgs>(value_args)...);
+		const value_type& emplace(const key_type& key, ValueArgs&&... value_args) {
+			return emplace<likelihood(key_likely_exists)>(key, std::forward<ValueArgs>(value_args)...);
 		}
 
 		// Returns a std::optional with the value that is mapped to the given key,
