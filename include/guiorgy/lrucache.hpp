@@ -1028,6 +1028,9 @@ namespace guiorgy::detail {
 		}
 
 		// Returns a reference to the next element in the set.
+		// Remarks:
+		//   - Calling peek and accessing the returned element when the set was empty
+		//     results in undefined behaviour.
 		template<const bool from_head = true>
 		[[nodiscard]] T& peek() const {
 			assert(!_empty);
@@ -1042,6 +1045,9 @@ namespace guiorgy::detail {
 		// Removes the next element in the set and returns a reference to it.
 		// If from_head is always true, vector_set effectively acts like a vector backed stack.
 		// References to the removed element are not invalidated, since the element is deleted lazily.
+		// Remarks:
+		//   - Calling take_ref and accessing the returned element when the set was empty
+		//     results in undefined behaviour.
 		template<const bool from_head = true>
 		[[nodiscard]] T& take_ref() {
 			assert(!_empty);
@@ -1061,6 +1067,9 @@ namespace guiorgy::detail {
 
 		// Removes the next element in the set and returns it.
 		// If from_head is always true, vector_set effectively acts like a vector backed stack.
+		// Remarks:
+		//   - Calling take and accessing the returned element when the set was empty
+		//     results in undefined behaviour.
 		template<const bool from_head = true>
 		[[nodiscard]] T take() {
 			return take_ref<from_head>();
