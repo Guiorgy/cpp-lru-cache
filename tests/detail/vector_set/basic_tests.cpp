@@ -2,7 +2,7 @@
 #include "lrucache.hpp"
 #include "math_utils.hpp"
 
-#define TEST_GROUP DetailVactorSetBasicTests
+#define TEST_GROUP DetailVectorSetBasicTests
 
 TEST(TEST_GROUP, VectorSet) {
 	constexpr int record_count = 5;
