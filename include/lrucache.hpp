@@ -471,6 +471,297 @@ namespace guiorgy::detail {
 	}
 } // guiorgy::detail
 
+// Wrapper utils.
+namespace guiorgy::detail {
+	// A wrapper for small integer types to prevent implicit integer promotion during arithmetic operations.
+	// For example:
+	//   uint8_t i1 = 1, i2 = 2;
+	//   auto i3 = i1 + i2;
+	//   static_assert(std::is_same_v<decltype(i3), uint8_t>); // fails
+	//   static_assert(std::is_same_v<decltype(i3), int>); // passes
+	template<typename int_t, typename promoted_t = std::size_t>
+	class unpromoting final {
+		static_assert(std::is_integral_v<int_t>, "int_t must be an integral type");
+		static_assert(std::is_unsigned_v<int_t>, "Currently only unsigned integers are supported");
+		static_assert(std::numeric_limits<promoted_t>::max() <= std::numeric_limits<std::size_t>::max(), "Currently only integers with size up to std::size_t are supported");
+		static_assert(std::numeric_limits<int_t>::max() <= std::numeric_limits<promoted_t>::max(), "The size of promoted_t must be larger than that of int_t");
+
+	public:
+		using wrapped_type = int_t;
+		using promoted_type = promoted_t;
+
+	private:
+		int_t _value;
+
+	public:
+		constexpr unpromoting() noexcept : _value(0u) {}
+		#if __cplusplus >= 202002L	// C++20
+			constexpr ~unpromoting() = default;
+		#endif
+		constexpr unpromoting(const unpromoting&) = default;
+		constexpr unpromoting(unpromoting&&) = default;
+		constexpr unpromoting& operator=(unpromoting const&) = default;
+		constexpr unpromoting& operator=(unpromoting &&) = default;
+
+		// Implicit conversions from the wrapped type.
+		constexpr unpromoting(int_t value) noexcept : _value(value) {}
+		constexpr unpromoting& operator=(int_t value) noexcept {
+			_value = value;
+			return *this;
+		}
+
+		// Implicit conversions to the wrapped type.
+		constexpr operator int_t() const noexcept {
+			return _value;
+		}
+
+		// Explicit conversions from other integer types.
+		template<typename other_int_t, typename = std::enable_if_t<std::is_integral_v<other_int_t>>>
+		constexpr explicit unpromoting(other_int_t value) noexcept : _value(static_cast<int_t>(value)) {}
+
+		// Explicit conversions to the promoted type.
+		constexpr explicit operator promoted_t() const noexcept {
+			return static_cast<promoted_t>(_value);
+		}
+		constexpr promoted_t promote() const noexcept {
+			return static_cast<promoted_t>(_value);
+		}
+
+		// Increment and decrement operators.
+		constexpr unpromoting& operator++() noexcept {
+			++_value;
+			return *this;
+		}
+		constexpr unpromoting operator++(int) noexcept {
+			unpromoting before = *this;
+			this->operator++();
+			return *this;
+		}
+		constexpr unpromoting& operator--() noexcept {
+			--_value;
+			return *this;
+		}
+		constexpr unpromoting operator--(int) noexcept {
+			unpromoting before = *this;
+			this->operator--();
+			return *this;
+		}
+
+		// Arithmetic operators.
+		constexpr unpromoting operator+(unpromoting other) const noexcept {
+			return unpromoting(_value + other._value);
+		}
+		constexpr unpromoting& operator+=(unpromoting other) noexcept {
+			_value += other._value;
+			return *this;
+		}
+		constexpr unpromoting operator-(unpromoting other) const noexcept {
+			return unpromoting(_value - other._value);
+		}
+		constexpr unpromoting& operator-=(unpromoting other) noexcept {
+			_value -= other._value;
+			return *this;
+		}
+		constexpr unpromoting operator*(unpromoting other) const noexcept{
+			return unpromoting(_value * other._value);
+		}
+		constexpr unpromoting& operator*=(unpromoting other) noexcept {
+			_value *= other._value;
+			return *this;
+		}
+		constexpr unpromoting operator/(unpromoting other) const noexcept {
+			return unpromoting(_value / other._value);
+		}
+		constexpr unpromoting& operator/=(unpromoting other) noexcept {
+			_value /= other._value;
+			return *this;
+		}
+		constexpr unpromoting operator%(unpromoting other) const noexcept {
+			return unpromoting(_value % other._value);
+		}
+		constexpr unpromoting& operator%=(unpromoting other) noexcept {
+			_value %= other._value;
+			return *this;
+		}
+
+		// Arithmetic operators with integer literals.
+		template<typename literal_t>
+		constexpr std::enable_if_t<std::is_integral_v<literal_t>, unpromoting> operator+(literal_t&& other) const noexcept {
+			return unpromoting(_value + static_cast<int_t>(other));
+		}
+		template<typename literal_t>
+		constexpr std::enable_if_t<std::is_integral_v<literal_t>, unpromoting&> operator+=(literal_t&& other) const noexcept {
+			_value += static_cast<int_t>(other);
+			return *this;
+		}
+		template<typename literal_t>
+		constexpr std::enable_if_t<std::is_integral_v<literal_t>, unpromoting> operator-(literal_t&& other) const noexcept {
+			return unpromoting(_value - static_cast<int_t>(other));
+		}
+		template<typename literal_t>
+		constexpr std::enable_if_t<std::is_integral_v<literal_t>, unpromoting&> operator-=(literal_t&& other) const noexcept {
+			_value -= static_cast<int_t>(other);
+			return *this;
+		}
+		template<typename literal_t>
+		constexpr std::enable_if_t<std::is_integral_v<literal_t>, unpromoting> operator*(literal_t&& other) const noexcept {
+			return unpromoting(_value * static_cast<int_t>(other));
+		}
+		template<typename literal_t>
+		constexpr std::enable_if_t<std::is_integral_v<literal_t>, unpromoting&> operator*=(literal_t&& other) const noexcept {
+			_value *= static_cast<int_t>(other);
+			return *this;
+		}
+		template<typename literal_t>
+		constexpr std::enable_if_t<std::is_integral_v<literal_t>, unpromoting> operator/(literal_t&& other) const noexcept {
+			return unpromoting(_value / static_cast<int_t>(other));
+		}
+		template<typename literal_t>
+		constexpr std::enable_if_t<std::is_integral_v<literal_t>, unpromoting&> operator/=(literal_t&& other) const noexcept {
+			_value /= static_cast<int_t>(other);
+			return *this;
+		}
+		template<typename literal_t>
+		constexpr std::enable_if_t<std::is_integral_v<literal_t>, unpromoting> operator%(literal_t&& other) const noexcept {
+			return unpromoting(_value % static_cast<int_t>(other));
+		}
+		template<typename literal_t>
+		constexpr std::enable_if_t<std::is_integral_v<literal_t>, unpromoting&> operator%=(literal_t&& other) const noexcept {
+			_value %= static_cast<int_t>(other);
+			return *this;
+		}
+
+		// Comparison operators.
+		constexpr bool operator==(unpromoting other) const noexcept {
+			return _value == other._value;
+		}
+		constexpr bool operator!=(unpromoting other) const noexcept {
+			return _value != other._value;
+		}
+		constexpr bool operator<(unpromoting other) const noexcept {
+			return _value < other._value;
+		}
+		constexpr bool operator<=(unpromoting other) const noexcept {
+			return _value <= other._value;
+		}
+		constexpr bool operator>(unpromoting other) const noexcept {
+			return _value > other._value;
+		}
+		constexpr bool operator>=(unpromoting other) const noexcept {
+			return _value >= other._value;
+		}
+
+		// Comparison operators with integer literals.
+		template<typename literal_t>
+		constexpr std::enable_if_t<std::is_integral_v<literal_t>, bool> operator==(literal_t&& other) const noexcept {
+			return _value == static_cast<int_t>(other);
+		}
+		template<typename literal_t>
+		constexpr std::enable_if_t<std::is_integral_v<literal_t>, bool> operator!=(literal_t&& other) const noexcept {
+			return _value != static_cast<int_t>(other);
+		}
+		template<typename literal_t>
+		constexpr std::enable_if_t<std::is_integral_v<literal_t>, bool> operator<(literal_t&& other) const noexcept {
+			return _value < static_cast<int_t>(other);
+		}
+		template<typename literal_t>
+		constexpr std::enable_if_t<std::is_integral_v<literal_t>, bool> operator<=(literal_t&& other) const noexcept {
+			return _value <= static_cast<int_t>(other);
+		}
+		template<typename literal_t>
+		constexpr std::enable_if_t<std::is_integral_v<literal_t>, bool> operator>(literal_t&& other) const noexcept {
+			return _value > static_cast<int_t>(other);
+		}
+		template<typename literal_t>
+		constexpr std::enable_if_t<std::is_integral_v<literal_t>, bool> operator>=(literal_t&& other) const noexcept {
+			return _value >= static_cast<int_t>(other);
+		}
+
+		// Missing operators:
+		//   - Bitwise Shift (<<, <<=, >>. >>=)
+		//   - Bitwise (~, &, &=, |, |=, ^, ^=)
+		//   - Boolean (!, bool())
+		// Consider adding them if they are needed.
+	};
+} // guiorgy::detail
+
+// Specializations of types inside std for our types.
+namespace std {
+	// std::numeric_limits specialization for uiorgy::detail::unpromoting.
+	template<typename int_t, typename promoted_t>
+	struct numeric_limits<guiorgy::detail::unpromoting<int_t, promoted_t>> {
+		static constexpr bool is_specialized = true;
+		static constexpr bool is_signed = std::numeric_limits<int_t>::is_signed;
+		static constexpr bool is_integer = std::numeric_limits<int_t>::is_integer;
+		static constexpr bool is_exact = std::numeric_limits<int_t>::is_exact;
+		static constexpr bool has_infinity = std::numeric_limits<int_t>::has_infinity;
+		static constexpr bool has_quiet_NaN = std::numeric_limits<int_t>::has_quiet_NaN;
+		static constexpr bool has_signaling_NaN = std::numeric_limits<int_t>::has_signaling_NaN;
+		[[deprecated("Deprecated in C++23")]] static constexpr std::float_denorm_style has_denorm = std::denorm_absent;
+		static constexpr bool has_denorm_loss = std::numeric_limits<int_t>::has_denorm_loss;
+		static constexpr std::float_round_style round_style = std::round_toward_zero;
+		static constexpr bool is_iec559 = std::numeric_limits<int_t>::is_iec559;
+		static constexpr bool is_bounded = std::numeric_limits<int_t>::is_bounded;
+		static constexpr bool is_modulo = std::numeric_limits<int_t>::is_modulo;
+		static constexpr int digits = std::numeric_limits<int_t>::digits;
+		static constexpr int digits10 = std::numeric_limits<int_t>::digits10;
+		static constexpr int max_digits10 = std::numeric_limits<int_t>::max_digits10;
+		static constexpr int radix = std::numeric_limits<int_t>::radix;
+		static constexpr int min_exponent = std::numeric_limits<int_t>::min_exponent;
+		static constexpr int min_exponent10 = std::numeric_limits<int_t>::min_exponent10;
+		static constexpr int max_exponent = std::numeric_limits<int_t>::max_exponent;
+		static constexpr int max_exponent10 = std::numeric_limits<int_t>::max_exponent10;
+		static constexpr bool traps = std::numeric_limits<int_t>::traps;
+		static constexpr bool tinyness_before = std::numeric_limits<int_t>::tinyness_before;
+
+		static constexpr guiorgy::detail::unpromoting<int_t, promoted_t> min() noexcept {
+			return guiorgy::detail::unpromoting<int_t, promoted_t>(std::numeric_limits<int_t>::min());
+		}
+		static constexpr guiorgy::detail::unpromoting<int_t, promoted_t> lowest() noexcept {
+			return guiorgy::detail::unpromoting<int_t, promoted_t>(std::numeric_limits<int_t>::lowest());
+		}
+		static constexpr guiorgy::detail::unpromoting<int_t, promoted_t> max() noexcept {
+			return guiorgy::detail::unpromoting<int_t, promoted_t>(std::numeric_limits<int_t>::max());
+		}
+
+		static constexpr guiorgy::detail::unpromoting<int_t, promoted_t> epsilon() noexcept {
+			return guiorgy::detail::unpromoting<int_t, promoted_t>(std::numeric_limits<int_t>::epsilon());
+		}
+		static constexpr guiorgy::detail::unpromoting<int_t, promoted_t> round_error() noexcept {
+			return guiorgy::detail::unpromoting<int_t, promoted_t>(std::numeric_limits<int_t>::round_error());
+		}
+
+		static constexpr guiorgy::detail::unpromoting<int_t, promoted_t> infinity() noexcept {
+			return guiorgy::detail::unpromoting<int_t, promoted_t>(std::numeric_limits<int_t>::infinity());
+		}
+		static constexpr guiorgy::detail::unpromoting<int_t, promoted_t> quiet_NaN() noexcept {
+			return guiorgy::detail::unpromoting<int_t, promoted_t>(std::numeric_limits<int_t>::quiet_NaN());
+		}
+		static constexpr guiorgy::detail::unpromoting<int_t, promoted_t> signaling_NaN() noexcept {
+			return guiorgy::detail::unpromoting<int_t, promoted_t>(std::numeric_limits<int_t>::signaling_NaN());
+		}
+		static constexpr guiorgy::detail::unpromoting<int_t, promoted_t> denorm_min() noexcept {
+			return guiorgy::detail::unpromoting<int_t, promoted_t>(std::numeric_limits<int_t>::denorm_min());
+		}
+	};
+
+	// std::is_integral specialization for uiorgy::detail::unpromoting.
+	template<typename int_t, typename promoted_t>
+	struct is_integral<guiorgy::detail::unpromoting<int_t, promoted_t>> : std::is_integral<int_t> {};
+
+	// std::is_arithmetic specialization for uiorgy::detail::unpromoting.
+	template<typename int_t, typename promoted_t>
+	struct is_arithmetic<guiorgy::detail::unpromoting<int_t, promoted_t>> : std::is_arithmetic<int_t> {};
+
+	// std::is_signed specialization for uiorgy::detail::unpromoting.
+	template<typename int_t, typename promoted_t>
+	struct is_signed<guiorgy::detail::unpromoting<int_t, promoted_t>> : std::is_signed<int_t> {};
+
+	// std::is_unsigned specialization for uiorgy::detail::unpromoting.
+	template<typename int_t, typename promoted_t>
+	struct is_unsigned<guiorgy::detail::unpromoting<int_t, promoted_t>> : std::is_unsigned<int_t> {};
+} // std
+
 // Template operators for flags enums.
 namespace guiorgy::detail {
 	/*
@@ -572,9 +863,11 @@ namespace guiorgy::detail {
 	//   - The size of the container must not exceed the maximum value representable by index_t plus one.
 	//   - The size limitation is not enforced within the container, the user must ensure that this condition is not violated.
 	//   - The removed elements are not deleted immediately, instead they are replaced when new elements are put into the container.
-	template<typename T, typename index_t = std::size_t>
+	template<typename T, typename _index_t = std::size_t>
 	class vector_set final {
-		static_assert(std::is_integral_v<index_t> && std::is_unsigned_v<index_t>, "index_t must be an unsigned integer type");
+		static_assert(std::is_integral_v<_index_t> && std::is_unsigned_v<_index_t>, "_index_t must be an unsigned integer type");
+
+		using index_t = unpromoting<_index_t, std::size_t>;
 
 		std::vector<T> set{};
 		index_t head = 0u;
@@ -586,12 +879,12 @@ namespace guiorgy::detail {
 		[[nodiscard]] index_t next_index(const index_t index) const noexcept {
 			assert(set.size() <= static_cast<std::size_t>(std::numeric_limits<index_t>::max()) + 1u);
 			assert(set.size() != 0u);
-			assert(static_cast<std::size_t>(index) < set.size());
+			assert(std::size_t(index) < set.size());
 
 			if constexpr (forward) {
-				return index != static_cast<index_t>(safe_decrement(set.size())) ? index + 1u : 0u;
+				return index != index_t(safe_decrement(set.size())) ? index + 1u : index_t(0u);
 			} else {
-				return index != 0u ? static_cast<index_t>(index - 1u) : static_cast<index_t>(safe_decrement(set.size()));
+				return index != 0u ? index - 1u : index_t(safe_decrement(set.size()));
 			}
 		}
 
@@ -613,8 +906,8 @@ namespace guiorgy::detail {
 			if (_empty) LIKELY {
 				return 0u;
 			} else {
-				std::size_t _head = static_cast<std::size_t>(head);
-				std::size_t _tail = static_cast<std::size_t>(tail);
+				std::size_t _head = std::size_t(head);
+				std::size_t _tail = std::size_t(tail);
 
 				return _tail <= _head ? _head - tail + 1u : (_head + 1u) + (set.size() - tail);
 			}
