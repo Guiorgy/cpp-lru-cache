@@ -2438,7 +2438,8 @@ namespace guiorgy::detail {
 		// or an empty optional if such key does not already exist.
 		// Use key_exists to hint to the compiler for which case to optimize for.
 		template<const Likelihood key_exists = Likelihood::Unknown>
-		[[nodiscard]] const std::optional<value_type> get(const key_type& key) {
+		[[nodiscard("Use touch(const key_type& key) instead if all you want is to push the key to the bottom of the removal order")]]
+		const std::optional<value_type> get(const key_type& key) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
 			hashmap_iterator_type it = this->_cache_items_map.find(key);
@@ -2471,7 +2472,8 @@ namespace guiorgy::detail {
 		// See the get above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
 		template<const bool key_likely_exists>
-		[[nodiscard]] const std::optional<value_type> get(const key_type& key) {
+		[[nodiscard("Use touch(const key_type& key) instead if all you want is to push the key to the bottom of the removal order")]]
+		const std::optional<value_type> get(const key_type& key) {
 			return get<likelihood(key_likely_exists)>(key);
 		}
 
@@ -2482,7 +2484,8 @@ namespace guiorgy::detail {
 		//   - No guarantees are given about the underlying object lifetime when
 		//     modifying the cache (inserting/removing elements), so use with caution.
 		template<const Likelihood key_exists = Likelihood::Unknown>
-		[[nodiscard]] const std::optional<std::reference_wrapper<const value_type>> get_ref(const key_type& key) {
+		[[nodiscard("Use touch(const key_type& key) instead if all you want is to push the key to the bottom of the removal order")]]
+		const std::optional<std::reference_wrapper<const value_type>> get_ref(const key_type& key) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
 			hashmap_iterator_type it = this->_cache_items_map.find(key);
@@ -2515,7 +2518,8 @@ namespace guiorgy::detail {
 		// See the get_ref above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
 		template<const bool key_likely_exists>
-		[[nodiscard]] const std::optional<std::reference_wrapper<const value_type>> get_ref(const key_type& key) {
+		[[nodiscard("Use touch(const key_type& key) instead if all you want is to push the key to the bottom of the removal order")]]
+		const std::optional<std::reference_wrapper<const value_type>> get_ref(const key_type& key) {
 			return get_ref<likelihood(key_likely_exists)>(key);
 		}
 
@@ -2523,7 +2527,8 @@ namespace guiorgy::detail {
 		// the given value_out reference, or false if such key does not already exist.
 		// Use key_exists to hint to the compiler for which case to optimize for.
 		template<const Likelihood key_exists = Likelihood::Unknown>
-		[[nodiscard]] bool try_get(const key_type& key, value_type& value_out) {
+		[[nodiscard("Use touch(const key_type& key) instead if all you want is to push the key to the bottom of the removal order")]]
+		bool try_get(const key_type& key, value_type& value_out) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
 			hashmap_iterator_type it = this->_cache_items_map.find(key);
@@ -2559,7 +2564,8 @@ namespace guiorgy::detail {
 		// See the try_get above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
 		template<const bool key_likely_exists>
-		[[nodiscard]] bool try_get(const key_type& key, value_type& value_out) {
+		[[nodiscard("Use touch(const key_type& key) instead if all you want is to push the key to the bottom of the removal order")]]
+		bool try_get(const key_type& key, value_type& value_out) {
 			return try_get<likelihood(key_likely_exists)>(key, value_out);
 		}
 
@@ -2571,7 +2577,8 @@ namespace guiorgy::detail {
 		//   - No guarantees are given about the underlying object lifetime when
 		//     modifying the cache (inserting/removing elements), so use with caution.
 		template<const Likelihood key_exists = Likelihood::Unknown>
-		[[nodiscard]] bool try_get_ref(const key_type& key, const value_type*& value_out) {
+		[[nodiscard("Use touch(const key_type& key) instead if all you want is to push the key to the bottom of the removal order")]]
+		bool try_get_ref(const key_type& key, const value_type*& value_out) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
 			hashmap_iterator_type it = this->_cache_items_map.find(key);
@@ -2607,7 +2614,8 @@ namespace guiorgy::detail {
 		// See the try_get_ref above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
 		template<const bool key_likely_exists>
-		[[nodiscard]] bool try_get_ref(const key_type& key, const value_type*& value_out) {
+		[[nodiscard("Use touch(const key_type& key) instead if all you want is to push the key to the bottom of the removal order")]]
+		bool try_get_ref(const key_type& key, const value_type*& value_out) {
 			return try_get_ref<likelihood(key_likely_exists)>(key, value_out);
 		}
 
