@@ -2548,6 +2548,10 @@ namespace guiorgy::detail {
 		// Returns true and copies the value that is mapped to the given key into
 		// the given value_out reference, or false if such key does not already exist.
 		// Use key_exists to hint to the compiler for which case to optimize for.
+		// Remarks:
+		//   - value_out is not modified when try_get returns false. If value_out was
+		//     a reference to an uninitialized object, it will remain uninitialized,
+		//     and accessing it will result in undefined behaviour.
 		template<const Likelihood key_exists = Likelihood::Unknown>
 		[[nodiscard("Use touch(const key_type& key) instead if all you want is to push the key to the bottom of the removal order")]]
 		bool try_get(const key_type& key, value_type& value_out) {
@@ -2598,6 +2602,9 @@ namespace guiorgy::detail {
 		// Remarks:
 		//   - No guarantees are given about the underlying object lifetime when
 		//     modifying the cache (inserting/removing elements), so use with caution.
+		//   - value_out is not modified when try_get_ref returns false. If value_out
+		//     was pointing to an invalid memory (e.g. nullptr), it will remain
+		//     invalid, and dereferencing it will result in undefined behaviour.
 		template<const Likelihood key_exists = Likelihood::Unknown>
 		[[nodiscard("Use touch(const key_type& key) instead if all you want is to push the key to the bottom of the removal order")]]
 		bool try_get_ref(const key_type& key, const value_type*& value_out) {
@@ -2748,6 +2755,10 @@ namespace guiorgy::detail {
 		// given key, returns true and copies the value that is mapped to the given key
 		// into the given value_out reference, or false if such key does not exist.
 		// Use key_exists to hint to the compiler for which case to optimize for.
+		// Remarks:
+		//   - value_out is not modified when try_remove returns false. If value_out
+		//     was a reference to an uninitialized object, it will remain
+		//     uninitialized, and accessing it will result in undefined behaviour.
 		template<const Likelihood key_exists = Likelihood::Unknown>
 		[[nodiscard("Use erase(const key_type& key) instead")]]
 		bool try_remove(const key_type& key, value_type& value_out) {
@@ -2802,6 +2813,9 @@ namespace guiorgy::detail {
 		// Remarks:
 		//   - No guarantees are given about the underlying object lifetime when
 		//     modifying the cache (inserting/removing elements), so use with caution.
+		//   - value_out is not modified when try_remove_ref returns false. If
+		//     value_out was pointing to an invalid memory (e.g. nullptr), it will
+		//     remain invalid, and dereferencing it will result in undefined behaviour.
 		template<const Likelihood key_exists = Likelihood::Unknown>
 		[[nodiscard("Use erase(const key_type& key) instead")]]
 		bool try_remove_ref(const key_type& key, const value_type*& value_out) {
