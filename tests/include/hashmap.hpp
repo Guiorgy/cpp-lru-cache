@@ -2,8 +2,8 @@
 
 #include "lrucache.hpp"
 
-// STL std::unordered_map
-#define STL_UNORDERED_MAP 10
+// std::unordered_map
+#define STD_UNORDERED_MAP 10
 
 // Abseil absl::flat_hash_map
 #define ABSEIL_FLAT_HASH_MAP 20
@@ -22,12 +22,12 @@
 
 // Set the default implementation
 #ifndef LRU_CACHE_HASH_MAP_IMPLEMENTATION
-	#define LRU_CACHE_HASH_MAP_IMPLEMENTATION STL_UNORDERED_MAP
+	#define LRU_CACHE_HASH_MAP_IMPLEMENTATION STD_UNORDERED_MAP
 #endif
 
 // Use the correct headers and type for the selected implementation
-#if LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_UNORDERED_MAP
-	// STL std::unordered_map
+#if LRU_CACHE_HASH_MAP_IMPLEMENTATION == STD_UNORDERED_MAP
+	// std::unordered_map
 	#include <unordered_map>
 	#define HASH_MAP_TYPE std::unordered_map
 
@@ -93,6 +93,6 @@
 	#define VALUE(x) VALUE_TO_STRING(x)
 
 	#pragma message("LRU_CACHE_HASH_MAP_IMPLEMENTATION is set to " VALUE(LRU_CACHE_HASH_MAP_IMPLEMENTATION))
-	#pragma message("Possible valiues are STL_UNORDERED_MAP(std::unordered_map), ABSEIL_FLAT_HASH_MAP(absl::flat_hash_map), TESSIL_SPARSE_MAP(tsl::sparse_map), TESSIL_ROBIN_MAP(tsl::robin_map), TESSIL_HOPSCOTCH_MAP(tsl::hopscotch_map), ANKERL_UNORDERED_DENSE_MAP(ankerl::unordered_dense::map), ANKERL_UNORDERED_DENSE_SEGMENTED_MAP(ankerl::unordered_dense::segmented_map)")
+	#pragma message("Possible valiues are STD_UNORDERED_MAP(std::unordered_map), ABSEIL_FLAT_HASH_MAP(absl::flat_hash_map), TESSIL_SPARSE_MAP(tsl::sparse_map), TESSIL_ROBIN_MAP(tsl::robin_map), TESSIL_HOPSCOTCH_MAP(tsl::hopscotch_map), ANKERL_UNORDERED_DENSE_MAP(ankerl::unordered_dense::map), ANKERL_UNORDERED_DENSE_SEGMENTED_MAP(ankerl::unordered_dense::segmented_map)")
 	#error "Unexpected value of LRU_CACHE_HASH_MAP_IMPLEMENTATION"
 #endif

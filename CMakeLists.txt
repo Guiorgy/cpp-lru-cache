@@ -80,10 +80,10 @@ set(HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES "")
 
 if (HASH_MAP_IMPLEMENTATION STREQUAL "")
     message(STATUS "Using the default hashmap implementation")
-elseif (HASH_MAP_IMPLEMENTATION STREQUAL "STL")
+elseif (HASH_MAP_IMPLEMENTATION STREQUAL "STD")
     message(STATUS "Using std::unordered_map as the hashmap implementation")
 
-    add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=STL_UNORDERED_MAP)
+    add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=STD_UNORDERED_MAP)
 elseif (HASH_MAP_IMPLEMENTATION STREQUAL "ABSEIL")
     message(STATUS "Using absl::flat_hash_map as the hashmap implementation")
 
