@@ -842,7 +842,7 @@ namespace guiorgy::detail {
 			bool removed; // For debug assertions to check the correctness of the list.
 #endif
 
-			list_node(const T& _value, const index_t _prior, const index_t _next) :
+			list_node(const index_t _prior, const index_t _next, const T& _value) :
 				value(_value),
 				prior(_prior),
 				next(_next)
@@ -851,7 +851,7 @@ namespace guiorgy::detail {
 #endif
 				{}
 
-			list_node(T&& _value, const index_t _prior, const index_t _next) :
+			list_node(const index_t _prior, const index_t _next, T&& _value) :
 				value(std::move(_value)),
 				prior(_prior),
 				next(_next)
@@ -1119,7 +1119,7 @@ namespace guiorgy::detail {
 				head = list_size;
 				if (tail == null_index) UNLIKELY tail = head;
 
-				list.emplace_back(value, prior, null_index);
+				list.emplace_back(prior, null_index, value);
 			}
 		}
 
@@ -1151,7 +1151,7 @@ namespace guiorgy::detail {
 				head = list_size;
 				if (tail == null_index) UNLIKELY tail = head;
 
-				list.emplace_back(std::move(value), prior, null_index);
+				list.emplace_back(prior, null_index, std::move(value));
 			}
 		}
 
@@ -1220,7 +1220,7 @@ namespace guiorgy::detail {
 				tail = list_size;
 				if (head == null_index) UNLIKELY head = tail;
 
-				list.emplace_back(value, null_index, next);
+				list.emplace_back(null_index, next, value);
 			}
 		}
 
@@ -1252,7 +1252,7 @@ namespace guiorgy::detail {
 				tail = list_size;
 				if (head == null_index) UNLIKELY head = tail;
 
-				list.emplace_back(std::move(value), null_index, next);
+				list.emplace_back(null_index, next, std::move(value));
 			}
 		}
 
