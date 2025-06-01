@@ -4,7 +4,7 @@
 #define NO_PREALLOCATE guiorgy::lru_cache<int, int, 1, HASH_MAP_TYPE>
 #define PREALLOCATE guiorgy::lru_cache_opts<guiorgy::LruCacheOptions::Preallocate, int, int, 1, HASH_MAP_TYPE>
 
-#if LRU_CACHE_HASH_MAP_IMPLEMENTATION == STL_UNORDERED_MAP
+#if LRU_CACHE_HASH_MAP_IMPLEMENTATION == STD_UNORDERED_MAP
 	// preallocate = false (default)
 	static_assert(std::is_constructible_v<NO_PREALLOCATE> == true);
 	static_assert(std::is_trivially_constructible_v<NO_PREALLOCATE> == false);

@@ -4,7 +4,7 @@
 
 An LRU (Least Recently Used) cache for C++ 17 based on hashmap and a packed linkedlist based on vector. The library is header only, a simple test and example are included.
 
-> ⚠️ *For a simpler implementation that only includes standard STL containers and very little of its own logics (and probably more reliable) see the stl-only branch.*
+> ⚠️ *For a simpler implementation that only includes standard STD containers and very little of its own logics (and probably more reliable) see the std-only branch.*
 
 ### Example
 
@@ -34,7 +34,7 @@ const std::string& from_cache_2 = cache.get_ref("two")->get();
 
 ### Change the underlying hashmap implementation
 
-The underlying hashmap implementation can be changed from the default STL `std::unordered_map` to any other that has the following members similar to `std::unordered_map`:
+The underlying hashmap implementation can be changed from the default `std::unordered_map` to any other that has the following members similar to `std::unordered_map`:
 
 - todo
 
@@ -52,7 +52,7 @@ You can also change the default hash function and key equality predecate:
 
 The following hashmap implementation versions are tested by executing full-test.sh:
 
-- [STL](https://en.cppreference.com/w/cpp/container/unordered_map) `std::unordered_map`
+- [STD](https://en.cppreference.com/w/cpp/container/unordered_map) `std::unordered_map`
 - [Abseil](https://github.com/abseil/abseil-cpp) `absl::flat_hash_map` (20250512.0)
 - [Tessil Sparse](https://github.com/Tessil/sparse-map) `tsl::sparse_map` (v0.6.2)
 - [Tessil Robin](https://github.com/Tessil/sparse-map) `tsl::robin_map` (v1.4.0)
@@ -67,7 +67,7 @@ To decide which implementation to use, check out the amazing round of [benchmark
 ```shell
 cd build
 cmake ..
-# cmake -DCMAKE_BUILD_TYPE=Debug -DCPPCHECK=ON -DHASH_MAP_IMPLEMENTATION=STL|ABSEIL|TESSIL_SPARSE|TESSIL_ROBIN|TESSIL_HOP|ANKERL|ANKERL_SEG ..
+# cmake -DCMAKE_BUILD_TYPE=Debug -DCPPCHECK=ON -DHASH_MAP_IMPLEMENTATION=STD|ABSEIL|TESSIL_SPARSE|TESSIL_ROBIN|TESSIL_HOP|ANKERL|ANKERL_SEG ..
 make test
 # make sanitize
 # ./full-test.sh
