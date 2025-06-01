@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "lrucache.hpp"
+#include "guiorgy/lrucache.hpp"
 #include "math_utils.hpp"
 
 #define TEST_GROUP DetailVectorSetBasicTests

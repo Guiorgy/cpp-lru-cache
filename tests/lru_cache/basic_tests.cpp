@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "lrucache.hpp"
+#include "guiorgy/lrucache.hpp"
 #include "hashmap.hpp"
 
 #define TEST_GROUP LruCacheBasicTests
