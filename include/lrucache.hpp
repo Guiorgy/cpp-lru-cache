@@ -834,7 +834,8 @@ namespace guiorgy::detail {
 		static_assert(max_size <= null_index, "null_index can not be less than max_size, since those are valid indeces");
 
 		// The internal node structure of the list.
-		struct list_node final {
+		// Value first variant.
+		struct list_node_value_first final {
 			T value;
 			index_t prior;
 			index_t next;
@@ -842,7 +843,7 @@ namespace guiorgy::detail {
 			bool removed; // For debug assertions to check the correctness of the list.
 #endif
 
-			list_node(const index_t _prior, const index_t _next, const T& _value) :
+			list_node_value_first(const index_t _prior, const index_t _next, const T& _value) :
 				value(_value),
 				prior(_prior),
 				next(_next)
@@ -851,7 +852,7 @@ namespace guiorgy::detail {
 #endif
 				{}
 
-			list_node(const index_t _prior, const index_t _next, T&& _value) :
+			list_node_value_first(const index_t _prior, const index_t _next, T&& _value) :
 				value(std::move(_value)),
 				prior(_prior),
 				next(_next)
@@ -861,7 +862,7 @@ namespace guiorgy::detail {
 				{}
 
 			template<typename... ValueArgs>
-			list_node(const index_t _prior, const index_t _next, ValueArgs&&... value_args) :
+			list_node_value_first(const index_t _prior, const index_t _next, ValueArgs&&... value_args) :
 				value(std::forward<ValueArgs>(value_args)...),
 				prior(_prior),
 				next(_next)
@@ -875,13 +876,67 @@ namespace guiorgy::detail {
 				return emplace(value, std::forward<ValueArgs>(value_args)...);
 			}
 
-			list_node() = delete;
-			~list_node() = default;
-			list_node(const list_node&) = default;
-			list_node(list_node&&) = default;
-			list_node& operator=(list_node const&) = default;
-			list_node& operator=(list_node &&) = default;
+			list_node_value_first() = delete;
+			~list_node_value_first() = default;
+			list_node_value_first(const list_node_value_first&) = default;
+			list_node_value_first(list_node_value_first&&) = default;
+			list_node_value_first& operator=(list_node_value_first const&) = default;
+			list_node_value_first& operator=(list_node_value_first &&) = default;
 		};
+
+		// The internal node structure of the list.
+		// Value last variant.
+		struct list_node_value_last final {
+			index_t prior;
+			index_t next;
+			T value;
+#ifndef NDEBUG
+			bool removed; // For debug assertions to check the correctness of the list.
+#endif
+
+			list_node_value_last(const index_t _prior, const index_t _next, const T& _value) :
+				prior(_prior),
+				next(_next),
+				value(_value)
+#ifndef NDEBUG
+				, removed(false)
+#endif
+				{}
+
+			list_node_value_last(const index_t _prior, const index_t _next, T&& _value) :
+				prior(_prior),
+				next(_next),
+				value(std::move(_value))
+#ifndef NDEBUG
+				, removed(false)
+#endif
+				{}
+
+			template<typename... ValueArgs>
+			list_node_value_last(const index_t _prior, const index_t _next, ValueArgs&&... value_args) :
+				prior(_prior),
+				next(_next),
+				value(std::forward<ValueArgs>(value_args)...)
+#ifndef NDEBUG
+				, removed(false)
+#endif
+				{}
+
+			template<typename... ValueArgs>
+			T& emplace_value(ValueArgs&&... value_args) {
+				return emplace(value, std::forward<ValueArgs>(value_args)...);
+			}
+
+			list_node_value_last() = delete;
+			~list_node_value_last() = default;
+			list_node_value_last(const list_node_value_last&) = default;
+			list_node_value_last(list_node_value_last&&) = default;
+			list_node_value_last& operator=(list_node_value_last const&) = default;
+			list_node_value_last& operator=(list_node_value_last &&) = default;
+		};
+
+		// The internal node structure of the list.
+		using list_node = std::conditional_t<alignof(T) >= alignof(index_t), list_node_value_first, list_node_value_last>;
 
 		// Forward declaration of _iterator.
 		template<const bool constant, const bool reverse>
