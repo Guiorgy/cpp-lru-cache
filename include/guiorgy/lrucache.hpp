@@ -901,8 +901,6 @@ namespace guiorgy::detail {
 			if (_empty) LIKELY {
 				assert(head == tail);
 
-				_empty = false;
-
 				if (set.empty()) UNLIKELY {
 					assert(head == 0u);
 
@@ -912,6 +910,8 @@ namespace guiorgy::detail {
 
 					set[head] = value;
 				}
+
+				_empty = false;
 			} else {
 				index_t next_head = next_index(head);
 
@@ -924,8 +924,8 @@ namespace guiorgy::detail {
 						++head;
 					}
 				} else {
+					set[next_head] = value;
 					head = next_head;
-					set[head] = value;
 				}
 			}
 
@@ -937,8 +937,6 @@ namespace guiorgy::detail {
 			if (_empty) LIKELY {
 				assert(head == tail);
 
-				_empty = false;
-
 				if (set.empty()) UNLIKELY {
 					assert(head == 0u);
 
@@ -948,6 +946,8 @@ namespace guiorgy::detail {
 
 					set[head] = std::move(value);
 				}
+
+				_empty = false;
 			} else {
 				index_t next_head = next_index(head);
 
@@ -960,8 +960,8 @@ namespace guiorgy::detail {
 						++head;
 					}
 				} else {
+					set[next_head] = std::move(value);
 					head = next_head;
-					set[head] = std::move(value);
 				}
 			}
 
@@ -974,8 +974,6 @@ namespace guiorgy::detail {
 			if (_empty) LIKELY {
 				assert(head == tail);
 
-				_empty = false;
-
 				if (set.empty()) UNLIKELY {
 					assert(head == 0u);
 
@@ -985,6 +983,8 @@ namespace guiorgy::detail {
 
 					emplace(set[head], std::forward<ValueArgs>(value_args)...);
 				}
+
+				_empty = false;
 			} else {
 				index_t next_head = next_index(head);
 
@@ -997,8 +997,8 @@ namespace guiorgy::detail {
 						++head;
 					}
 				} else {
+					emplace(set[next_head], std::forward<ValueArgs>(value_args)...);
 					head = next_head;
-					emplace(set[head], std::forward<ValueArgs>(value_args)...);
 				}
 			}
 
@@ -1260,6 +1260,13 @@ namespace guiorgy::detail {
 
 			list_node& _at = list[at];
 
+			if constexpr (mark_removed) {
+				free_indices.put(at);
+#ifndef NDEBUG
+				_at.removed = true;
+#endif
+			}
+
 			if (at != head && at != tail) LIKELY {
 				assert(_at.prior != null_index && _at.next != null_index);
 
@@ -1280,13 +1287,6 @@ namespace guiorgy::detail {
 
 				head = null_index;
 				tail = null_index;
-			}
-
-			if constexpr (mark_removed) {
-				free_indices.put(at);
-#ifndef NDEBUG
-				_at.removed = true;
-#endif
 			}
 
 			return _at;
@@ -1440,12 +1440,11 @@ namespace guiorgy::detail {
 				assert(list.size() <= std::numeric_limits<index_t>::max());
 				index_t list_size = static_cast<index_t>(list.size());
 
+				list.emplace_back(head, null_index, value);
+
 				if (head != null_index) LIKELY list[head].next = list_size;
-				index_t prior = head;
 				head = list_size;
 				if (tail == null_index) UNLIKELY tail = head;
-
-				list.emplace_back(prior, null_index, value);
 			}
 		}
 
@@ -1472,12 +1471,11 @@ namespace guiorgy::detail {
 				assert(list.size() <= std::numeric_limits<index_t>::max());
 				index_t list_size = static_cast<index_t>(list.size());
 
+				list.emplace_back(head, null_index, std::move(value));
+
 				if (head != null_index) LIKELY list[head].next = list_size;
-				index_t prior = head;
 				head = list_size;
 				if (tail == null_index) UNLIKELY tail = head;
-
-				list.emplace_back(prior, null_index, std::move(value));
 			}
 		}
 
@@ -1509,12 +1507,13 @@ namespace guiorgy::detail {
 				assert(list.size() <= std::numeric_limits<index_t>::max());
 				index_t list_size = static_cast<index_t>(list.size());
 
+				T& value = list.emplace_back(head, null_index, std::forward<ValueArgs>(value_args)...).value;
+
 				if (head != null_index) LIKELY list[head].next = list_size;
-				index_t prior = head;
 				head = list_size;
 				if (tail == null_index) UNLIKELY tail = head;
 
-				return list.emplace_back(prior, null_index, std::forward<ValueArgs>(value_args)...).value;
+				return value;
 			}
 		}
 
@@ -1541,12 +1540,11 @@ namespace guiorgy::detail {
 				assert(list.size() <= std::numeric_limits<index_t>::max());
 				index_t list_size = static_cast<index_t>(list.size());
 
+				list.emplace_back(null_index, tail, value);
+
 				if (tail != null_index) LIKELY list[tail].prior = list_size;
-				index_t next = tail;
 				tail = list_size;
 				if (head == null_index) UNLIKELY head = tail;
-
-				list.emplace_back(null_index, next, value);
 			}
 		}
 
@@ -1573,12 +1571,11 @@ namespace guiorgy::detail {
 				assert(list.size() <= std::numeric_limits<index_t>::max());
 				index_t list_size = static_cast<index_t>(list.size());
 
+				list.emplace_back(null_index, tail, std::move(value));
+
 				if (tail != null_index) LIKELY list[tail].prior = list_size;
-				index_t next = tail;
 				tail = list_size;
 				if (head == null_index) UNLIKELY head = tail;
-
-				list.emplace_back(null_index, next, std::move(value));
 			}
 		}
 
@@ -1610,12 +1607,13 @@ namespace guiorgy::detail {
 				assert(list.size() <= std::numeric_limits<index_t>::max());
 				index_t list_size = static_cast<index_t>(list.size());
 
+				T& value = list.emplace_back(null_index, tail, std::forward<ValueArgs>(value_args)...).value;
+
 				if (tail != null_index) LIKELY list[tail].prior = list_size;
-				index_t next = tail;
 				tail = list_size;
 				if (head == null_index) UNLIKELY head = tail;
 
-				return list.emplace_back(null_index, next, std::forward<ValueArgs>(value_args)...).value;
+				return value;
 			}
 		}
 
@@ -1633,13 +1631,17 @@ namespace guiorgy::detail {
 		T& pop_front_ref() {
 			assert(head != null_index);
 			assert(size() != 0u);
-
-			T& _front = list[head].value;
 #ifndef NDEBUG
 			assert(!list[head].removed);
+#endif
+
+			T& _front = list[head].value;
+
+			free_indices.put(head);
+#ifndef NDEBUG
 			list[head].removed = true;
 #endif
-			free_indices.put(head);
+
 			head = _front.prior;
 			if (head == null_index) UNLIKELY tail = null_index;
 			else list[head].next = null_index;
@@ -1668,13 +1670,17 @@ namespace guiorgy::detail {
 		T& pop_back_ref() {
 			assert(tail != null_index);
 			assert(size() != 0u);
-
-			T& _back = list[tail].value;
 #ifndef NDEBUG
 			assert(!list[tail].removed);
+#endif
+
+			T& _back = list[tail].value;
+
+			free_indices.put(tail);
+#ifndef NDEBUG
 			list[tail].removed = true;
 #endif
-			free_indices.put(tail);
+
 			tail = _back.next;
 			if (tail == null_index) UNLIKELY head = null_index;
 			else list[tail].next = null_index;
@@ -1717,6 +1723,8 @@ namespace guiorgy::detail {
 		// References referring to contained elements are not invalidated, since the elements are deleted lazily.
 		// Invalidates any iterators referring to contained elements.
 		void clear() {
+			free_indices._clear_and_fill_range(list.size());
+
 #ifndef NDEBUG
 			for (index_t index = head; index != null_index; index = list[index].prior) {
 				assert(!list[index].removed);
@@ -1727,7 +1735,6 @@ namespace guiorgy::detail {
 			}
 #endif
 
-			free_indices._clear_and_fill_range(list.size());
 			head = null_index;
 			tail = null_index;
 		}
