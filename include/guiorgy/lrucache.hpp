@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <type_traits>
 #include <functional>
+#include <stdexcept>
 #include <optional>
 #include <cassert>
 #include <cstdint>
@@ -2045,6 +2046,13 @@ namespace guiorgy::detail {
 		Preallocate		= 0b0000'0001u
 	};
 
+	// Checks whether the specified value is a valid LruCacheOptions flag combination.
+	inline constexpr bool is_valid_lru_cache_options(const LruCacheOptions options) noexcept {
+		return
+			options == LruCacheOptions::None
+			|| options == LruCacheOptions::Preallocate;
+	}
+
 	// Define the flags enum operators for LruCacheOptions.
 	template<>
 	struct is_flags_enum<LruCacheOptions> final : std::true_type {};
@@ -2095,6 +2103,7 @@ namespace guiorgy::detail {
 		typename... other_args
 	>
 	class lru_cache_opts final {
+		static_assert(is_valid_lru_cache_options(options), "Invalid LruCacheOptions");
 		static_assert(max_size != 0u, "max_size can not be 0");
 
 		using key_value_pair_t = std::pair<key_type, value_type>;
@@ -2150,6 +2159,10 @@ namespace guiorgy::detail {
 		template<typename... hashmap_args>
 		explicit lru_cache_opts(const LruCacheOptions runtime_options, hashmap_args&&... args) : _cache_items_list{}, _cache_items_map(std::forward<hashmap_args>(args)...) {
 			static_assert(!options, "Runtime options override can only be used if compile-time options aren't used (are set to LruCacheOptions::None)");
+
+			if (!is_valid_lru_cache_options(options)) {
+				throw std::invalid_argument("Invalid LruCacheOptions runtime_options");
+			}
 
 			if (runtime_options & LruCacheOptions::Preallocate) {
 				reserve();
@@ -2247,6 +2260,7 @@ namespace guiorgy::detail {
 				static_assert(max_size == 0u, "Unhandled value of Likelihood");
 			}
 
+			assert(!this->_cache_items_list.empty());
 			if constexpr (this->hashmap_has_emplace_hint) {
 				this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
 			} else if constexpr (this->hashmap_has_insert_with_hint) {
@@ -2342,6 +2356,7 @@ namespace guiorgy::detail {
 				static_assert(max_size == 0u, "Unhandled value of Likelihood");
 			}
 
+			assert(!this->_cache_items_list.empty());
 			if constexpr (this->hashmap_has_emplace_hint) {
 				this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
 			} else if constexpr (this->hashmap_has_insert_with_hint) {
@@ -2448,6 +2463,7 @@ namespace guiorgy::detail {
 				static_assert(max_size == 0u, "Unhandled value of Likelihood");
 			}
 
+			assert(!this->_cache_items_list.empty());
 			if constexpr (this->hashmap_has_emplace_hint) {
 				this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
 			} else if constexpr (this->hashmap_has_insert_with_hint) {
