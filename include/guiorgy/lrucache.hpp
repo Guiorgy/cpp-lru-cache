@@ -23,8 +23,17 @@
 #include <memory>
 #include <vector>
 
-// A helper macro to drop the explanation argument of the [[nodiscard]] attribute on C++ versions that don't support it.
-#if __cplusplus < 202002L	// C++20
+// A helper macro that determines whether a specific attribute is supported by the current compiler. If __has_cpp_attribute is not defined, __cplusplus is used as a fallback.
+#ifdef __has_cpp_attribute
+	#define GUIORGY_ATTRIBUTE_AVAILABLE(attribute_token, test_value, cpp_version) \
+		(__has_cpp_attribute(attribute_token) >= test_value)
+#else
+	#define GUIORGY_ATTRIBUTE_AVAILABLE(attribute_token, test_value, cpp_version) \
+		(__cplusplus >= cpp_version)
+#endif
+
+// A helper macro to drop the explanation argument of the [[nodiscard]] attribute on compilers that don't support it.
+#if !GUIORGY_ATTRIBUTE_AVAILABLE(nodiscard, 201907L, 202002L)
 	#ifdef nodiscard
 		#define GUIORGY_nodiscard_BEFORE
 		#undef nodiscard
@@ -32,7 +41,7 @@
 	#define nodiscard(explanation) nodiscard
 #endif
 
-// Helper macros to remove the [[likely]] and [[unlikely]] attributes if C++ version < 20.
+// Helper macros to drop the [[likely]] and [[unlikely]] attributes on compilers that don't support them.
 #ifdef LIKELY
 	#define GUIORGY_LIKELY_BEFORE
 	#undef LIKELY
@@ -41,7 +50,7 @@
 	#define GUIORGY_UNLIKELY_BEFORE
 	#undef UNLIKELY
 #endif
-#if __cplusplus >= 202002L	// C++20
+#if GUIORGY_ATTRIBUTE_AVAILABLE(likely, 201803L, 202002L) && GUIORGY_ATTRIBUTE_AVAILABLE(unlikely, 201803L, 202002L)
 	#define LIKELY [[likely]]
 	#define UNLIKELY [[unlikely]]
 #else
@@ -3173,3 +3182,6 @@ namespace guiorgy {
 	#define nodiscard GUIORGY_nodiscard_BEFORE
 	#undef GUIORGY_nodiscard_BEFORE
 #endif
+
+// Cleanup of GUIORGY_ATTRIBUTE_AVAILABLE.
+#undef GUIORGY_ATTRIBUTE_AVAILABLE
