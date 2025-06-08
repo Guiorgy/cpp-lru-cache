@@ -10,6 +10,11 @@
 
 #pragma once
 
+// Error out if an unsupported C++ version is used.
+#if __cplusplus < 201703L
+	#error "C++ 17 is the minimum supported C++ verson"
+#endif
+
 #include <unordered_map>
 #include <type_traits>
 #include <functional>
