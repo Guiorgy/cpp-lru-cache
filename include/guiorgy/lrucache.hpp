@@ -41,7 +41,7 @@
 // A helper macro to drop the explanation argument of the [[nodiscard]] attribute on compilers that don't support it.
 #if !GUIORGY_ATTRIBUTE_AVAILABLE(nodiscard, 201907L, 202002L)
 	#ifdef nodiscard
-		#define GUIORGY_nodiscard_BEFORE
+		#define GUIORGY_NODISCARD_BEFORE nodiscard
 		#undef nodiscard
 	#endif
 	#define nodiscard(explanation) nodiscard
@@ -49,11 +49,11 @@
 
 // Helper macros to drop the [[likely]] and [[unlikely]] attributes on compilers that don't support them.
 #ifdef LIKELY
-	#define GUIORGY_LIKELY_BEFORE
+	#define GUIORGY_LIKELY_BEFORE LIKELY
 	#undef LIKELY
 #endif
 #ifdef UNLIKELY
-	#define GUIORGY_UNLIKELY_BEFORE
+	#define GUIORGY_UNLIKELY_BEFORE UNLIKELY
 	#undef UNLIKELY
 #endif
 #if GUIORGY_ATTRIBUTE_AVAILABLE(likely, 201803L, 202002L) && GUIORGY_ATTRIBUTE_AVAILABLE(unlikely, 201803L, 202002L)
@@ -67,6 +67,7 @@
 // A helper macro to drop the constexpr specifier on destructors in unsupported C++ versions.
 #ifdef CONSTEXPR_DESTRUCTOR
 	#define GUIORGY_CONSTEXPR_DESTRUCTOR_BEFORE CONSTEXPR_DESTRUCTOR
+	#undef CONSTEXPR_DESTRUCTOR
 #endif
 #if __cplusplus >= 202002L
 	#define CONSTEXPR_DESTRUCTOR constexpr
@@ -3937,10 +3938,10 @@ namespace guiorgy {
 #endif
 
 // Restore nodiscard if it was already defined.
-#ifdef GUIORGY_nodiscard_BEFORE
+#ifdef GUIORGY_NODISCARD_BEFORE
 	#undef nodiscard
-	#define nodiscard GUIORGY_nodiscard_BEFORE
-	#undef GUIORGY_nodiscard_BEFORE
+	#define nodiscard GUIORGY_NODISCARD_BEFORE
+	#undef GUIORGY_NODISCARD_BEFORE
 #endif
 
 // Cleanup of GUIORGY_ATTRIBUTE_AVAILABLE.
