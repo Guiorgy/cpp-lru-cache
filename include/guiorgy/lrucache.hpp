@@ -1084,6 +1084,8 @@ namespace guiorgy::detail {
 	//   - Index operator[] of the internal std::vector are assumed to be noexcept, in other words, no out of bounds access is performed.
 	template<typename T, typename _index_t = std::size_t>
 	class vector_set final {
+		static_assert(std::is_same_v<std::remove_cv_t<T>, T>, "vector_set must have a non-const, non-volatile value_type");
+		static_assert(std::is_same_v<std::remove_cv_t<_index_t>, _index_t>, "vector_set must have a non-const, non-volatile _index_t");
 		static_assert(std::is_integral_v<_index_t> && std::is_unsigned_v<_index_t>, "_index_t must be an unsigned integer type");
 
 		using index_t = unpromoting<_index_t, std::size_t>;
@@ -1363,6 +1365,7 @@ namespace guiorgy::detail {
 	//   - Index operator[] of the internal std::vector are assumed to be noexcept, in other words, no out of bounds access is performed.
 	template<typename T, const std::size_t max_size = std::numeric_limits<std::size_t>::max() - 1u>
 	class vector_list final {
+		static_assert(std::is_same_v<std::remove_cv_t<T>, T>, "vector_list must have a non-const, non-volatile value_type");
 		using index_t = uint_fit_t<max_size>;
 		static constexpr const index_t null_index = std::numeric_limits<index_t>::max();
 		static_assert(max_size <= null_index, "null_index can not be less than max_size, since those are valid indeces");
@@ -2789,6 +2792,8 @@ namespace guiorgy::detail {
 		typename... other_args
 	>
 	class lru_cache_opts final {
+		static_assert(std::is_same_v<std::remove_cv_t<key_type>, key_type>, "lru_cache_opts must have a non-const, non-volatile key_type");
+		static_assert(std::is_same_v<std::remove_cv_t<value_type>, value_type>, "lru_cache_opts must have a non-const, non-volatile value_type");
 		static_assert(is_valid_lru_cache_options(options), "Invalid LruCacheOptions");
 		static_assert(max_size != 0u, "max_size can not be 0");
 
