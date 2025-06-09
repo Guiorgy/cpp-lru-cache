@@ -63,6 +63,16 @@
 	#define UNLIKELY
 #endif
 
+// A helper macro to drop the constexpr specifier on destructors in unsupported C++ versions.
+#ifdef CONSTEXPR_DESTRUCTOR
+	#define GUIORGY_CONSTEXPR_DESTRUCTOR_BEFORE CONSTEXPR_DESTRUCTOR
+#endif
+#if __cplusplus >= 202002L
+	#define CONSTEXPR_DESTRUCTOR constexpr
+#else
+	#define CONSTEXPR_DESTRUCTOR
+#endif
+
 // Forward declarations.
 namespace guiorgy {
 	namespace detail {
@@ -538,9 +548,7 @@ namespace guiorgy::detail {
 
 	public:
 		constexpr unpromoting() noexcept : _value(0u) {}
-		#if __cplusplus >= 202002L	// C++20
-			constexpr ~unpromoting() = default;
-		#endif
+		CONSTEXPR_DESTRUCTOR ~unpromoting() = default;
 		constexpr unpromoting(const unpromoting&) = default;
 		constexpr unpromoting(unpromoting&&) = default;
 		constexpr unpromoting& operator=(unpromoting const&) = default;
@@ -3269,6 +3277,13 @@ namespace guiorgy {
 	>
 	using lru_cache_defhke = lru_cache_defhke_opts<LruCacheOptions::None, key_type, value_type, max_size, hashmap_template, other_args...>;
 } // guiorgy
+
+// Restore CONSTEXPR_DESTRUCTOR if they were already defined.
+#ifdef GUIORGY_CONSTEXPR_DESTRUCTOR_BEFORE
+	#undef CONSTEXPR_DESTRUCTOR
+	#define CONSTEXPR_DESTRUCTOR GUIORGY_CONSTEXPR_DESTRUCTOR_BEFORE
+	#undef GUIORGY_CONSTEXPR_DESTRUCTOR_BEFORE
+#endif
 
 // Restore LIKELY and UNLIKELY if they were already defined.
 #ifdef GUIORGY_LIKELY_BEFORE
