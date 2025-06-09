@@ -2745,6 +2745,56 @@ namespace guiorgy::detail {
 		using hashmap_iterator_type = typename hashmap_type::iterator;
 		using hashmap_const_iterator_type = typename hashmap_type::const_iterator;
 
+		// A thin wrapper around the hashmap iterator to access the first and second members with more descriptive names.
+		class hashmap_const_iterator_wrapper final {
+		private:
+			const hashmap_const_iterator_type it_;
+
+		public:
+			constexpr hashmap_const_iterator_wrapper() = delete;
+			constexpr hashmap_const_iterator_wrapper(const hashmap_iterator_type it)
+				noexcept(std::is_nothrow_constructible_v<hashmap_const_iterator_type, hashmap_iterator_type>) : it_(it) {}
+			constexpr hashmap_const_iterator_wrapper(const hashmap_const_iterator_type it)
+				noexcept(std::is_nothrow_copy_constructible_v<hashmap_const_iterator_type>) : it_(it) {}
+
+			[[nodiscard]] constexpr operator hashmap_const_iterator_type() const noexcept {
+				return it_;
+			}
+
+			[[nodiscard]] constexpr const key_type& key() const noexcept {
+				return it_->first;
+			}
+			[[nodiscard]] constexpr const list_index_type& list_index() const noexcept {
+				return it_->second;
+			}
+
+			[[nodiscard]] typename hashmap_const_iterator_type::reference operator*() const noexcept {
+				return *it_;
+			}
+			[[nodiscard]] typename hashmap_const_iterator_type::pointer operator->() const noexcept {
+				return &(*it_);
+			}
+
+			[[nodiscard]] constexpr bool operator==(const hashmap_const_iterator_wrapper& other) const noexcept {
+				return it_ == other.it_;
+			}
+			[[nodiscard]] constexpr bool operator!=(const hashmap_const_iterator_wrapper& other) const noexcept {
+				return it_ != other.it_;
+			}
+			[[nodiscard]] constexpr bool operator==(const hashmap_iterator_type& other) const noexcept {
+				return it_ == hashmap_const_iterator_type(other);
+			}
+			[[nodiscard]] constexpr bool operator!=(const hashmap_iterator_type& other) const noexcept {
+				return it_ != hashmap_const_iterator_type(other);
+			}
+			[[nodiscard]] constexpr bool operator==(const hashmap_const_iterator_type& other) const noexcept {
+				return it_ == other;
+			}
+			[[nodiscard]] constexpr bool operator!=(const hashmap_const_iterator_type& other) const noexcept {
+				return it_ != other;
+			}
+		};
+
 		static constexpr bool hashmap_has_emplace_hint =
 			hashmap::has_emplace_hint_v<hashmap_type, TypeQualifier::ConstReference, TypeQualifier::None>
 			|| hashmap::has_emplace_hint_v<hashmap_type, TypeQualifier::ConstReference, TypeQualifier::ConstReference>
@@ -2799,10 +2849,10 @@ namespace guiorgy::detail {
 		// Remarks:
 		//   - This assumes that the key exists in the map.
 		//   - Only used for debug assertions.
-		[[nodiscard]] inline bool list_key_match_map_key(const hashmap_const_iterator_type map_it) const {
+		[[nodiscard]] inline bool list_key_match_map_key(const hashmap_const_iterator_wrapper map_it) const {
 			assert(map_it != this->_cache_items_map.cend());
 
-			const hashmap_const_iterator_type list_it = this->_cache_items_map.find(this->_cache_items_list._get_value_at(map_it->second).key);
+			const hashmap_const_iterator_wrapper list_it = this->_cache_items_map.find(this->_cache_items_list._get_value_at(map_it.list_index()).key);
 			return list_it == map_it;
 		}
 
@@ -2816,28 +2866,28 @@ namespace guiorgy::detail {
 		void put(const key_type& key, const value_type& value) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			hashmap_iterator_type it = this->_cache_items_map.find(key);
-			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
+			hashmap_const_iterator_wrapper it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.cend() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
-				if (it != this->_cache_items_map.end()) {
-					this->_cache_items_list._get_value_at(it->second).value = value;
-					this->_cache_items_list._move_value_at_to_front(it->second);
+				if (it != this->_cache_items_map.cend()) {
+					this->_cache_items_list._get_value_at(it.list_index()).value = value;
+					this->_cache_items_list._move_value_at_to_front(it.list_index());
 
 					return;
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
-				if (it != this->_cache_items_map.end()) LIKELY {
-					this->_cache_items_list._get_value_at(it->second).value = value;
-					this->_cache_items_list._move_value_at_to_front(it->second);
+				if (it != this->_cache_items_map.cend()) LIKELY {
+					this->_cache_items_list._get_value_at(it.list_index()).value = value;
+					this->_cache_items_list._move_value_at_to_front(it.list_index());
 
 					return;
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
-				if (it != this->_cache_items_map.end()) UNLIKELY {
-					this->_cache_items_list._get_value_at(it->second).value = value;
-					this->_cache_items_list._move_value_at_to_front(it->second);
+				if (it != this->_cache_items_map.cend()) UNLIKELY {
+					this->_cache_items_list._get_value_at(it.list_index()).value = value;
+					this->_cache_items_list._move_value_at_to_front(it.list_index());
 
 					return;
 				}
@@ -2912,28 +2962,28 @@ namespace guiorgy::detail {
 		void put(const key_type& key, value_type&& value) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			hashmap_iterator_type it = this->_cache_items_map.find(key);
-			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
+			hashmap_const_iterator_wrapper it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.cend() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
-				if (it != this->_cache_items_map.end()) {
-					this->_cache_items_list._get_value_at(it->second).value = std::move(value);
-					this->_cache_items_list._move_value_at_to_front(it->second);
+				if (it != this->_cache_items_map.cend()) {
+					this->_cache_items_list._get_value_at(it.list_index()).value = std::move(value);
+					this->_cache_items_list._move_value_at_to_front(it.list_index());
 
 					return;
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
-				if (it != this->_cache_items_map.end()) LIKELY {
-					this->_cache_items_list._get_value_at(it->second).value = std::move(value);
-					this->_cache_items_list._move_value_at_to_front(it->second);
+				if (it != this->_cache_items_map.cend()) LIKELY {
+					this->_cache_items_list._get_value_at(it.list_index()).value = std::move(value);
+					this->_cache_items_list._move_value_at_to_front(it.list_index());
 
 					return;
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
-				if (it != this->_cache_items_map.end()) UNLIKELY {
-					this->_cache_items_list._get_value_at(it->second).value = std::move(value);
-					this->_cache_items_list._move_value_at_to_front(it->second);
+				if (it != this->_cache_items_map.cend()) UNLIKELY {
+					this->_cache_items_list._get_value_at(it.list_index()).value = std::move(value);
+					this->_cache_items_list._move_value_at_to_front(it.list_index());
 
 					return;
 				}
@@ -3008,31 +3058,31 @@ namespace guiorgy::detail {
 		const value_type& emplace(const key_type& key, ValueArgs&&... value_args) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			hashmap_iterator_type it = this->_cache_items_map.find(key);
-			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
+			hashmap_const_iterator_wrapper it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.cend() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
-				if (it != this->_cache_items_map.end()) {
-					value_type& value = this->_cache_items_list._get_value_at(it->second).value;
+				if (it != this->_cache_items_map.cend()) {
+					value_type& value = this->_cache_items_list._get_value_at(it.list_index()).value;
 					emplace(value, std::forward<ValueArgs>(value_args)...);
-					this->_cache_items_list._move_value_at_to_front(it->second);
+					this->_cache_items_list._move_value_at_to_front(it.list_index());
 
 					return value;
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
-				if (it != this->_cache_items_map.end()) LIKELY {
-					value_type& value = this->_cache_items_list._get_value_at(it->second).value;
+				if (it != this->_cache_items_map.cend()) LIKELY {
+					value_type& value = this->_cache_items_list._get_value_at(it.list_index()).value;
 					emplace(value, std::forward<ValueArgs>(value_args)...);
-					this->_cache_items_list._move_value_at_to_front(it->second);
+					this->_cache_items_list._move_value_at_to_front(it.list_index());
 
 					return value;
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
-				if (it != this->_cache_items_map.end()) UNLIKELY {
-					value_type& value = this->_cache_items_list._get_value_at(it->second).value;
+				if (it != this->_cache_items_map.cend()) UNLIKELY {
+					value_type& value = this->_cache_items_list._get_value_at(it.list_index()).value;
 					emplace(value, std::forward<ValueArgs>(value_args)...);
-					this->_cache_items_list._move_value_at_to_front(it->second);
+					this->_cache_items_list._move_value_at_to_front(it.list_index());
 
 					return value;
 				}
@@ -3116,25 +3166,25 @@ namespace guiorgy::detail {
 		const std::optional<value_type> get(const key_type& key) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			hashmap_iterator_type it = this->_cache_items_map.find(key);
-			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
+			hashmap_const_iterator_wrapper it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.cend() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
-				if (it != this->_cache_items_map.end()) {
-					return this->_cache_items_list._move_value_at_to_front(it->second).value;
+				if (it != this->_cache_items_map.cend()) {
+					return this->_cache_items_list._move_value_at_to_front(it.list_index()).value;
 				} else {
 					return std::nullopt;
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
-				if (it != this->_cache_items_map.end()) LIKELY {
-					return this->_cache_items_list._move_value_at_to_front(it->second).value;
+				if (it != this->_cache_items_map.cend()) LIKELY {
+					return this->_cache_items_list._move_value_at_to_front(it.list_index()).value;
 				} else {
 					return std::nullopt;
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
-				if (it != this->_cache_items_map.end()) UNLIKELY {
-					return this->_cache_items_list._move_value_at_to_front(it->second).value;
+				if (it != this->_cache_items_map.cend()) UNLIKELY {
+					return this->_cache_items_list._move_value_at_to_front(it.list_index()).value;
 				} else {
 					return std::nullopt;
 				}
@@ -3162,25 +3212,25 @@ namespace guiorgy::detail {
 		const std::optional<std::reference_wrapper<const value_type>> get_ref(const key_type& key) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			hashmap_iterator_type it = this->_cache_items_map.find(key);
-			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
+			hashmap_const_iterator_wrapper it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.cend() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
-				if (it != this->_cache_items_map.end()) {
-					return std::make_optional(std::cref(this->_cache_items_list._move_value_at_to_front(it->second).value));
+				if (it != this->_cache_items_map.cend()) {
+					return std::make_optional(std::cref(this->_cache_items_list._move_value_at_to_front(it.list_index()).value));
 				} else {
 					return std::nullopt;
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
-				if (it != this->_cache_items_map.end()) LIKELY {
-					return std::make_optional(std::cref(this->_cache_items_list._move_value_at_to_front(it->second).value));
+				if (it != this->_cache_items_map.cend()) LIKELY {
+					return std::make_optional(std::cref(this->_cache_items_list._move_value_at_to_front(it.list_index()).value));
 				} else {
 					return std::nullopt;
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
-				if (it != this->_cache_items_map.end()) UNLIKELY {
-					return std::make_optional(std::cref(this->_cache_items_list._move_value_at_to_front(it->second).value));
+				if (it != this->_cache_items_map.cend()) UNLIKELY {
+					return std::make_optional(std::cref(this->_cache_items_list._move_value_at_to_front(it.list_index()).value));
 				} else {
 					return std::nullopt;
 				}
@@ -3209,27 +3259,27 @@ namespace guiorgy::detail {
 		bool try_get(const key_type& key, value_type& value_out) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			hashmap_iterator_type it = this->_cache_items_map.find(key);
-			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
+			hashmap_const_iterator_wrapper it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.cend() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
-				if (it != this->_cache_items_map.end()) {
-					value_out = this->_cache_items_list._move_value_at_to_front(it->second).value;
+				if (it != this->_cache_items_map.cend()) {
+					value_out = this->_cache_items_list._move_value_at_to_front(it.list_index()).value;
 					return true;
 				} else {
 					return false;
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
-				if (it != this->_cache_items_map.end()) LIKELY {
-					value_out = this->_cache_items_list._move_value_at_to_front(it->second).value;
+				if (it != this->_cache_items_map.cend()) LIKELY {
+					value_out = this->_cache_items_list._move_value_at_to_front(it.list_index()).value;
 					return true;
 				} else {
 					return false;
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
-				if (it != this->_cache_items_map.end()) UNLIKELY {
-					value_out = this->_cache_items_list._move_value_at_to_front(it->second).value;
+				if (it != this->_cache_items_map.cend()) UNLIKELY {
+					value_out = this->_cache_items_list._move_value_at_to_front(it.list_index()).value;
 					return true;
 				} else {
 					return false;
@@ -3262,27 +3312,27 @@ namespace guiorgy::detail {
 		bool try_get_ref(const key_type& key, const value_type*& value_out) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			hashmap_iterator_type it = this->_cache_items_map.find(key);
-			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
+			hashmap_const_iterator_wrapper it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.cend() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
-				if (it != this->_cache_items_map.end()) {
-					value_out = &(this->_cache_items_list._move_value_at_to_front(it->second).value);
+				if (it != this->_cache_items_map.cend()) {
+					value_out = &(this->_cache_items_list._move_value_at_to_front(it.list_index()).value);
 					return true;
 				} else {
 					return false;
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
-				if (it != this->_cache_items_map.end()) LIKELY {
-					value_out = &(this->_cache_items_list._move_value_at_to_front(it->second).value);
+				if (it != this->_cache_items_map.cend()) LIKELY {
+					value_out = &(this->_cache_items_list._move_value_at_to_front(it.list_index()).value);
 					return true;
 				} else {
 					return false;
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
-				if (it != this->_cache_items_map.end()) UNLIKELY {
-					value_out = &(this->_cache_items_list._move_value_at_to_front(it->second).value);
+				if (it != this->_cache_items_map.cend()) UNLIKELY {
+					value_out = &(this->_cache_items_list._move_value_at_to_front(it.list_index()).value);
 					return true;
 				} else {
 					return false;
@@ -3309,29 +3359,29 @@ namespace guiorgy::detail {
 		std::optional<value_type> remove(const key_type& key) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			hashmap_iterator_type it = this->_cache_items_map.find(key);
-			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
+			hashmap_const_iterator_wrapper it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.cend() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
-				if (it != this->_cache_items_map.end()) {
-					value_type& value = this->_cache_items_list._erase_value_at(it->second).value;
+				if (it != this->_cache_items_map.cend()) {
+					value_type& value = this->_cache_items_list._erase_value_at(it.list_index()).value;
 					this->_cache_items_map.erase(it);
 					return value;
 				} else {
 					return std::nullopt;
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
-				if (it != this->_cache_items_map.end()) LIKELY {
-					value_type& value = this->_cache_items_list._erase_value_at(it->second).value;
+				if (it != this->_cache_items_map.cend()) LIKELY {
+					value_type& value = this->_cache_items_list._erase_value_at(it.list_index()).value;
 					this->_cache_items_map.erase(it);
 					return value;
 				} else {
 					return std::nullopt;
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
-				if (it != this->_cache_items_map.end()) UNLIKELY {
-					value_type& value = this->_cache_items_list._erase_value_at(it->second).value;
+				if (it != this->_cache_items_map.cend()) UNLIKELY {
+					value_type& value = this->_cache_items_list._erase_value_at(it.list_index()).value;
 					this->_cache_items_map.erase(it);
 					return value;
 				} else {
@@ -3362,29 +3412,29 @@ namespace guiorgy::detail {
 		std::optional<std::reference_wrapper<value_type>> remove_ref(const key_type& key) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			hashmap_iterator_type it = this->_cache_items_map.find(key);
-			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
+			hashmap_const_iterator_wrapper it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.cend() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
-				if (it != this->_cache_items_map.end()) {
-					value_type& value = this->_cache_items_list._erase_value_at(it->second).value;
+				if (it != this->_cache_items_map.cend()) {
+					value_type& value = this->_cache_items_list._erase_value_at(it.list_index()).value;
 					this->_cache_items_map.erase(it);
 					return std::make_optional(std::ref(value));
 				} else {
 					return std::nullopt;
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
-				if (it != this->_cache_items_map.end()) LIKELY {
-					value_type& value = this->_cache_items_list._erase_value_at(it->second).value;
+				if (it != this->_cache_items_map.cend()) LIKELY {
+					value_type& value = this->_cache_items_list._erase_value_at(it.list_index()).value;
 					this->_cache_items_map.erase(it);
 					return std::make_optional(std::ref(value));
 				} else {
 					return std::nullopt;
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
-				if (it != this->_cache_items_map.end()) UNLIKELY {
-					value_type& value = this->_cache_items_list._erase_value_at(it->second).value;
+				if (it != this->_cache_items_map.cend()) UNLIKELY {
+					value_type& value = this->_cache_items_list._erase_value_at(it.list_index()).value;
 					this->_cache_items_map.erase(it);
 					return std::make_optional(std::ref(value));
 				} else {
@@ -3416,29 +3466,29 @@ namespace guiorgy::detail {
 		bool try_remove(const key_type& key, value_type& value_out) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			hashmap_iterator_type it = this->_cache_items_map.find(key);
-			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
+			hashmap_const_iterator_wrapper it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.cend() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
-				if (it != this->_cache_items_map.end()) {
-					value_out = this->_cache_items_list._erase_value_at(it->second).value;
+				if (it != this->_cache_items_map.cend()) {
+					value_out = this->_cache_items_list._erase_value_at(it.list_index()).value;
 					this->_cache_items_map.erase(it);
 					return true;
 				} else {
 					return false;
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
-				if (it != this->_cache_items_map.end()) LIKELY {
-					value_out = this->_cache_items_list._erase_value_at(it->second).value;
+				if (it != this->_cache_items_map.cend()) LIKELY {
+					value_out = this->_cache_items_list._erase_value_at(it.list_index()).value;
 					this->_cache_items_map.erase(it);
 					return true;
 				} else {
 					return false;
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
-				if (it != this->_cache_items_map.end()) UNLIKELY {
-					value_out = this->_cache_items_list._erase_value_at(it->second).value;
+				if (it != this->_cache_items_map.ecnd()) UNLIKELY {
+					value_out = this->_cache_items_list._erase_value_at(it.list_index()).value;
 					this->_cache_items_map.erase(it);
 					return true;
 				} else {
@@ -3473,29 +3523,29 @@ namespace guiorgy::detail {
 		bool try_remove_ref(const key_type& key, const value_type*& value_out) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			hashmap_iterator_type it = this->_cache_items_map.find(key);
-			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
+			hashmap_const_iterator_wrapper it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.cend() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
-				if (it != this->_cache_items_map.end()) {
-					value_out = &(this->_cache_items_list._erase_value_at(it->second).value);
+				if (it != this->_cache_items_map.cend()) {
+					value_out = &(this->_cache_items_list._erase_value_at(it.list_index()).value);
 					this->_cache_items_map.erase(it);
 					return true;
 				} else {
 					return false;
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
-				if (it != this->_cache_items_map.end()) LIKELY {
-					value_out = &(this->_cache_items_list._erase_value_at(it->second).value);
+				if (it != this->_cache_items_map.cend()) LIKELY {
+					value_out = &(this->_cache_items_list._erase_value_at(it.list_index()).value);
 					this->_cache_items_map.erase(it);
 					return true;
 				} else {
 					return false;
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
-				if (it != this->_cache_items_map.end()) UNLIKELY {
-					value_out = &(this->_cache_items_list._erase_value_at(it->second).value);
+				if (it != this->_cache_items_map.cend()) UNLIKELY {
+					value_out = &(this->_cache_items_list._erase_value_at(it.list_index()).value);
 					this->_cache_items_map.erase(it);
 					return true;
 				} else {
@@ -3521,29 +3571,29 @@ namespace guiorgy::detail {
 		bool erase(const key_type& key) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			hashmap_iterator_type it = this->_cache_items_map.find(key);
-			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
+			hashmap_const_iterator_wrapper it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.cend() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
-				if (it != this->_cache_items_map.end()) {
-					this->_cache_items_list._erase_value_at(it->second);
+				if (it != this->_cache_items_map.cend()) {
+					this->_cache_items_list._erase_value_at(it.list_index());
 					this->_cache_items_map.erase(it);
 					return true;
 				} else {
 					return false;
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
-				if (it != this->_cache_items_map.end()) LIKELY {
-					this->_cache_items_list._erase_value_at(it->second);
+				if (it != this->_cache_items_map.cend()) LIKELY {
+					this->_cache_items_list._erase_value_at(it.list_index());
 					this->_cache_items_map.erase(it);
 					return true;
 				} else {
 					return false;
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
-				if (it != this->_cache_items_map.end()) UNLIKELY {
-					this->_cache_items_list._erase_value_at(it->second);
+				if (it != this->_cache_items_map.cend()) UNLIKELY {
+					this->_cache_items_list._erase_value_at(it.list_index());
 					this->_cache_items_map.erase(it);
 					return true;
 				} else {
@@ -3579,27 +3629,27 @@ namespace guiorgy::detail {
 		bool touch(const key_type& key) {
 			assert(this->_cache_items_map.size() == this->_cache_items_list.size());
 
-			hashmap_iterator_type it = this->_cache_items_map.find(key);
-			assert(it == this->_cache_items_map.end() || list_key_match_map_key(it));
+			hashmap_const_iterator_wrapper it = this->_cache_items_map.find(key);
+			assert(it == this->_cache_items_map.cend() || list_key_match_map_key(it));
 
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
-				if (it != this->_cache_items_map.end()) {
-					this->_cache_items_list._move_value_at_to_front(it->second);
+				if (it != this->_cache_items_map.cend()) {
+					this->_cache_items_list._move_value_at_to_front(it.list_index());
 					return true;
 				} else {
 					return false;
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
-				if (it != this->_cache_items_map.end()) LIKELY {
-					this->_cache_items_list._move_value_at_to_front(it->second);
+				if (it != this->_cache_items_map.cend()) LIKELY {
+					this->_cache_items_list._move_value_at_to_front(it.list_index());
 					return true;
 				} else {
 					return false;
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
-				if (it != this->_cache_items_map.end()) UNLIKELY {
-					this->_cache_items_list._move_value_at_to_front(it->second);
+				if (it != this->_cache_items_map.cend()) UNLIKELY {
+					this->_cache_items_list._move_value_at_to_front(it.list_index());
 					return true;
 				} else {
 					return false;
