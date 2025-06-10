@@ -73,14 +73,14 @@ TEST(TEST_GROUP, IteratorWithOneElement) {
 	guiorgy::lru_cache<int, int, 1, HASH_MAP_TYPE> cache_lru;
 	cache_lru.put(7, 777);
 
-	EXPECT_EQ(7, cache_lru.begin()->first);
-	EXPECT_EQ(777, cache_lru.begin()->second);
-	EXPECT_EQ(7, cache_lru.cbegin()->first);
-	EXPECT_EQ(777, cache_lru.cbegin()->second);
-	EXPECT_EQ(7, cache_lru.rbegin()->first);
-	EXPECT_EQ(777, cache_lru.rbegin()->second);
-	EXPECT_EQ(7, cache_lru.crbegin()->first);
-	EXPECT_EQ(777, cache_lru.crbegin()->second);
+	EXPECT_EQ(7, cache_lru.begin()->key);
+	EXPECT_EQ(777, cache_lru.begin()->value);
+	EXPECT_EQ(7, cache_lru.cbegin()->key);
+	EXPECT_EQ(777, cache_lru.cbegin()->value);
+	EXPECT_EQ(7, cache_lru.rbegin()->key);
+	EXPECT_EQ(777, cache_lru.rbegin()->value);
+	EXPECT_EQ(7, cache_lru.crbegin()->key);
+	EXPECT_EQ(777, cache_lru.crbegin()->value);
 }
 
 TEST(TEST_GROUP, IteratorConversion) {
@@ -95,89 +95,89 @@ TEST(TEST_GROUP, IteratorConversion) {
 	// From iterator.
 	{
 		lru_cache_t::iterator it = cache_lru.begin();
-		EXPECT_EQ(7, it->first);
-		EXPECT_EQ(777, it->second);
+		EXPECT_EQ(7, it->key);
+		EXPECT_EQ(777, it->value);
 
 		// To const_iterator.
 		lru_cache_t::const_iterator cit(it);
-		EXPECT_EQ(7, cit->first);
-		EXPECT_EQ(777, cit->second);
+		EXPECT_EQ(7, cit->key);
+		EXPECT_EQ(777, cit->value);
 
 		// To reverse_iterator.
 		lru_cache_t::reverse_iterator rit(it);
-		EXPECT_EQ(7, rit->first);
-		EXPECT_EQ(777, rit->second);
+		EXPECT_EQ(7, rit->key);
+		EXPECT_EQ(777, rit->value);
 
 		// To const_reverse_iterator.
 		lru_cache_t::const_reverse_iterator crit(it);
-		EXPECT_EQ(7, crit->first);
-		EXPECT_EQ(777, crit->second);
+		EXPECT_EQ(7, crit->key);
+		EXPECT_EQ(777, crit->value);
 	}
 
 	// From const_iterator.
 	{
 		lru_cache_t::const_iterator cit = cache_lru.cbegin();
-		EXPECT_EQ(7, cit->first);
-		EXPECT_EQ(777, cit->second);
+		EXPECT_EQ(7, cit->key);
+		EXPECT_EQ(777, cit->value);
 
 		// To iterator.
 		lru_cache_t::iterator it(cit);
-		EXPECT_EQ(7, it->first);
-		EXPECT_EQ(777, it->second);
+		EXPECT_EQ(7, it->key);
+		EXPECT_EQ(777, it->value);
 
 		// To reverse_iterator.
 		lru_cache_t::reverse_iterator rit(cit);
-		EXPECT_EQ(7, rit->first);
-		EXPECT_EQ(777, rit->second);
+		EXPECT_EQ(7, rit->key);
+		EXPECT_EQ(777, rit->value);
 
 		// To const_reverse_iterator.
 		lru_cache_t::const_reverse_iterator crit(cit);
-		EXPECT_EQ(7, crit->first);
-		EXPECT_EQ(777, crit->second);
+		EXPECT_EQ(7, crit->key);
+		EXPECT_EQ(777, crit->value);
 	}
 
 	// From reverse_iterator.
 	{
 		lru_cache_t::reverse_iterator rit = cache_lru.rbegin();
-		EXPECT_EQ(7, rit->first);
-		EXPECT_EQ(777, rit->second);
+		EXPECT_EQ(7, rit->key);
+		EXPECT_EQ(777, rit->value);
 
 		// To iterator.
 		lru_cache_t::iterator it(rit);
-		EXPECT_EQ(7, it->first);
-		EXPECT_EQ(777, it->second);
+		EXPECT_EQ(7, it->key);
+		EXPECT_EQ(777, it->value);
 
 		// To const_iterator.
 		lru_cache_t::const_iterator cit(rit);
-		EXPECT_EQ(7, cit->first);
-		EXPECT_EQ(777, cit->second);
+		EXPECT_EQ(7, cit->key);
+		EXPECT_EQ(777, cit->value);
 
 		// To const_reverse_iterator.
 		lru_cache_t::const_reverse_iterator crit(rit);
-		EXPECT_EQ(7, crit->first);
-		EXPECT_EQ(777, crit->second);
+		EXPECT_EQ(7, crit->key);
+		EXPECT_EQ(777, crit->value);
 	}
 
 	// From const_reverse_iterator.
 	{
 		lru_cache_t::const_reverse_iterator crit = cache_lru.crbegin();;
-		EXPECT_EQ(7, crit->first);
-		EXPECT_EQ(777, crit->second);
+		EXPECT_EQ(7, crit->key);
+		EXPECT_EQ(777, crit->value);
 
 		// To iterator.
 		lru_cache_t::iterator it(crit);
-		EXPECT_EQ(7, it->first);
-		EXPECT_EQ(777, it->second);
+		EXPECT_EQ(7, it->key);
+		EXPECT_EQ(777, it->value);
 
 		// To const_iterator.
 		lru_cache_t::const_iterator cit(crit);
-		EXPECT_EQ(7, cit->first);
-		EXPECT_EQ(777, cit->second);
+		EXPECT_EQ(7, cit->key);
+		EXPECT_EQ(777, cit->value);
 
 		// To reverse_iterator.
 		lru_cache_t::reverse_iterator rit(crit);
-		EXPECT_EQ(7, rit->first);
-		EXPECT_EQ(777, rit->second);
+		EXPECT_EQ(7, rit->key);
+		EXPECT_EQ(777, rit->value);
 	}
 }
 

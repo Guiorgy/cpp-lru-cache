@@ -74,6 +74,15 @@
 	#define CONSTEXPR_DESTRUCTOR
 #endif
 
+// A macro to indicate the availability of the three-way comparison operator
+#ifdef __cpp_impl_three_way_comparison
+	#if __cpp_impl_three_way_comparison >= 201907L && __cplusplus >= 202002L
+		#define GUIORGY_SPACESHIP_OPERATOR_AVAILABLE
+
+		#include <compare>
+	#endif
+#endif
+
 // Forward declarations.
 namespace guiorgy {
 	namespace detail {
@@ -894,7 +903,7 @@ namespace guiorgy::detail {
 	};
 } // guiorgy::detail
 
-// Specializations of types inside std for our types.
+// Specializations of types inside std for our wrapper utils.
 namespace std {
 	// std::numeric_limits specialization for uiorgy::detail::unpromoting.
 	template<typename int_t, typename promoted_t>
@@ -2307,6 +2316,402 @@ namespace guiorgy::detail {
 	};
 } // guiorgy::detail
 
+// Data structures.
+namespace guiorgy::detail {
+	// A key-value pair template class similar to std::pair.
+	template<typename K, typename V>
+	struct key_value final {
+		using key_type = K;
+		using value_type = V;
+
+		key_type key;
+		value_type value;
+
+	private:
+		// A sentinel to indicate that the key-value members shouldn't be initialized during construction.
+		struct uninitialized final {};
+
+		// A constructor that does not initialize the key-value members.
+		// Accessing the uninitialized members results in undefined behaviour.
+		constexpr key_value([[maybe_unused]] uninitialized) noexcept {}
+
+	public:
+		// Default constructors, destructor and assignments.
+		constexpr key_value()
+			noexcept(std::is_nothrow_default_constructible_v<K> && std::is_nothrow_default_constructible_v<V>)
+			: key{}, value{} {}
+		CONSTEXPR_DESTRUCTOR ~key_value() = default;
+		constexpr key_value(const key_value&) = default;
+		constexpr key_value(key_value&&) = default;
+		constexpr key_value& operator=(key_value const&) = default;
+		constexpr key_value& operator=(key_value &&) = default;
+
+		// Key copy constructors.
+		constexpr key_value(const key_type& k, const value_type& v)
+			noexcept(std::is_nothrow_copy_constructible_v<K> && std::is_nothrow_copy_constructible_v<V>)
+			: key(k), value(v) {}
+		constexpr key_value(const key_type& k, value_type&& v)
+			noexcept(std::is_nothrow_copy_constructible_v<K> && is_nothrow_move_or_copy_constructible_v<V>)
+			: key(k), value(std::move(v)) {}
+		template<typename... ValueArgs>
+		constexpr key_value(const key_type& k, ValueArgs&&... value_args)
+			noexcept(std::is_nothrow_copy_constructible_v<K> && std::is_nothrow_constructible_v<V, ValueArgs...>)
+			: key(k), value(std::forward<ValueArgs>(value_args)...) {}
+
+		// Key move constructors.
+		constexpr key_value(key_type&& k, const value_type& v)
+			noexcept(is_nothrow_move_or_copy_constructible_v<K> && std::is_nothrow_copy_constructible_v<V>)
+			: key(std::move(k)), value(v) {}
+		constexpr key_value(key_type&& k, value_type&& v)
+			noexcept(is_nothrow_move_or_copy_constructible_v<K> && is_nothrow_move_or_copy_constructible_v<V>)
+			: key(std::move(k)), value(std::move(v)) {}
+		template<typename... ValueArgs>
+		constexpr key_value(key_type&& k, ValueArgs&&... value_args)
+			noexcept(is_nothrow_move_or_copy_constructible_v<K> && std::is_nothrow_constructible_v<V, ValueArgs...>)
+			: key(std::move(k)), value(std::forward<ValueArgs>(value_args)...) {}
+
+		// Piecewise emplace constructor.
+		template<typename... KeyArgs, typename... ValueArgs>
+		constexpr key_value([[maybe_unused]] std::piecewise_construct_t, std::tuple<KeyArgs...> key_args, std::tuple<ValueArgs...> value_args)
+			noexcept(
+				noexcept(emplace_new<key_type, KeyArgs...>(key, std::move(key_args)))
+				&& noexcept(emplace_new<value_type, ValueArgs...>(value, std::move(value_args)))
+			) {
+			emplace_new<key_type, KeyArgs...>(key, std::move(key_args));
+			emplace_new<value_type, ValueArgs...>(value, std::move(value_args));
+		}
+
+		// Key emplace factory, where the last argument is for value initialization.
+		template<typename... Args>
+		[[nodiscard]] static constexpr key_value make(Args&&... args)
+			noexcept(
+				noexcept(emplace_new<key_type, safe_decrement(sizeof...(Args)), Args...>(std::declval<key_type&>(), std::forward<Args>(args)...))
+				&& noexcept(emplace_new<value_type, safe_decrement(sizeof...(Args)), sizeof...(Args), Args...>(std::declval<value_type&>(), std::forward<Args>(args)...))
+			) {
+			key_value kv(uninitialized{});
+
+			emplace_new<key_type, safe_decrement(sizeof...(Args)), Args...>(kv.key, std::forward<Args>(args)...);
+			emplace_new<value_type, safe_decrement(sizeof...(Args)), sizeof...(Args), Args...>(kv.value, std::forward<Args>(args)...); // cppcheck-suppress accessForwarded; Each call to emplace_new uses a different subset of args, so this isn't an issue
+
+			return kv;
+		}
+		// Key emplace factory, where the first key_args_count arguments are for the key initialization and the rest are for value initialization.
+		template<const std::size_t key_args_count, typename... Args>
+		[[nodiscard]] static constexpr key_value make(Args&&... args)
+			noexcept(
+				noexcept(emplace_new<key_type, key_args_count, Args...>(std::declval<key_type&>(), std::forward<Args>(args)...))
+				&& noexcept(emplace_new<value_type, key_args_count, sizeof...(Args), Args...>(std::declval<value_type&>(), std::forward<Args>(args)...))
+			) {
+			static_assert(key_args_count <= sizeof...(Args), "Can't take a bigger subset of arguments than available");
+
+			key_value kv(uninitialized{});
+
+			emplace_new<key_type, key_args_count, Args...>(kv.key, std::forward<Args>(args)...);
+			emplace_new<value_type, key_args_count, sizeof...(Args), Args...>(kv.value, std::forward<Args>(args)...); // cppcheck-suppress accessForwarded; Each call to emplace_new uses a different subset of args, so this isn't an issue
+
+			return kv;
+		}
+
+		// Specializations for std::reference_wrapper, where the reference types are unwrapped.
+		constexpr key_value(const std::reference_wrapper<key_type> kr, const value_type& v)
+			noexcept(std::is_nothrow_copy_constructible_v<K> && std::is_nothrow_copy_constructible_v<V>)
+			: key(kr.get()), value(v) {}
+		constexpr key_value(const std::reference_wrapper<key_type> kr, value_type&& v)
+			noexcept(std::is_nothrow_copy_constructible_v<K> && is_nothrow_move_or_copy_constructible_v<V>)
+			: key(kr.get()), value(std::move(v)) {}
+		template<typename... ValueArgs>
+		constexpr key_value(const std::reference_wrapper<key_type> kr, ValueArgs&&... value_args)
+			noexcept(std::is_nothrow_copy_constructible_v<K> && std::is_nothrow_constructible_v<V, ValueArgs...>)
+			: key(kr.get()), value(std::forward<ValueArgs>(value_args)...) {}
+		constexpr key_value(const key_type& k, const std::reference_wrapper<value_type> vr)
+			noexcept(std::is_nothrow_copy_constructible_v<K> && std::is_nothrow_copy_constructible_v<V>)
+			: key(k), value(vr.get()) {}
+		constexpr key_value(const std::reference_wrapper<key_type> kr, std::reference_wrapper<value_type> vr)
+			noexcept(std::is_nothrow_copy_constructible_v<K> && std::is_nothrow_copy_constructible_v<V>)
+			: key(kr.get()), value(vr.get()) {}
+
+		// Explicit conversions from std::pair.
+		explicit constexpr key_value(const std::pair<K, V>& pair)
+			noexcept(std::is_nothrow_copy_constructible_v<K> && std::is_nothrow_copy_constructible_v<V>)
+			: key(pair.first), value(pair.second) {}
+		explicit constexpr key_value(std::pair<K, V>&& pair)
+			noexcept(is_nothrow_move_or_copy_constructible_v<K> && is_nothrow_move_or_copy_constructible_v<V>)
+			: key(std::move(pair.first)), value(std::move(pair.second)) {}
+		constexpr key_value& operator=(std::pair<K, V> const& pair)
+			noexcept(std::is_nothrow_copy_assignable_v<K> && std::is_nothrow_copy_assignable_v<V>) {
+			key = pair.first;
+			value = pair.second;
+			return *this;
+		}
+		constexpr key_value& operator=(std::pair<K, V> && pair)
+			noexcept(is_nothrow_move_or_copy_assignable_v<K> && is_nothrow_move_or_copy_assignable_v<V>) {
+			key = std::move(pair.first);
+			value = std::move(pair.second);
+			return *this;
+		}
+
+		// Explicit conversions to std::pair.
+		explicit constexpr operator std::pair<K, V>() const &
+			noexcept(std::make_pair<K, V>(std::declval<K&>(), std::declval<V&>())) {
+			return std::make_pair<K, V>(key, value);
+		}
+		explicit constexpr operator std::pair<K, V>() &&
+			noexcept(std::make_pair<K, V>(std::declval<K&&>(), std::declval<V&&>())) {
+			return std::make_pair<K, V>(std::move(key), std::move(value));
+		}
+
+		// Emplace new values into the members.
+		template<typename... KeyArgs>
+		constexpr key_type& emplace_key(KeyArgs&&... key_args)
+			noexcept(noexcept(emplace(std::declval<key_type&>(), std::declval<KeyArgs>()...))) {
+			return emplace(key, std::forward<KeyArgs>(key_args)...);
+		}
+		template<typename... ValueArgs>
+		constexpr value_type& emplace_value(ValueArgs&&... value_args)
+			noexcept(noexcept(emplace(std::declval<value_type&>(), std::declval<ValueArgs>()...))) {
+			return emplace(value, std::forward<ValueArgs>(value_args)...);
+		}
+
+#ifdef GUIORGY_SPACESHIP_OPERATOR_AVAILABLE
+		// Comparison operators between key_values.
+		[[nodiscard]] constexpr bool operator==(const key_value&) const = default;
+		[[nodiscard]] constexpr auto operator<=>(const key_value&) const = default;
+
+		// Comparison operators between key_value and std::pair.
+		[[nodiscard]] constexpr bool operator==(const std::pair<K, V>& other) const
+			noexcept(
+				noexcept(std::declval<const K&>() == std::declval<const K&>())
+				&& noexcept(std::declval<const V&>() == std::declval<const V&>())
+			) {
+			return key == other.first && value == other.second;
+		}
+		[[nodiscard]] constexpr auto operator<=>(const std::pair<K, V>& other) const
+			noexcept(
+				noexcept(std::declval<const K&>() <=> std::declval<const K&>())
+				&& noexcept(std::declval<const V&>() <=> std::declval<const V&>())
+			) {
+			auto result = key <=> other.first;
+			return result != 0 ? result : value <=> other.second;
+		}
+#else
+		// Comparison operators between key_values.
+		[[nodiscard]] constexpr bool operator==(const key_value& other) const
+			noexcept(
+				noexcept(std::declval<const K&>() == std::declval<const K&>())
+				&& noexcept(std::declval<const V&>() == std::declval<const V&>())
+			) {
+			return key == other.key && value == other.value;
+		}
+		[[nodiscard]] constexpr bool operator!=(const key_value& other) const
+			noexcept(noexcept(this->operator==(other))) {
+			return !this->operator==(other);
+		}
+		[[nodiscard]] constexpr bool operator<(const key_value& other) const
+			noexcept(
+				noexcept(std::declval<const K&>() < std::declval<const K&>())
+				&& noexcept(std::declval<const K&>() == std::declval<const K&>())
+				&& noexcept(std::declval<const V&>() < std::declval<const V&>())
+			) {
+			return key < other.key || (key == other.key && value < other.value);
+		}
+		[[nodiscard]] constexpr bool operator>=(const key_value& other) const
+			noexcept(noexcept(this->operator<(other))) {
+			return !this->operator<(other);
+		}
+		[[nodiscard]] constexpr bool operator>(const key_value& other) const
+			noexcept(
+				noexcept(std::declval<const K&>() > std::declval<const K&>())
+				&& noexcept(std::declval<const K&>() == std::declval<const K&>())
+				&& noexcept(std::declval<const V&>() > std::declval<const V&>())
+			) {
+			return key > other.key || (key == other.key && value > other.value);
+		}
+		[[nodiscard]] constexpr bool operator<=(const key_value& other) const
+			noexcept(noexcept(this->operator>(other))) {
+			return !this->operator>(other);
+		}
+
+		// Comparison operators between key_value and std::pair.
+		[[nodiscard]] constexpr bool operator==(const std::pair<K, V>& other) const
+			noexcept(
+				noexcept(std::declval<const K&>() == std::declval<const K&>())
+				&& noexcept(std::declval<const V&>() == std::declval<const V&>())
+			) {
+			return key == other.first && value == other.second;
+		}
+		[[nodiscard]] constexpr bool operator!=(const std::pair<K, V>& other) const
+			noexcept(noexcept(this->operator==(other))) {
+			return !this->operator==(other);
+		}
+		[[nodiscard]] constexpr bool operator<(const std::pair<K, V>& other) const
+			noexcept(
+				noexcept(std::declval<const K&>() < std::declval<const K&>())
+				&& noexcept(std::declval<const K&>() == std::declval<const K&>())
+				&& noexcept(std::declval<const V&>() < std::declval<const V&>())
+			) {
+			return key < other.first || (key == other.first && value < other.second);
+		}
+		[[nodiscard]] constexpr bool operator>=(const std::pair<K, V>& other) const
+			noexcept(noexcept(this->operator<(other))) {
+			return !this->operator<(other);
+		}
+		[[nodiscard]] constexpr bool operator>(const std::pair<K, V>& other) const
+			noexcept(
+				noexcept(std::declval<const K&>() > std::declval<const K&>())
+				&& noexcept(std::declval<const K&>() == std::declval<const K&>())
+				&& noexcept(std::declval<const V&>() > std::declval<const V&>())
+			) {
+			return key > other.first || (key == other.first && value > other.second);
+		}
+		[[nodiscard]] constexpr bool operator<=(const std::pair<K, V>& other) const
+			noexcept(noexcept(this->operator>(other))) {
+			return !this->operator>(other);
+		}
+#endif // GUIORGY_SPACESHIP_OPERATOR_AVAILABLE
+
+		// Swap with another key_value.
+		constexpr void swap(key_value& other)
+			noexcept(std::is_nothrow_swappable_v<K> && std::is_nothrow_swappable_v<V>) {
+			static_assert(std::is_swappable_v<K> && std::is_swappable_v<V>, "The program is ill-formed if either std::is_swappable_v<K> or std::is_swappable_v<V> is not true.");
+
+			std::swap(key, other.key);
+			std::swap(value, other.value);
+		}
+		constexpr void swap(const key_value& other) const
+			noexcept(std::is_nothrow_swappable_v<const K> && std::is_nothrow_swappable_v<const V>) {
+			static_assert(std::is_swappable_v<const K> && std::is_swappable_v<const V>, "The program is ill-formed if either std::is_swappable_v<const K> or std::is_swappable_v<const V> is not true.");
+
+			std::swap(key, other.key);
+			std::swap(value, other.value);
+		}
+
+		// Swap with a std::pair.
+		constexpr void swap(std::pair<K, V>& other)
+			noexcept(std::is_nothrow_swappable_v<K> && std::is_nothrow_swappable_v<V>) {
+			static_assert(std::is_swappable_v<K> && std::is_swappable_v<V>, "The program is ill-formed if either std::is_swappable_v<K> or std::is_swappable_v<V> is not true.");
+
+			std::swap(key, other.first);
+			std::swap(value, other.second);
+		}
+		constexpr void swap(const std::pair<K, V>& other) const
+			noexcept(std::is_nothrow_swappable_v<const K> && std::is_nothrow_swappable_v<const V>) {
+			static_assert(std::is_swappable_v<const K> && std::is_swappable_v<const V>, "The program is ill-formed if either std::is_swappable_v<const K> or std::is_swappable_v<const V> is not true.");
+
+			std::swap(key, other.first);
+			std::swap(value, other.second);
+		}
+	};
+} // guiorgy::detail
+
+// Specializations of types inside std for our data structures.
+namespace std {
+	template<typename K, typename V>
+	constexpr void swap(guiorgy::detail::key_value<K, V>& x, guiorgy::detail::key_value<K, V>& y) noexcept(noexcept(x.swap(y))) {
+		x.swap(y);
+	}
+	template<typename K, typename V>
+	constexpr void swap(const guiorgy::detail::key_value<K, V>& x, const guiorgy::detail::key_value<K, V>& y) noexcept(noexcept(x.swap(y))) {
+		x.swap(y);
+	}
+
+	template<typename K, typename V>
+	constexpr void swap(guiorgy::detail::key_value<K, V>& x, std::pair<K, V>& y) noexcept(noexcept(x.swap(y))) {
+		x.swap(y);
+	}
+	template<typename K, typename V>
+	constexpr void swap(const guiorgy::detail::key_value<K, V>& x, const std::pair<K, V>& y) noexcept(noexcept(x.swap(y))) {
+		x.swap(y);
+	}
+	template<typename K, typename V>
+	constexpr void swap(std::pair<K, V>& x, guiorgy::detail::key_value<K, V>& y) noexcept(noexcept(y.swap(x))) {
+		y.swap(x);
+	}
+	template<typename K, typename V>
+	constexpr void swap(const std::pair<K, V>& x, const guiorgy::detail::key_value<K, V>& y) noexcept(noexcept(y.swap(x))) {
+		y.swap(x);
+	}
+
+	template<std::size_t I, typename K, typename V>
+	[[nodiscard]] constexpr typename std::tuple_element<I, guiorgy::detail::key_value<K, V>>::type& get(guiorgy::detail::key_value<K, V>& kvp) noexcept {
+		if constexpr (I == 0u) {
+			return kvp.key;
+		} else {
+			return kvp.value;
+		}
+	}
+	template<std::size_t I, typename K, typename V>
+	[[nodiscard]] constexpr const typename std::tuple_element<I, guiorgy::detail::key_value<K, V>>::type& get(const guiorgy::detail::key_value<K, V>& kvp) noexcept {
+		if constexpr (I == 0u) {
+			return kvp.key;
+		} else {
+			return kvp.value;
+		}
+	}
+	template<std::size_t I, typename K, typename V>
+	[[nodiscard]] constexpr typename std::tuple_element<I, guiorgy::detail::key_value<K, V>>::type&& get(guiorgy::detail::key_value<K, V>&& kvp) noexcept {
+		if constexpr (I == 0u) {
+			return std::move(kvp.key);
+		} else {
+			return std::move(kvp.value);
+		}
+	}
+	template<std::size_t I, typename K, typename V>
+	[[nodiscard]] constexpr const typename std::tuple_element<I, guiorgy::detail::key_value<K, V>>::type&& get(const guiorgy::detail::key_value<K, V>&& kvp) noexcept {
+		if constexpr (I == 0u) {
+			return std::move(kvp.key);
+		} else {
+			return std::move(kvp.value);
+		}
+	}
+
+	template<typename K, typename V>
+	struct tuple_size<guiorgy::detail::key_value<K, V>> : std::integral_constant<std::size_t, 2u> {};
+
+	template<std::size_t I, typename K, typename V>
+	struct tuple_element<I, guiorgy::detail::key_value<K, V>> {
+		static_assert(I < 2u, "The program is ill-formed if I >= 2");
+
+		using type = std::conditional_t<I == 0u, K, V>;
+	};
+
+#if __cplusplus >= 202002L
+	template<typename K1, typename V1, typename K2, typename V2, template<typename> class KQual, template<typename> class VQual>
+	struct basic_common_reference<guiorgy::detail::key_value<K1, V1>, guiorgy::detail::key_value<K2, V2>, KQual, VQual> {
+		using type = guiorgy::detail::key_value<
+			std::common_reference_t<KQual<K1>, VQual<K2>>,
+			std::common_reference_t<KQual<V1>, VQual<V2>>
+		>;
+	};
+	template<typename K1, typename V1, typename K2, typename V2, template<typename> class KQual, template<typename> class VQual>
+	struct basic_common_reference<guiorgy::detail::key_value<K1, V1>, std::pair<K2, V2>, KQual, VQual> {
+		using type = guiorgy::detail::key_value<
+			std::common_reference_t<KQual<K1>, VQual<K2>>,
+			std::common_reference_t<KQual<V1>, VQual<V2>>
+		>;
+	};
+	template<typename K1, typename V1, typename K2, typename V2, template<typename> class KQual, template<typename> class VQual>
+	struct basic_common_reference<std::pair<K1, V1>, guiorgy::detail::key_value<K2, V2>, KQual, VQual> {
+		using type = guiorgy::detail::key_value<
+			std::common_reference_t<KQual<K1>, VQual<K2>>,
+			std::common_reference_t<KQual<V1>, VQual<V2>>
+		>;
+	};
+#endif
+
+	template<typename K1, typename V1, typename K2, typename V2>
+	struct common_type<guiorgy::detail::key_value<K1, V1>, guiorgy::detail::key_value<K2, V2>> {
+		using type = guiorgy::detail::key_value<std::common_type_t<K1, K2>, std::common_type_t<V1, V2>>;
+	};
+	template<typename K1, typename V1, typename K2, typename V2>
+	struct common_type<guiorgy::detail::key_value<K1, V1>, std::pair<K2, V2>> {
+		using type = guiorgy::detail::key_value<std::common_type_t<K1, K2>, std::common_type_t<V1, V2>>;
+	};
+	template<typename K1, typename V1, typename K2, typename V2>
+	struct common_type<std::pair<K1, V1>, guiorgy::detail::key_value<K2, V2>> {
+		using type = guiorgy::detail::key_value<std::common_type_t<K1, K2>, std::common_type_t<V1, V2>>;
+	};
+} // std
+
 // lru_cache details.
 namespace guiorgy::detail {
 	// Placeholders to indicate that the underlying hashmap should use its default hash function and key equality predicate.
@@ -2387,7 +2792,7 @@ namespace guiorgy::detail {
 		static_assert(is_valid_lru_cache_options(options), "Invalid LruCacheOptions");
 		static_assert(max_size != 0u, "max_size can not be 0");
 
-		using key_value_pair_t = std::pair<key_type, value_type>;
+		using key_value_pair_t = detail::key_value<key_type, value_type>;
 		using list_type = vector_list<key_value_pair_t, max_size>;
 		using list_index_type = typename list_type::index_t;
 
@@ -2463,7 +2868,7 @@ namespace guiorgy::detail {
 		[[nodiscard]] inline bool list_key_match_map_key(const hashmap_const_iterator_type map_it) const {
 			assert(map_it != this->_cache_items_map.cend());
 
-			const hashmap_const_iterator_type list_it = this->_cache_items_map.find(this->_cache_items_list._get_value_at(map_it->second).first);
+			const hashmap_const_iterator_type list_it = this->_cache_items_map.find(this->_cache_items_list._get_value_at(map_it->second).key);
 			return list_it == map_it;
 		}
 
@@ -2483,21 +2888,21 @@ namespace guiorgy::detail {
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
 				if (it != this->_cache_items_map.end()) {
-					this->_cache_items_list._get_value_at(it->second).second = value;
+					this->_cache_items_list._get_value_at(it->second).value = value;
 					this->_cache_items_list._move_value_at_to_front(it->second);
 
 					return;
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
 				if (it != this->_cache_items_map.end()) LIKELY {
-					this->_cache_items_list._get_value_at(it->second).second = value;
+					this->_cache_items_list._get_value_at(it->second).value = value;
 					this->_cache_items_list._move_value_at_to_front(it->second);
 
 					return;
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
 				if (it != this->_cache_items_map.end()) UNLIKELY {
-					this->_cache_items_list._get_value_at(it->second).second = value;
+					this->_cache_items_list._get_value_at(it->second).value = value;
 					this->_cache_items_list._move_value_at_to_front(it->second);
 
 					return;
@@ -2510,9 +2915,9 @@ namespace guiorgy::detail {
 			if constexpr (cache_full == Likelihood::Unknown) {
 				if (this->_cache_items_map.size() == max_size) {
 					key_value_pair_t& last = this->_cache_items_list.back();
-					this->_cache_items_map.erase(last.first);
-					last.first = key;
-					last.second = value;
+					this->_cache_items_map.erase(last.key);
+					last.key = key;
+					last.value = value;
 					this->_cache_items_list._move_last_value_to_front();
 				} else {
 					this->_cache_items_list.emplace_front(key, value);
@@ -2520,9 +2925,9 @@ namespace guiorgy::detail {
 			} else if constexpr (cache_full == Likelihood::Likely) {
 				if (this->_cache_items_map.size() == max_size) LIKELY  {
 					key_value_pair_t& last = this->_cache_items_list.back();
-					this->_cache_items_map.erase(last.first);
-					last.first = key;
-					last.second = value;
+					this->_cache_items_map.erase(last.key);
+					last.key = key;
+					last.value = value;
 					this->_cache_items_list._move_last_value_to_front();
 				} else {
 					this->_cache_items_list.emplace_front(key, value);
@@ -2530,9 +2935,9 @@ namespace guiorgy::detail {
 			} else if constexpr (cache_full == Likelihood::Unlikely) {
 				if (this->_cache_items_map.size() == max_size) UNLIKELY {
 					key_value_pair_t& last = this->_cache_items_list.back();
-					this->_cache_items_map.erase(last.first);
-					last.first = key;
-					last.second = value;
+					this->_cache_items_map.erase(last.key);
+					last.key = key;
+					last.value = value;
 					this->_cache_items_list._move_last_value_to_front();
 				} else {
 					this->_cache_items_list.emplace_front(key, value);
@@ -2579,21 +2984,21 @@ namespace guiorgy::detail {
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
 				if (it != this->_cache_items_map.end()) {
-					this->_cache_items_list._get_value_at(it->second).second = std::move(value);
+					this->_cache_items_list._get_value_at(it->second).value = std::move(value);
 					this->_cache_items_list._move_value_at_to_front(it->second);
 
 					return;
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
 				if (it != this->_cache_items_map.end()) LIKELY {
-					this->_cache_items_list._get_value_at(it->second).second = std::move(value);
+					this->_cache_items_list._get_value_at(it->second).value = std::move(value);
 					this->_cache_items_list._move_value_at_to_front(it->second);
 
 					return;
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
 				if (it != this->_cache_items_map.end()) UNLIKELY {
-					this->_cache_items_list._get_value_at(it->second).second = std::move(value);
+					this->_cache_items_list._get_value_at(it->second).value = std::move(value);
 					this->_cache_items_list._move_value_at_to_front(it->second);
 
 					return;
@@ -2606,9 +3011,9 @@ namespace guiorgy::detail {
 			if constexpr (cache_full == Likelihood::Unknown) {
 				if (this->_cache_items_map.size() == max_size) {
 					key_value_pair_t& last = this->_cache_items_list.back();
-					this->_cache_items_map.erase(last.first);
-					last.first = key;
-					last.second = std::move(value);
+					this->_cache_items_map.erase(last.key);
+					last.key = key;
+					last.value = std::move(value);
 					this->_cache_items_list._move_last_value_to_front();
 				} else {
 					this->_cache_items_list.emplace_front(key, std::move(value));
@@ -2616,9 +3021,9 @@ namespace guiorgy::detail {
 			} else if constexpr (cache_full == Likelihood::Likely) {
 				if (this->_cache_items_map.size() == max_size) LIKELY  {
 					key_value_pair_t& last = this->_cache_items_list.back();
-					this->_cache_items_map.erase(last.first);
-					last.first = key;
-					last.second = std::move(value);
+					this->_cache_items_map.erase(last.key);
+					last.key = key;
+					last.value = std::move(value);
 					this->_cache_items_list._move_last_value_to_front();
 				} else {
 					this->_cache_items_list.emplace_front(key, std::move(value));
@@ -2626,9 +3031,9 @@ namespace guiorgy::detail {
 			} else if constexpr (cache_full == Likelihood::Unlikely) {
 				if (this->_cache_items_map.size() == max_size) UNLIKELY {
 					key_value_pair_t& last = this->_cache_items_list.back();
-					this->_cache_items_map.erase(last.first);
-					last.first = key;
-					last.second = std::move(value);
+					this->_cache_items_map.erase(last.key);
+					last.key = key;
+					last.value = std::move(value);
 					this->_cache_items_list._move_last_value_to_front();
 				} else {
 					this->_cache_items_list.emplace_front(key, std::move(value));
@@ -2675,7 +3080,7 @@ namespace guiorgy::detail {
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
 				if (it != this->_cache_items_map.end()) {
-					value_type& value = this->_cache_items_list._get_value_at(it->second).second;
+					value_type& value = this->_cache_items_list._get_value_at(it->second).value;
 					emplace(value, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_value_at_to_front(it->second);
 
@@ -2683,7 +3088,7 @@ namespace guiorgy::detail {
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
 				if (it != this->_cache_items_map.end()) LIKELY {
-					value_type& value = this->_cache_items_list._get_value_at(it->second).second;
+					value_type& value = this->_cache_items_list._get_value_at(it->second).value;
 					emplace(value, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_value_at_to_front(it->second);
 
@@ -2691,7 +3096,7 @@ namespace guiorgy::detail {
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
 				if (it != this->_cache_items_map.end()) UNLIKELY {
-					value_type& value = this->_cache_items_list._get_value_at(it->second).second;
+					value_type& value = this->_cache_items_list._get_value_at(it->second).value;
 					emplace(value, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_value_at_to_front(it->second);
 
@@ -2707,36 +3112,36 @@ namespace guiorgy::detail {
 			if constexpr (cache_full == Likelihood::Unknown) {
 				if (this->_cache_items_map.size() == max_size) {
 					key_value_pair_t& last = this->_cache_items_list.back();
-					this->_cache_items_map.erase(last.first);
-					last.first = key;
-					emplace(last.second, std::forward<ValueArgs>(value_args)...);
+					this->_cache_items_map.erase(last.key);
+					last.key = key;
+					emplace(last.value, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_last_value_to_front();
 
-					value = &last.second;
+					value = &last.value;
 				} else {
 					value = &(this->_cache_items_list.emplace_front(key, std::forward<ValueArgs>(value_args)...));
 				}
 			} else if constexpr (cache_full == Likelihood::Likely) {
 				if (this->_cache_items_map.size() == max_size) LIKELY  {
 					key_value_pair_t& last = this->_cache_items_list.back();
-					this->_cache_items_map.erase(last.first);
-					last.first = key;
-					emplace(last.second, std::forward<ValueArgs>(value_args)...);
+					this->_cache_items_map.erase(last.key);
+					last.key = key;
+					emplace(last.value, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_last_value_to_front();
 
-					value = &last.second;
+					value = &last.value;
 				} else {
 					value = &(this->_cache_items_list.emplace_front(key, std::forward<ValueArgs>(value_args)...));
 				}
 			} else if constexpr (cache_full == Likelihood::Unlikely) {
 				if (this->_cache_items_map.size() == max_size) UNLIKELY {
 					key_value_pair_t& last = this->_cache_items_list.back();
-					this->_cache_items_map.erase(last.first);
-					last.first = key;
-					emplace(last.second, std::forward<ValueArgs>(value_args)...);
+					this->_cache_items_map.erase(last.key);
+					last.key = key;
+					emplace(last.value, std::forward<ValueArgs>(value_args)...);
 					this->_cache_items_list._move_last_value_to_front();
 
-					value = &last.second;
+					value = &last.value;
 				} else {
 					value = &(this->_cache_items_list.emplace_front(key, std::forward<ValueArgs>(value_args)...));
 				}
@@ -2783,19 +3188,19 @@ namespace guiorgy::detail {
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
 				if (it != this->_cache_items_map.end()) {
-					return this->_cache_items_list._move_value_at_to_front(it->second).second;
+					return this->_cache_items_list._move_value_at_to_front(it->second).value;
 				} else {
 					return std::nullopt;
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
 				if (it != this->_cache_items_map.end()) LIKELY {
-					return this->_cache_items_list._move_value_at_to_front(it->second).second;
+					return this->_cache_items_list._move_value_at_to_front(it->second).value;
 				} else {
 					return std::nullopt;
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
 				if (it != this->_cache_items_map.end()) UNLIKELY {
-					return this->_cache_items_list._move_value_at_to_front(it->second).second;
+					return this->_cache_items_list._move_value_at_to_front(it->second).value;
 				} else {
 					return std::nullopt;
 				}
@@ -2829,19 +3234,19 @@ namespace guiorgy::detail {
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
 				if (it != this->_cache_items_map.end()) {
-					return std::make_optional(std::cref(this->_cache_items_list._move_value_at_to_front(it->second).second));
+					return std::make_optional(std::cref(this->_cache_items_list._move_value_at_to_front(it->second).value));
 				} else {
 					return std::nullopt;
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
 				if (it != this->_cache_items_map.end()) LIKELY {
-					return std::make_optional(std::cref(this->_cache_items_list._move_value_at_to_front(it->second).second));
+					return std::make_optional(std::cref(this->_cache_items_list._move_value_at_to_front(it->second).value));
 				} else {
 					return std::nullopt;
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
 				if (it != this->_cache_items_map.end()) UNLIKELY {
-					return std::make_optional(std::cref(this->_cache_items_list._move_value_at_to_front(it->second).second));
+					return std::make_optional(std::cref(this->_cache_items_list._move_value_at_to_front(it->second).value));
 				} else {
 					return std::nullopt;
 				}
@@ -2876,21 +3281,21 @@ namespace guiorgy::detail {
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
 				if (it != this->_cache_items_map.end()) {
-					value_out = this->_cache_items_list._move_value_at_to_front(it->second).second;
+					value_out = this->_cache_items_list._move_value_at_to_front(it->second).value;
 					return true;
 				} else {
 					return false;
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
 				if (it != this->_cache_items_map.end()) LIKELY {
-					value_out = this->_cache_items_list._move_value_at_to_front(it->second).second;
+					value_out = this->_cache_items_list._move_value_at_to_front(it->second).value;
 					return true;
 				} else {
 					return false;
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
 				if (it != this->_cache_items_map.end()) UNLIKELY {
-					value_out = this->_cache_items_list._move_value_at_to_front(it->second).second;
+					value_out = this->_cache_items_list._move_value_at_to_front(it->second).value;
 					return true;
 				} else {
 					return false;
@@ -2929,21 +3334,21 @@ namespace guiorgy::detail {
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
 				if (it != this->_cache_items_map.end()) {
-					value_out = &(this->_cache_items_list._move_value_at_to_front(it->second).second);
+					value_out = &(this->_cache_items_list._move_value_at_to_front(it->second).value);
 					return true;
 				} else {
 					return false;
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
 				if (it != this->_cache_items_map.end()) LIKELY {
-					value_out = &(this->_cache_items_list._move_value_at_to_front(it->second).second);
+					value_out = &(this->_cache_items_list._move_value_at_to_front(it->second).value);
 					return true;
 				} else {
 					return false;
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
 				if (it != this->_cache_items_map.end()) UNLIKELY {
-					value_out = &(this->_cache_items_list._move_value_at_to_front(it->second).second);
+					value_out = &(this->_cache_items_list._move_value_at_to_front(it->second).value);
 					return true;
 				} else {
 					return false;
@@ -2976,7 +3381,7 @@ namespace guiorgy::detail {
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
 				if (it != this->_cache_items_map.end()) {
-					value_type& value = this->_cache_items_list._erase_value_at(it->second).second;
+					value_type& value = this->_cache_items_list._erase_value_at(it->second).value;
 					this->_cache_items_map.erase(it);
 					return value;
 				} else {
@@ -2984,7 +3389,7 @@ namespace guiorgy::detail {
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
 				if (it != this->_cache_items_map.end()) LIKELY {
-					value_type& value = this->_cache_items_list._erase_value_at(it->second).second;
+					value_type& value = this->_cache_items_list._erase_value_at(it->second).value;
 					this->_cache_items_map.erase(it);
 					return value;
 				} else {
@@ -2992,7 +3397,7 @@ namespace guiorgy::detail {
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
 				if (it != this->_cache_items_map.end()) UNLIKELY {
-					value_type& value = this->_cache_items_list._erase_value_at(it->second).second;
+					value_type& value = this->_cache_items_list._erase_value_at(it->second).value;
 					this->_cache_items_map.erase(it);
 					return value;
 				} else {
@@ -3029,7 +3434,7 @@ namespace guiorgy::detail {
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
 				if (it != this->_cache_items_map.end()) {
-					value_type& value = this->_cache_items_list._erase_value_at(it->second).second;
+					value_type& value = this->_cache_items_list._erase_value_at(it->second).value;
 					this->_cache_items_map.erase(it);
 					return std::make_optional(std::ref(value));
 				} else {
@@ -3037,7 +3442,7 @@ namespace guiorgy::detail {
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
 				if (it != this->_cache_items_map.end()) LIKELY {
-					value_type& value = this->_cache_items_list._erase_value_at(it->second).second;
+					value_type& value = this->_cache_items_list._erase_value_at(it->second).value;
 					this->_cache_items_map.erase(it);
 					return std::make_optional(std::ref(value));
 				} else {
@@ -3045,7 +3450,7 @@ namespace guiorgy::detail {
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
 				if (it != this->_cache_items_map.end()) UNLIKELY {
-					value_type& value = this->_cache_items_list._erase_value_at(it->second).second;
+					value_type& value = this->_cache_items_list._erase_value_at(it->second).value;
 					this->_cache_items_map.erase(it);
 					return std::make_optional(std::ref(value));
 				} else {
@@ -3083,7 +3488,7 @@ namespace guiorgy::detail {
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
 				if (it != this->_cache_items_map.end()) {
-					value_out = this->_cache_items_list._erase_value_at(it->second).second;
+					value_out = this->_cache_items_list._erase_value_at(it->second).value;
 					this->_cache_items_map.erase(it);
 					return true;
 				} else {
@@ -3091,7 +3496,7 @@ namespace guiorgy::detail {
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
 				if (it != this->_cache_items_map.end()) LIKELY {
-					value_out = this->_cache_items_list._erase_value_at(it->second).second;
+					value_out = this->_cache_items_list._erase_value_at(it->second).value;
 					this->_cache_items_map.erase(it);
 					return true;
 				} else {
@@ -3099,7 +3504,7 @@ namespace guiorgy::detail {
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
 				if (it != this->_cache_items_map.end()) UNLIKELY {
-					value_out = this->_cache_items_list._erase_value_at(it->second).second;
+					value_out = this->_cache_items_list._erase_value_at(it->second).value;
 					this->_cache_items_map.erase(it);
 					return true;
 				} else {
@@ -3140,7 +3545,7 @@ namespace guiorgy::detail {
 			static_assert(is_valid_likelihood(key_exists), "key_exists has an invalid enum value for Likelihood");
 			if constexpr (key_exists == Likelihood::Unknown) {
 				if (it != this->_cache_items_map.end()) {
-					value_out = &(this->_cache_items_list._erase_value_at(it->second).second);
+					value_out = &(this->_cache_items_list._erase_value_at(it->second).value);
 					this->_cache_items_map.erase(it);
 					return true;
 				} else {
@@ -3148,7 +3553,7 @@ namespace guiorgy::detail {
 				}
 			} else if constexpr (key_exists == Likelihood::Likely) {
 				if (it != this->_cache_items_map.end()) LIKELY {
-					value_out = &(this->_cache_items_list._erase_value_at(it->second).second);
+					value_out = &(this->_cache_items_list._erase_value_at(it->second).value);
 					this->_cache_items_map.erase(it);
 					return true;
 				} else {
@@ -3156,7 +3561,7 @@ namespace guiorgy::detail {
 				}
 			} else if constexpr (key_exists == Likelihood::Unlikely) {
 				if (it != this->_cache_items_map.end()) UNLIKELY {
-					value_out = &(this->_cache_items_list._erase_value_at(it->second).second);
+					value_out = &(this->_cache_items_list._erase_value_at(it->second).value);
 					this->_cache_items_map.erase(it);
 					return true;
 				} else {
@@ -3435,6 +3840,11 @@ namespace guiorgy {
 	>
 	using lru_cache_defhke = lru_cache_defhke_opts<LruCacheOptions::None, key_type, value_type, max_size, hashmap_template, other_args...>;
 } // guiorgy
+
+// Cleanup of GUIORGY_SPACESHIP_OPERATOR_AVAILABLE.
+#ifdef GUIORGY_SPACESHIP_OPERATOR_AVAILABLE
+	#undef GUIORGY_SPACESHIP_OPERATOR_AVAILABLE
+#endif
 
 // Restore CONSTEXPR_DESTRUCTOR if they were already defined.
 #ifdef GUIORGY_CONSTEXPR_DESTRUCTOR_BEFORE
