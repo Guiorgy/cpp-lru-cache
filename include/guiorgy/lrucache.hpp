@@ -98,7 +98,7 @@ namespace guiorgy::detail {
 	// Determines the smallest unsigned integer type that can fit the specified value
 	// if fast is set to false, otherwise, the fastest unsigned integer type that can
 	// fit specified value.
-	template <const std::size_t max_value, const bool fast = false>
+	template<const std::size_t max_value, const bool fast = false>
 	struct uint_fit final {
 		static_assert(max_value >= 0u, "std::size_t is less than 0?!");
 		static_assert(max_value <= std::numeric_limits<std::uint64_t>::max(), "uint_fit only supports up to 64 bit numbers");
