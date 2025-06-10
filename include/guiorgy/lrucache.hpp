@@ -27,6 +27,7 @@
 #include <limits>
 #include <memory>
 #include <vector>
+#include <tuple>
 
 // A helper macro that determines whether a specific attribute is supported by the current compiler. If __has_cpp_attribute is not defined, __cplusplus is used as a fallback.
 #ifdef __has_cpp_attribute
@@ -155,6 +156,34 @@ namespace guiorgy::detail {
 	// Helper for is_nothrow_move_or_copy_assignable.
 	template<typename T>
 	inline constexpr bool is_nothrow_move_or_copy_assignable_v = is_nothrow_move_or_copy_assignable<T>::value;
+
+	// SFINAE helper for defining make_index_sequence_range below.
+	// The template base declaration.
+	template <std::size_t N, std::size_t M, typename = void>
+	struct _make_index_sequence_range;
+	// The template returned when N < M succeeds.
+	template <std::size_t N, std::size_t M>
+	struct _make_index_sequence_range<N, M, typename std::enable_if_t<(N < M)>> final {
+	private:
+		template <std::size_t... I>
+		[[nodiscard]] static constexpr auto shift_sequence([[maybe_unused]] std::index_sequence<I...>) noexcept {
+			return std::index_sequence<(I + N)...>{};
+		}
+
+	public:
+		_make_index_sequence_range() = delete("This is a static type trait helper and shouldn't be instantiated");
+
+		using type = decltype(shift_sequence(std::make_index_sequence<M - N>{}));
+	};
+	// The template returned when M <= N succeeds.
+	template <std::size_t N, std::size_t M>
+	struct _make_index_sequence_range<N, M, typename std::enable_if_t<(M <= N)>> final {
+		using type = std::index_sequence<>;
+	};
+
+	// A std::make_index_sequence-like utility to create a std::integer_sequence with indices between N and M.
+	template <std::size_t N, std::size_t M>
+	using make_index_sequence_range = typename _make_index_sequence_range<N, M>::type;
 
 	// SFINAE to check if the specified type is a std::pair.
 	// The template returned when matching fails.
@@ -475,8 +504,7 @@ namespace guiorgy::detail {
 
 		return *construct_at(destination, std::forward<Args>(args)...);
 	}
-
-	// Helper for emplace.
+	// A helper for emplace that takes a reference instead of a pointer.
 	template<typename T, const bool replace = !std::is_trivially_destructible_v<T>, typename... Args>
 	inline T& emplace(T& destination, Args&&... args)
 		noexcept(
@@ -486,12 +514,109 @@ namespace guiorgy::detail {
 		return emplace<T, replace, Args...>(std::addressof(destination), std::forward<Args>(args)...);
 	}
 
+	// A helper for emplace to initialize the object with a specified subset of the given arguments.
+	template<typename T, const bool replace = !std::is_trivially_destructible_v<T>, typename... Args, std::size_t... I>
+	inline T& emplace(T* destination, Args&&... args, [[maybe_unused]] std::index_sequence<I...>)
+		noexcept(noexcept(emplace<T, replace>(std::declval<T*>(), std::get<I>(std::make_tuple(args...))...))) {
+		return emplace<T, replace>(destination, std::get<I>(std::make_tuple(args...))...);
+	}
+	// A helper for emplace that takes a reference instead of a pointer.
+	template<typename T, const bool replace = !std::is_trivially_destructible_v<T>, typename... Args, std::size_t... I>
+	inline T& emplace(T& destination, Args&&... args, std::index_sequence<I...> arg_indices)
+		noexcept(
+			noexcept(std::addressof(std::declval<T&>()))
+			&& noexcept(emplace<T, replace, Args..., I...>(std::declval<T*>(), std::forward<Args>(std::declval<Args>())..., arg_indices))
+		) {
+		return emplace<T, replace, Args..., I...>(std::addressof(destination), std::forward<Args>(args)..., arg_indices);
+	}
+
+	// A helper for emplace to initialize the object with the first arg_count of the given arguments.
+	template<typename T, const std::size_t arg_count, const bool replace = !std::is_trivially_destructible_v<T>, typename... Args>
+	inline T& emplace(T* destination, Args&&... args)
+		noexcept(noexcept(emplace<T, replace, Args...>(std::declval<T*>(), std::forward<Args>(args)..., std::make_index_sequence<arg_count>{}))) {
+		static_assert(arg_count <= sizeof...(Args), "Not enough arguments provided");
+
+		return emplace<T, replace, Args...>(destination, std::forward<Args>(args)..., std::make_index_sequence<arg_count>{});
+	}
+	// A helper for emplace that takes a reference instead of a pointer.
+	template<typename T, const std::size_t arg_count, const bool replace = !std::is_trivially_destructible_v<T>, typename... Args>
+	inline T& emplace(T& destination, Args&&... args)
+		noexcept(
+			noexcept(std::addressof(std::declval<T&>()))
+			&& noexcept(emplace<T, arg_count, replace, Args...>(std::declval<T*>(), std::forward<Args>(std::declval<Args>())...))
+		) {
+		return emplace<T, arg_count, replace, Args...>(std::addressof(destination), std::forward<Args>(args)...);
+	}
+
+	// A helper for emplace to initialize the object with the [arg_from, arg_to) subset of the given arguments.
+	template<typename T, const std::size_t arg_from, const std::size_t arg_to, const bool replace = !std::is_trivially_destructible_v<T>, typename... Args>
+	inline T& emplace(T* destination, Args&&... args)
+		noexcept(noexcept(emplace<T, replace, Args...>(std::declval<T*>(), std::forward<Args>(args)..., make_index_sequence_range<arg_from, arg_to>{}))) {
+		static_assert(arg_from <= arg_to, "The last argument index can't precede the first argument index");
+		static_assert(arg_from <= sizeof...(Args) && arg_to <= sizeof...(Args), "Not enough arguments provided");
+
+		return emplace<T, replace, Args...>(destination, std::forward<Args>(args)..., make_index_sequence_range<arg_from, arg_to>{});
+	}
+	// A helper for emplace that takes a reference instead of a pointer.
+	template<typename T, const std::size_t arg_from, const std::size_t arg_to, const bool replace = !std::is_trivially_destructible_v<T>, typename... Args>
+	inline T& emplace(T& destination, Args&&... args)
+		noexcept(
+			noexcept(std::addressof(std::declval<T&>()))
+			&& noexcept(emplace<T, arg_from, arg_to, replace, Args...>(std::declval<T*>(), std::forward<Args>(std::declval<Args>())...))
+		) {
+		return emplace<T, arg_from, arg_to, replace, Args...>(std::addressof(destination), std::forward<Args>(args)...);
+	}
+
 	// Emplaces a new object in place.
 	// Remarks:
 	//   - This assumes the destination is uninitialized. Calling emplace_new with
 	//     an initialized object as the destination results in undefined behaviour.
 	template<typename T, typename... Args>
-	T& emplace_new = emplace<T, false, Args...>;
+	inline T& emplace_new(T* destination, Args&&... args)
+		noexcept(noexcept(emplace<T, false, Args...>(std::declval<T*>(), std::forward<Args>(std::declval<Args>())...))) {
+		return emplace<T, false, Args...>(destination, std::forward<Args>(args)...);
+	}
+	template<typename T, typename... Args>
+	inline T& emplace_new(T& destination, Args&&... args)
+		noexcept(noexcept(emplace<T, false, Args...>(std::declval<T&>(), std::forward<Args>(std::declval<Args>())...))) {
+		return emplace<T, false, Args...>(destination, std::forward<Args>(args)...);
+	}
+
+	// A helper for emplace_new to initialize the object with a specified subset of the given arguments.
+	template<typename T, typename... Args, std::size_t... I>
+	inline T& emplace_new(T* destination, Args&&... args)
+		noexcept(noexcept(emplace<T, false, Args..., I...>(std::declval<T*>(), std::forward<Args>(std::declval<Args>())...))) {
+		return emplace<T, false, Args..., I...>(destination, std::forward<Args>(args)...);
+	}
+	template<typename T, typename... Args, std::size_t... I>
+	inline T& emplace_new(T& destination, Args&&... args)
+		noexcept(noexcept(emplace<T, false, Args..., I...>(std::declval<T&>(), std::forward<Args>(std::declval<Args>())...))) {
+		return emplace<T, false, Args..., I...>(destination, std::forward<Args>(args)...);
+	}
+
+	// A helper for emplace_new to initialize the object with the first arg_count of the given arguments.
+	template<typename T, const std::size_t arg_count, typename... Args>
+	inline T& emplace_new(T* destination, Args&&... args)
+		noexcept(noexcept(emplace<T, arg_count, false, Args...>(std::declval<T*>(), std::forward<Args>(std::declval<Args>())...))) {
+		return emplace<T, arg_count, false, Args...>(destination, std::forward<Args>(args)...);
+	}
+	template<typename T, const std::size_t arg_count, typename... Args>
+	inline T& emplace_new(T& destination, Args&&... args)
+		noexcept(noexcept(emplace<T, arg_count, false, Args...>(std::declval<T&>(), std::forward<Args>(std::declval<Args>())...))) {
+		return emplace<T, arg_count, false, Args...>(destination, std::forward<Args>(args)...);
+	}
+
+	// A helper for emplace_new to initialize the object with the [arg_from, arg_to) subset of the given arguments.
+	template<typename T, const std::size_t arg_from, const std::size_t arg_to, typename... Args>
+	inline T& emplace_new(T* destination, Args&&... args)
+		noexcept(noexcept(emplace<T, arg_from, arg_to, false, Args...>(std::declval<T*>(), std::forward<Args>(std::declval<Args>())...))) {
+		return emplace<T, arg_from, arg_to, false, Args...>(destination, std::forward<Args>(args)...);
+	}
+	template<typename T, const std::size_t arg_from, const std::size_t arg_to, typename... Args>
+	inline T& emplace_new(T& destination, Args&&... args)
+		noexcept(noexcept(emplace<T, arg_from, arg_to, false, Args...>(std::declval<T&>(), std::forward<Args>(std::declval<Args>())...))) {
+		return emplace<T, arg_from, arg_to, false, Args...>(destination, std::forward<Args>(args)...);
+	}
 
 	// Decrements an integer by one, but clamps it to a minimum value if it would underflow it.
 	template<typename int_t>
