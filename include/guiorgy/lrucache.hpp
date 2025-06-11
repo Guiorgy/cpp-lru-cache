@@ -3012,11 +3012,11 @@ namespace guiorgy::detail {
 			}
 
 			assert(!this->_cache_items_list.empty());
-			if constexpr (this->hashmap_has_emplace_hint) {
+			if constexpr (lru_cache_opts::hashmap_has_emplace_hint) {
 				this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
-			} else if constexpr (this->hashmap_has_insert_with_hint) {
+			} else if constexpr (lru_cache_opts::hashmap_has_insert_with_hint) {
 				this->_cache_items_map.insert(it, std::make_pair(key, this->_cache_items_list._first_value_index()));
-			} else if constexpr (this->hashmap_has_insert) {
+			} else if constexpr (lru_cache_opts::hashmap_has_insert) {
 				this->_cache_items_map.insert(std::make_pair(key, this->_cache_items_list._first_value_index()));
 			} else {
 				this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
@@ -3108,11 +3108,11 @@ namespace guiorgy::detail {
 			}
 
 			assert(!this->_cache_items_list.empty());
-			if constexpr (this->hashmap_has_emplace_hint) {
+			if constexpr (lru_cache_opts::hashmap_has_emplace_hint) {
 				this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
-			} else if constexpr (this->hashmap_has_insert_with_hint) {
+			} else if constexpr (lru_cache_opts::hashmap_has_insert_with_hint) {
 				this->_cache_items_map.insert(it, std::make_pair(key, this->_cache_items_list._first_value_index()));
-			} else if constexpr (this->hashmap_has_insert) {
+			} else if constexpr (lru_cache_opts::hashmap_has_insert) {
 				this->_cache_items_map.insert(std::make_pair(key, this->_cache_items_list._first_value_index()));
 			} else {
 				this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
@@ -3215,11 +3215,11 @@ namespace guiorgy::detail {
 			}
 
 			assert(!this->_cache_items_list.empty());
-			if constexpr (this->hashmap_has_emplace_hint) {
+			if constexpr (lru_cache_opts::hashmap_has_emplace_hint) {
 				this->_cache_items_map.emplace_hint(it, key, this->_cache_items_list._first_value_index());
-			} else if constexpr (this->hashmap_has_insert_with_hint) {
+			} else if constexpr (lru_cache_opts::hashmap_has_insert_with_hint) {
 				this->_cache_items_map.insert(it, std::make_pair(key, this->_cache_items_list._first_value_index()));
-			} else if constexpr (this->hashmap_has_insert) {
+			} else if constexpr (lru_cache_opts::hashmap_has_insert) {
 				this->_cache_items_map.insert(std::make_pair(key, this->_cache_items_list._first_value_index()));
 			} else {
 				this->_cache_items_map[key] = this->_cache_items_list._first_value_index();
