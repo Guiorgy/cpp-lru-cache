@@ -21,6 +21,26 @@ elseif (NOT "${CMAKE_BUILD_TYPE}" IN_LIST CMAKE_ALLOWED_BUILD_TYPES)
     message(FATAL_ERROR "Invalid CMAKE_BUILD_TYPE: '${CMAKE_BUILD_TYPE}'. Allowed types are: ${CMAKE_ALLOWED_BUILD_TYPES}")
 endif()
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    string(REGEX MATCH "/clang-([0-9]+)$" _ "${CMAKE_CXX_COMPILER}")
+    set(CLANG_MAJOR_VERSION ${CMAKE_MATCH_1})
+
+    if (CLANG_MAJOR_VERSION)
+        set(CMAKE_CXX_COMPILER /usr/bin/clang-${CLANG_MAJOR_VERSION})
+        set(CMAKE_C_COMPILER /usr/bin/clang-${CLANG_MAJOR_VERSION})
+
+        find_program(LLD_EXECUTABLE NAMES ld.lld-${CLANG_MAJOR_VERSION})
+        if (LLD_EXECUTABLE)
+            message(STATUS "Uisng ${LLD_EXECUTABLE} with Clang")
+
+            set(CLANG_LINKER_FLAGS "--ld-path=/usr/bin/ld.lld-${CLANG_MAJOR_VERSION} -lstdc++ -lm -lc -lgcc_s")
+            set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CLANG_LINKER_FLAGS}")
+            set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CLANG_LINKER_FLAGS}")
+            set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${CLANG_LINKER_FLAGS}")
+        endif()
+    endif()
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
