@@ -474,7 +474,7 @@ namespace guiorgy::detail::hashmap {
 
 // Utils.
 namespace guiorgy::detail {
-	#if __cplusplus < 202002L	// C++20
+	#if __cplusplus < 202002L // C++20
 		// Returns the address of obj (implicitly converted to void*).
 		// Based on LWG issue 3870 resolution.
 		template<typename T>
@@ -2745,10 +2745,10 @@ namespace guiorgy::detail {
 	// lru_cache_opts initialization options. This is a flags enum.
 	enum struct LruCacheOptions : LruCacheOptionsBaseType {
 		// No options set. Default initialization.
-		None			= 0b0000'0000u,
+		None        = 0b0000'0000u,
 
 		// Preallocate the capacity of the cache to a value that's greater or equal to max_size.
-		Preallocate		= 0b0000'0001u
+		Preallocate = 0b0000'0001u
 	};
 
 	// Checks whether the specified value is a valid LruCacheOptions flag combination.
@@ -2769,9 +2769,9 @@ namespace guiorgy::detail {
 	// Remarks:
 	//   - This has no effect in C++ < 20.
 	enum struct Likelihood : LikelihoodBaseType {
-		Unknown,	// No attribute used
-		Likely,		// [[likely]] attribute used
-		Unlikely	// [[unlikely]] attribute used
+		Unknown, // No attribute used
+		Likely,  // [[likely]] attribute used
+		Unlikely // [[unlikely]] attribute used
 	};
 
 	// Checks whether the given likelihood value is a valid Likelihood enum value.
