@@ -514,6 +514,27 @@ namespace guiorgy::detail {
 		return emplace<T, replace, Args...>(std::addressof(destination), std::forward<Args>(args)...);
 	}
 
+	// A helper for emplace that takes the argument pack as a std::tuple.
+	template<typename T, const bool replace = !std::is_trivially_destructible_v<T>, typename... Args>
+	inline T& emplace(T* destination, std::tuple<Args...>&& args_tuple)
+		noexcept(std::is_nothrow_constructible_v<T, Args...>) {
+		return std::apply(
+			[destination](auto&&... args) -> T& {
+				return emplace<T, replace, decltype(args)...>(destination, std::forward<decltype(args)>(args)...);
+			},
+			std::move(args_tuple)
+		);
+	}
+	// A helper for emplace that takes a reference instead of a pointer.
+	template<typename T, const bool replace = !std::is_trivially_destructible_v<T>, typename... Args>
+	inline T& emplace(T& destination, std::tuple<Args...>&& args_tuple)
+		noexcept(
+			noexcept(std::addressof(std::declval<T&>()))
+			&& noexcept(emplace<T, replace, Args...>(std::declval<T*>(), std::move(std::declval<std::tuple<Args...>>())))
+		) {
+		return emplace<T, replace, Args...>(std::addressof(destination), std::move(args_tuple));
+	}
+
 	// A helper for emplace to initialize the object with a specified subset of the given arguments.
 	template<typename T, const bool replace = !std::is_trivially_destructible_v<T>, typename... Args, std::size_t... I>
 	inline T& emplace(T* destination, Args&&... args, [[maybe_unused]] std::index_sequence<I...>)
@@ -580,6 +601,18 @@ namespace guiorgy::detail {
 	inline T& emplace_new(T& destination, Args&&... args)
 		noexcept(noexcept(emplace<T, false, Args...>(std::declval<T&>(), std::forward<Args>(std::declval<Args>())...))) {
 		return emplace<T, false, Args...>(destination, std::forward<Args>(args)...);
+	}
+
+	// A helper for emplace_new that takes the argument pack as a std::tuple.
+	template<typename T, typename... Args>
+	inline T& emplace_new(T* destination, std::tuple<Args...>&& args_tuple)
+		noexcept(noexcept(emplace<T, false, Args...>(std::declval<T*>(), std::move(std::declval<std::tuple<Args...>>())))) {
+		return emplace<T, false, Args...>(destination, std::move(args_tuple));
+	}
+	template<typename T, typename... Args>
+	inline T& emplace_new(T& destination, std::tuple<Args...>&& args_tuple)
+		noexcept(noexcept(emplace<T, false, Args...>(std::declval<T&>(), std::move(std::declval<std::tuple<Args...>>())))) {
+		return emplace<T, false, Args...>(destination, std::move(args_tuple));
 	}
 
 	// A helper for emplace_new to initialize the object with a specified subset of the given arguments.
