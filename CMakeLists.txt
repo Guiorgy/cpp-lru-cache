@@ -53,9 +53,6 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror -fmax-errors=10")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g3 -fno-omit-frame-pointer -D_GLIBCXX_DEBUG")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -g -DNDEBUG")
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -67,8 +64,15 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
     endif()
 endif()
 
-set(MORE_WARNING_FLAGS "")
+set(COMPILER_FLAGS "")
+set(COMPILER_FLAGS_DEBUG "")
+set(COMPILER_FLAGS_RELEASE "")
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    set(COMPILER_FLAGS "-Wall -Wextra -Wpedantic -Werror -fmax-errors=10")
+    set(COMPILER_FLAGS_DEBUG "-O0 -g3 -fno-omit-frame-pointer -D_GLIBCXX_DEBUG")
+    set(COMPILER_FLAGS_RELEASE "-O3 -g -DNDEBUG")
+
+    set(MORE_WARNING_FLAGS "")
     if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 11.0.0)
         set(MORE_WARNING_FLAGS "${MORE_WARNING_FLAGS} -Walloc-zero -Walloca -Warith-conversion -Warray-bounds=2 -Wattribute-alias=2 -Wcast-align=strict -Wcast-qual -Wcatch-value=3 -Wcomma-subscript -Wconditionally-supported -Wconversion -Wctad-maybe-unsupported -Wctor-dtor-privacy -Wdate-time -Wdeprecated -Wdisabled-optimization -Wdouble-promotion -Wduplicated-branches -Wduplicated-cond -Weffc++ -Wenum-conversion -Wextra-semi -Wfloat-equal -Wformat=2 -Wimplicit-fallthrough=5 -Winvalid-imported-macros -Wlogical-op -Wmisleading-indentation -Wmismatched-tags -Wmissing-declarations -Wmissing-format-attribute -Wmissing-include-dirs -Wmissing-noreturn -Wmultiple-inheritance -Wnoexcept -Wnull-dereference -Wold-style-cast -Woverloaded-virtual -Wpacked -Wplacement-new=2 -Wredundant-decls -Wredundant-tags -Wshadow -Wshift-overflow=2 -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 -Wstringop-overflow=4 -Wsuggest-attribute=noreturn -Wsuggest-final-methods -Wsuggest-final-types -Wsuggest-override -Wswitch-default -Wswitch-enum -Wtautological-compare -Wtrampolines -Wundef -Wunsafe-loop-optimizations -Wunused-const-variable=2 -Wunused-macros -Wuseless-cast -Wvector-operation-performance -Wvirtual-inheritance -Wzero-as-null-pointer-constant -Wzero-length-bounds")
     else()
@@ -96,8 +100,35 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     endif()
 
     # Excluded warnings: -Waggregate-return -Wflex-array-member-not-at-end -Winline -Winvalid-pch -Wnamespaces -Wnon-virtual-dtor -Wnormalized=nfkc -Wopenacc-parallelism -Wopenmp-simd -Wpadded -Wstack-protector -Wstrict-flex-arrays -Wsuggest-attribute=cold -Wsuggest-attribute=const -Wsuggest-attribute=format -Wsuggest-attribute=malloc -Wsuggest-attribute=pure -Wsuggest-attribute=returns_nonnull -Wsystem-headers -Wtemplates
+
+    set(COMPILER_FLAGS "${COMPILER_FLAGS} ${MORE_WARNING_FLAGS}")
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(COMPILER_FLAGS "-Weverything -Wpedantic -Werror")
+    set(COMPILER_FLAGS_DEBUG "-O0 -g3 -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -D_GLIBCXX_DEBUG")
+    set(COMPILER_FLAGS_RELEASE "-O3 -g -DNDEBUG")
+
+    # Suppress useless warnings.
+    set(COMPILER_FLAGS "${COMPILER_FLAGS} -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-missing-prototypes -Wno-padded -Wno-disabled-macro-expansion")
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    set(COMPILER_FLAGS "/Wall /permissive- /WX /external:anglebrackets /external:W0 /EHsc /Zc:__cplusplus")
+    set(COMPILER_FLAGS_DEBUG "/Od /Zi /Oy- /D_DEBUG /D_ITERATOR_DEBUG_LEVEL=2")
+    set(COMPILER_FLAGS_RELEASE "/O2 /GL /Zi /DNDEBUG /W4") # MSVC with /Wall in Release warns for code inside the included dependencies too
+
+    # Suppress useless warnings.
+    set(COMPILER_FLAGS "${COMPILER_FLAGS} /wd4514 /wd4820 /wd5045")
+    # C4514: unreferenced inline function has been removed
+    # C4820: bytes padding added after construct
+    # C5045: Compiler will insert Spectre mitigation for memory load if /Qspectre switch specified
 else()
     message(WARNING "Untested compiler '${CMAKE_CXX_COMPILER_ID}'. Additional warnings disabled")
+endif()
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(COMPILER_FLAGS "${COMPILER_FLAGS} ${COMPILER_FLAGS_DEBUG}")
+elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(COMPILER_FLAGS "${COMPILER_FLAGS} ${COMPILER_FLAGS_RELEASE}")
+else()
+    message(FATAL_ERROR "Unhandled CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 endif()
 
 set(FETCH_CONTENT_MAKE_AVAILABLE "")
@@ -292,7 +323,7 @@ endif()
 file(GLOB_RECURSE TESTS ${PROJECT_SOURCE_DIR}/tests/*.cpp)
 add_executable(cpp-lru-cache-test ${TESTS})
 
-target_compile_options(cpp-lru-cache-test PRIVATE "SHELL:${MORE_WARNING_FLAGS}")
+target_compile_options(cpp-lru-cache-test PRIVATE "SHELL:${COMPILER_FLAGS}")
 
 target_include_directories(
     cpp-lru-cache-test SYSTEM PRIVATE
@@ -333,7 +364,7 @@ set(CMAKE_CXX_CPPCHECK "")
 find_program(VALGRIND_EXECUTABLE valgrind)
 if (VALGRIND_EXECUTABLE)
     add_executable(cpp-lru-cache-test-sanitize EXCLUDE_FROM_ALL ${TESTS})
-    target_compile_options(cpp-lru-cache-test-sanitize PRIVATE "SHELL:${MORE_WARNING_FLAGS}")
+    target_compile_options(cpp-lru-cache-test-sanitize PRIVATE "SHELL:${COMPILER_FLAGS}")
     target_compile_definitions(cpp-lru-cache-test-sanitize PRIVATE SKIP_ALLOCATION_TESTS)
 
     target_include_directories(

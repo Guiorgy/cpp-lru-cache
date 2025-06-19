@@ -2,6 +2,11 @@
 #include "gtest/gtest.h"
 #include "alloc_utils.hpp"
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wglobal-constructors"
+#endif
+
 #define TEST_GROUP AllocUtilsTests
 
 TEST(TEST_GROUP, NewAllocationAccounted) {
@@ -39,4 +44,8 @@ TEST(TEST_GROUP, GlobalNewArrayAllocationAccounted) {
 	EXPECT_ALLOC(1, sizeof(int) * size);
 	delete[] i_ptr;
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 #endif // SKIP_ALLOCATION_TESTS
