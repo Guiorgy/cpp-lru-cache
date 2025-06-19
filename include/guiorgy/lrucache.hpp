@@ -3055,11 +3055,11 @@ namespace guiorgy::detail {
 
 		// See the put above for details.
 		// Use key_likely_exists and cache_likely_full to hint to the compiler for which case to optimize for.
-		template<const bool key_likely_exists, const bool cache_likely_full>
+		template<const bool key_likely_exists, const bool cache_likely_full, typename = std::enable_if_t<std::is_same_v<decltype(key_likely_exists), bool>>>
 		void put(const key_type& key, const value_type& value) {
 			put<likelihood(key_likely_exists), likelihood(cache_likely_full)>(key, value);
 		}
-		template<const bool key_likely_exists>
+		template<const bool key_likely_exists, typename = std::enable_if_t<std::is_same_v<decltype(key_likely_exists), bool>>>
 		void put(const key_type& key, const value_type& value) {
 			put<likelihood(key_likely_exists)>(key, value);
 		}
@@ -3151,11 +3151,11 @@ namespace guiorgy::detail {
 
 		// See the put above for details.
 		// Use key_likely_exists and cache_likely_full to hint to the compiler for which case to optimize for.
-		template<const bool key_likely_exists, const bool cache_likely_full>
+		template<const bool key_likely_exists, const bool cache_likely_full, typename = std::enable_if_t<std::is_same_v<decltype(key_likely_exists), bool>>>
 		void put(const key_type& key, value_type&& value) {
 			put<likelihood(key_likely_exists), likelihood(cache_likely_full)>(key, std::move(value));
 		}
-		template<const bool key_likely_exists>
+		template<const bool key_likely_exists, typename = std::enable_if_t<std::is_same_v<decltype(key_likely_exists), bool>>>
 		void put(const key_type& key, value_type&& value) {
 			put<likelihood(key_likely_exists)>(key, std::move(value));
 		}
@@ -3260,11 +3260,11 @@ namespace guiorgy::detail {
 
 		// See the emplace above for details.
 		// Use key_likely_exists and cache_likely_full to hint to the compiler for which case to optimize for.
-		template<const bool key_likely_exists, const bool cache_likely_full, typename... ValueArgs>
+		template<const bool key_likely_exists, const bool cache_likely_full, typename = std::enable_if_t<std::is_same_v<decltype(key_likely_exists), bool>>, typename... ValueArgs>
 		const value_type& emplace(const key_type& key, ValueArgs&&... value_args) {
 			return emplace<likelihood(key_likely_exists), likelihood(cache_likely_full)>(key, std::forward<ValueArgs>(value_args)...);
 		}
-		template<const bool key_likely_exists, typename... ValueArgs>
+		template<const bool key_likely_exists, typename = std::enable_if_t<std::is_same_v<decltype(key_likely_exists), bool>>, typename... ValueArgs>
 		const value_type& emplace(const key_type& key, ValueArgs&&... value_args) {
 			return emplace<likelihood(key_likely_exists)>(key, std::forward<ValueArgs>(value_args)...);
 		}
@@ -3306,7 +3306,7 @@ namespace guiorgy::detail {
 
 		// See the get above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
-		template<const bool key_likely_exists>
+		template<const bool key_likely_exists, typename = std::enable_if_t<std::is_same_v<decltype(key_likely_exists), bool>>>
 		[[nodiscard("Use touch(const key_type& key) instead if all you want is to push the key to the bottom of the removal order")]]
 		const std::optional<value_type> get(const key_type& key) {
 			return get<likelihood(key_likely_exists)>(key);
@@ -3352,7 +3352,7 @@ namespace guiorgy::detail {
 
 		// See the get_ref above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
-		template<const bool key_likely_exists>
+		template<const bool key_likely_exists, typename = std::enable_if_t<std::is_same_v<decltype(key_likely_exists), bool>>>
 		[[nodiscard("Use touch(const key_type& key) instead if all you want is to push the key to the bottom of the removal order")]]
 		const std::optional<std::reference_wrapper<const value_type>> get_ref(const key_type& key) {
 			return get_ref<likelihood(key_likely_exists)>(key);
@@ -3402,7 +3402,7 @@ namespace guiorgy::detail {
 
 		// See the try_get above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
-		template<const bool key_likely_exists>
+		template<const bool key_likely_exists, typename = std::enable_if_t<std::is_same_v<decltype(key_likely_exists), bool>>>
 		[[nodiscard("Use touch(const key_type& key) instead if all you want is to push the key to the bottom of the removal order")]]
 		bool try_get(const key_type& key, value_type& value_out) {
 			return try_get<likelihood(key_likely_exists)>(key, value_out);
@@ -3455,7 +3455,7 @@ namespace guiorgy::detail {
 
 		// See the try_get_ref above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
-		template<const bool key_likely_exists>
+		template<const bool key_likely_exists, typename = std::enable_if_t<std::is_same_v<decltype(key_likely_exists), bool>>>
 		[[nodiscard("Use touch(const key_type& key) instead if all you want is to push the key to the bottom of the removal order")]]
 		bool try_get_ref(const key_type& key, const value_type*& value_out) {
 			return try_get_ref<likelihood(key_likely_exists)>(key, value_out);
@@ -3505,7 +3505,7 @@ namespace guiorgy::detail {
 
 		// See the remove above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
-		template<const bool key_likely_exists>
+		template<const bool key_likely_exists, typename = std::enable_if_t<std::is_same_v<decltype(key_likely_exists), bool>>>
 		[[nodiscard("Use erase(const key_type& key) instead")]]
 		std::optional<value_type> remove(const key_type& key) {
 			return remove<likelihood(key_likely_exists)>(key);
@@ -3558,7 +3558,7 @@ namespace guiorgy::detail {
 
 		// See the remove_ref above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
-		template<const bool key_likely_exists>
+		template<const bool key_likely_exists, typename = std::enable_if_t<std::is_same_v<decltype(key_likely_exists), bool>>>
 		[[nodiscard("Use erase(const key_type& key) instead")]]
 		std::optional<std::reference_wrapper<value_type>> remove_ref(const key_type& key) {
 			return remove_ref<likelihood(key_likely_exists)>(key);
@@ -3612,7 +3612,7 @@ namespace guiorgy::detail {
 
 		// See the try_remove above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
-		template<const bool key_likely_exists>
+		template<const bool key_likely_exists, typename = std::enable_if_t<std::is_same_v<decltype(key_likely_exists), bool>>>
 		[[nodiscard("Use erase(const key_type& key) instead")]]
 		bool try_remove(const key_type& key, value_type& value_out) {
 			return try_remove<likelihood(key_likely_exists)>(key, value_out);
@@ -3669,7 +3669,7 @@ namespace guiorgy::detail {
 
 		// See the try_remove_ref above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
-		template<const bool key_likely_exists>
+		template<const bool key_likely_exists, typename = std::enable_if_t<std::is_same_v<decltype(key_likely_exists), bool>>>
 		[[nodiscard("Use erase(const key_type& key) instead")]]
 		bool try_remove_ref(const key_type& key, const value_type*& value_out) {
 			return try_remove_ref<likelihood(key_likely_exists)>(key, value_out);
@@ -3717,7 +3717,7 @@ namespace guiorgy::detail {
 
 		// See the erase above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
-		template<const bool key_likely_exists>
+		template<const bool key_likely_exists, typename = std::enable_if_t<std::is_same_v<decltype(key_likely_exists), bool>>>
 		bool erase(const key_type& key) {
 			return erase<likelihood(key_likely_exists)>(key);
 		}
@@ -3772,7 +3772,7 @@ namespace guiorgy::detail {
 
 		// See the touch above for details.
 		// Use key_likely_exists to hint to the compiler for which case to optimize for.
-		template<const bool key_likely_exists>
+		template<const bool key_likely_exists, typename = std::enable_if_t<std::is_same_v<decltype(key_likely_exists), bool>>>
 		bool touch(const key_type& key) {
 			return touch<likelihood(key_likely_exists)>(key);
 		}
