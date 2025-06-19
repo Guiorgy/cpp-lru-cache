@@ -75,6 +75,21 @@
 	#define CONSTEXPR_DESTRUCTOR
 #endif
 
+// A helper macro to drop the explanation argument of deleted function-body on compilers that don't support it.
+#ifndef __cpp_deleted_function
+	#define GUIORGY_FEATURE_UNAVAILABLE
+#elif __cpp_deleted_function < 202403L || __cplusplus < 202600L
+	#define GUIORGY_FEATURE_UNAVAILABLE
+#endif
+#ifdef GUIORGY_FEATURE_UNAVAILABLE
+	#undef GUIORGY_FEATURE_UNAVAILABLE
+	#ifdef delete
+		#define GUIORGY_DELETE_BEFORE delete
+		#undef delete
+	#endif
+	#define delete(explanation) delete
+#endif
+
 // A macro to indicate the availability of the three-way comparison operator
 #ifdef __cpp_impl_three_way_comparison
 	#if __cpp_impl_three_way_comparison >= 201907L && __cplusplus >= 202002L
@@ -1418,7 +1433,7 @@ namespace guiorgy::detail {
 				return emplace(value, std::forward<ValueArgs>(value_args)...);
 			}
 
-			list_node_value_first() = delete;
+			list_node_value_first() = delete("Members must be initialized");
 			~list_node_value_first() = default;
 			list_node_value_first(const list_node_value_first&) = default;
 			list_node_value_first(list_node_value_first&&) = default;
@@ -1473,7 +1488,7 @@ namespace guiorgy::detail {
 				return emplace(value, std::forward<ValueArgs>(value_args)...);
 			}
 
-			list_node_value_last() = delete;
+			list_node_value_last() = delete("Members must be initialized");
 			~list_node_value_last() = default;
 			list_node_value_last(const list_node_value_last&) = default;
 			list_node_value_last(list_node_value_last&&) = default;
@@ -2158,7 +2173,7 @@ namespace guiorgy::detail {
 			template<const bool other_reverse>
 			_iterator(const _iterator<constant, other_reverse>& it) noexcept : list(it.list), current_index(reverse_index<other_reverse, reverse>(it.list, it.current_index)) {}
 
-			_iterator() = delete;
+			_iterator() = delete("Members must be initialized");
 			~_iterator() = default;
 			_iterator(const _iterator&) = default;
 			_iterator(_iterator&&) = default;
@@ -2823,7 +2838,7 @@ namespace guiorgy::detail {
 			hashmap_const_iterator_type it_;
 
 		public:
-			constexpr hashmap_const_iterator_wrapper() = delete;
+			constexpr hashmap_const_iterator_wrapper() = delete("Members must be initialized");
 			CONSTEXPR_DESTRUCTOR ~hashmap_const_iterator_wrapper() = default;
 			constexpr hashmap_const_iterator_wrapper(const hashmap_const_iterator_wrapper&) = default;
 			constexpr hashmap_const_iterator_wrapper(hashmap_const_iterator_wrapper&&) = default;
@@ -3916,6 +3931,13 @@ namespace guiorgy {
 // Cleanup of GUIORGY_SPACESHIP_OPERATOR_AVAILABLE.
 #ifdef GUIORGY_SPACESHIP_OPERATOR_AVAILABLE
 	#undef GUIORGY_SPACESHIP_OPERATOR_AVAILABLE
+#endif
+
+// Restore delete if it was already defined.
+#ifdef GUIORGY_DELETE_BEFORE
+	#undef delete
+	#define delete GUIORGY_DELETE_BEFORE
+	#undef GUIORGY_DELETE_BEFORE
 #endif
 
 // Restore CONSTEXPR_DESTRUCTOR if they were already defined.
