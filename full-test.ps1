@@ -37,8 +37,8 @@ if ($create) {
   docker run -d --name "$container" -v "${host_dir}:${container_dir}" $gcc sh -c 'trap "exit 0" TERM; tail -f /dev/null & wait'
 
   # Install dependencies
-  Write-Output "Installing dependencies: cmake, valgrind, unbuffer"
-  docker exec -it "$container" bash -c 'apt-get -qq update && apt-get -qq install cmake valgrind cppcheck expect'
+  Write-Output "Installing dependencies: cmake, clang, valgrind, unbuffer"
+  docker exec -it "$container" bash -c 'apt-get -qq update && apt-get -qq install cmake clang valgrind cppcheck expect'
 
   # Stop container
   docker stop "$container" *>$null
