@@ -182,6 +182,7 @@ namespace guiorgy::detail {
 	template<typename T>
 	inline constexpr bool is_nothrow_move_or_copy_assignable_v = is_nothrow_move_or_copy_assignable<T>::value;
 
+#ifdef ENABLE_TEMPLATE_SUBPACK
 	// SFINAE helper for defining make_index_sequence_range below.
 	// The template base declaration.
 	template <std::size_t N, std::size_t M, typename = void>
@@ -209,6 +210,7 @@ namespace guiorgy::detail {
 	// A std::make_index_sequence-like utility to create a std::integer_sequence with indices between N and M.
 	template <std::size_t N, std::size_t M>
 	using make_index_sequence_range = typename _make_index_sequence_range<N, M>::type;
+#endif // ENABLE_TEMPLATE_SUBPACK
 
 	// SFINAE to check if the specified type is a std::pair.
 	// The template returned when matching fails.
@@ -560,6 +562,7 @@ namespace guiorgy::detail {
 		return emplace<T, replace, Args...>(std::addressof(destination), std::move(args_tuple));
 	}
 
+#ifdef ENABLE_TEMPLATE_SUBPACK
 	// A helper for emplace to initialize the object with a specified subset of the given arguments.
 	template<typename T, const bool replace = !std::is_trivially_destructible_v<T>, typename... Args, std::size_t... I>
 	inline T& emplace(T* destination, Args&&... args, [[maybe_unused]] std::index_sequence<I...>)
@@ -612,6 +615,7 @@ namespace guiorgy::detail {
 		) {
 		return emplace<T, arg_from, arg_to, replace, Args...>(std::addressof(destination), std::forward<Args>(args)...);
 	}
+#endif // ENABLE_TEMPLATE_SUBPACK
 
 	// Emplaces a new object in place.
 	// Remarks:
@@ -640,6 +644,7 @@ namespace guiorgy::detail {
 		return emplace<T, false, Args...>(destination, std::move(args_tuple));
 	}
 
+#ifdef ENABLE_TEMPLATE_SUBPACK
 	// A helper for emplace_new to initialize the object with a specified subset of the given arguments.
 	template<typename T, typename... Args, std::size_t... I>
 	inline T& emplace_new(T* destination, Args&&... args)
@@ -675,6 +680,7 @@ namespace guiorgy::detail {
 		noexcept(noexcept(emplace<T, arg_from, arg_to, false, Args...>(std::declval<T&>(), std::forward<Args>(std::declval<Args>())...))) {
 		return emplace<T, arg_from, arg_to, false, Args...>(destination, std::forward<Args>(args)...);
 	}
+#endif // ENABLE_TEMPLATE_SUBPACK
 
 	// Decrements an integer by one, but clamps it to a minimum value if it would underflow it.
 	template<typename int_t>
@@ -2400,6 +2406,7 @@ namespace guiorgy::detail {
 			emplace_new<value_type, ValueArgs...>(value, std::move(value_args));
 		}
 
+#ifdef ENABLE_TEMPLATE_SUBPACK
 		// Key emplace factory, where the last argument is for value initialization.
 		template<typename... Args>
 		[[nodiscard]] static constexpr key_value make(Args&&... args)
@@ -2430,6 +2437,7 @@ namespace guiorgy::detail {
 
 			return kv;
 		}
+#endif // ENABLE_TEMPLATE_SUBPACK
 
 		// Specializations for std::reference_wrapper, where the reference types are unwrapped.
 		constexpr key_value(const std::reference_wrapper<key_type> kr, const value_type& v)
