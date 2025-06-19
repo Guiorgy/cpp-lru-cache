@@ -67,7 +67,7 @@ To decide which implementation to use, check out the amazing round of [benchmark
 ```shell
 cd build
 cmake ..
-# cmake -DCMAKE_BUILD_TYPE=Debug -DCPPCHECK=ON -DHASH_MAP_IMPLEMENTATION=STD|ABSEIL|TESSIL_SPARSE|TESSIL_ROBIN|TESSIL_HOP|ANKERL|ANKERL_SEG ..
+# cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Debug -DCPPCHECK=ON -DHASH_MAP_IMPLEMENTATION=STD|ABSEIL|TESSIL_SPARSE|TESSIL_ROBIN|TESSIL_HOP|ANKERL|ANKERL_SEG ..
 make test
 # make sanitize
 # ./full-test.sh
