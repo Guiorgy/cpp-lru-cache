@@ -4,6 +4,11 @@
 #include "guiorgy/lrucache.hpp"
 #include "hashmap.hpp"
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wglobal-constructors"
+#endif
+
 #define TEST_GROUP LruCacheAllocationTests
 
 #if LRU_CACHE_HASH_MAP_IMPLEMENTATION == ANKERL_UNORDERED_DENSE_MAP
@@ -31,4 +36,8 @@ TEST(TEST_GROUP, ConstructorWithPreallocateAllocates) {
 	guiorgy::lru_cache_opts<guiorgy::LruCacheOptions::Preallocate, int, int, 1, HASH_MAP_TYPE> cache_lru;
 	EXPECT_SOME_ALLOC();
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 #endif // SKIP_ALLOCATION_TESTS

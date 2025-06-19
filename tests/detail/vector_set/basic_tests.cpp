@@ -2,6 +2,11 @@
 #include "guiorgy/lrucache.hpp"
 #include "math_utils.hpp"
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wglobal-constructors"
+#endif
+
 #define TEST_GROUP DetailVectorSetBasicTests
 
 TEST(TEST_GROUP, VectorSet) {
@@ -38,3 +43,7 @@ TEST(TEST_GROUP, VectorSet) {
 	EXPECT_FALSE(set.empty());
 	EXPECT_EQ(record_count, set.size());
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif

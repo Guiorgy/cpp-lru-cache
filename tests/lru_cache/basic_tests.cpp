@@ -2,6 +2,11 @@
 #include "guiorgy/lrucache.hpp"
 #include "hashmap.hpp"
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wglobal-constructors"
+#endif
+
 #define TEST_GROUP LruCacheBasicTests
 
 TEST(TEST_GROUP, SimplePut) {
@@ -160,7 +165,7 @@ TEST(TEST_GROUP, IteratorConversion) {
 
 	// From const_reverse_iterator.
 	{
-		lru_cache_t::const_reverse_iterator crit = cache_lru.crbegin();;
+		lru_cache_t::const_reverse_iterator crit = cache_lru.crbegin();
 		EXPECT_EQ(7, crit->key);
 		EXPECT_EQ(777, crit->value);
 
@@ -321,3 +326,7 @@ TEST(TEST_GROUP, HandlesTouch) {
 	size_t size = cache_lru.size();
 	EXPECT_EQ(record_count, size);
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
