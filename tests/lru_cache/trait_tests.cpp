@@ -20,7 +20,11 @@
 
 	static_assert(std::is_move_constructible_v<NO_PREALLOCATE> == true);
 	static_assert(std::is_trivially_move_constructible_v<NO_PREALLOCATE> == false);
+#ifdef _MSC_VER
+	static_assert(std::is_nothrow_move_constructible_v<NO_PREALLOCATE> == false);
+#else
 	static_assert(std::is_nothrow_move_constructible_v<NO_PREALLOCATE> == true);
+#endif
 
 	// preallocate = true
 	static_assert(std::is_constructible_v<PREALLOCATE> == true);
@@ -37,7 +41,11 @@
 
 	static_assert(std::is_move_constructible_v<PREALLOCATE> == true);
 	static_assert(std::is_trivially_move_constructible_v<PREALLOCATE> == false);
+#ifdef _MSC_VER
+	static_assert(std::is_nothrow_move_constructible_v<PREALLOCATE> == false);
+#else
 	static_assert(std::is_nothrow_move_constructible_v<PREALLOCATE> == true);
+#endif
 #elif LRU_CACHE_HASH_MAP_IMPLEMENTATION == ABSEIL_FLAT_HASH_MAP
 	// preallocate = false (default)
 	static_assert(std::is_constructible_v<NO_PREALLOCATE> == true);

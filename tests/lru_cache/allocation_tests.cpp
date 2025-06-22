@@ -24,11 +24,19 @@
 		EXPECT_ALLOC(2, 4104);
 	}
 #else
-	TEST(TEST_GROUP, ConstructorDoesnNotAllocate) {
-		reset_allocation_count();
-		guiorgy::lru_cache<int, int, 1, HASH_MAP_TYPE> cache_lru;
-		EXPECT_NO_ALLOC();
-	}
+	#ifdef _MSC_VER
+		TEST(TEST_GROUP, ConstructorDoesnNotAllocate) {
+			reset_allocation_count();
+			guiorgy::lru_cache<int, int, 1, HASH_MAP_TYPE> cache_lru;
+			EXPECT_SOME_ALLOC();
+		}
+	#else
+		TEST(TEST_GROUP, ConstructorDoesnNotAllocate) {
+			reset_allocation_count();
+			guiorgy::lru_cache<int, int, 1, HASH_MAP_TYPE> cache_lru;
+			EXPECT_NO_ALLOC();
+		}
+	#endif // _MSC_VER
 #endif // LRU_CACHE_HASH_MAP_IMPLEMENTATION
 
 TEST(TEST_GROUP, ConstructorWithPreallocateAllocates) {
