@@ -39,12 +39,20 @@
 #endif
 
 // A helper macro to drop the explanation argument of the [[nodiscard]] attribute on compilers that don't support it.
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wreserved-attribute-identifier"
+#endif
 #if !GUIORGY_ATTRIBUTE_AVAILABLE(nodiscard, 201907L, 202002L)
 	#ifdef nodiscard
 		#define GUIORGY_NODISCARD_BEFORE nodiscard
 		#undef nodiscard
 	#endif
 	#define nodiscard(explanation) nodiscard
+#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
 #endif
 
 // Helper macros to drop the [[likely]] and [[unlikely]] attributes on compilers that don't support them.
@@ -3984,6 +3992,11 @@ namespace guiorgy {
 #endif
 
 // Restore nodiscard if it was already defined, otherwise undefine it.
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wreserved-attribute-identifier"
+#endif
 #ifdef GUIORGY_NODISCARD_BEFORE
 	#undef nodiscard
 	#define nodiscard GUIORGY_NODISCARD_BEFORE
@@ -3992,6 +4005,9 @@ namespace guiorgy {
 	#ifdef nodiscard
 		#undef nodiscard
 	#endif
+#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
 #endif
 
 // Cleanup of GUIORGY_ATTRIBUTE_AVAILABLE.
