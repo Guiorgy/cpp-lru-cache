@@ -3941,37 +3941,57 @@ namespace guiorgy {
 	#undef GUIORGY_SPACESHIP_OPERATOR_AVAILABLE
 #endif
 
-// Restore delete if it was already defined.
+// Restore delete if it was already defined, otherwise undefine it.
 #ifdef GUIORGY_DELETE_BEFORE
 	#undef delete
 	#define delete GUIORGY_DELETE_BEFORE
 	#undef GUIORGY_DELETE_BEFORE
+#else
+	#ifdef delete
+		#undef delete
+	#endif
 #endif
 
-// Restore CONSTEXPR_DESTRUCTOR if they were already defined.
+// Restore CONSTEXPR_DESTRUCTOR if they were already defined, otherwise undefine it.
 #ifdef GUIORGY_CONSTEXPR_DESTRUCTOR_BEFORE
 	#undef CONSTEXPR_DESTRUCTOR
 	#define CONSTEXPR_DESTRUCTOR GUIORGY_CONSTEXPR_DESTRUCTOR_BEFORE
 	#undef GUIORGY_CONSTEXPR_DESTRUCTOR_BEFORE
+#else
+	#ifdef CONSTEXPR_DESTRUCTOR
+		#undef CONSTEXPR_DESTRUCTOR
+	#endif
 #endif
 
-// Restore LIKELY and UNLIKELY if they were already defined.
+// Restore LIKELY and UNLIKELY if they were already defined, otherwise undefine them.
 #ifdef GUIORGY_LIKELY_BEFORE
 	#undef LIKELY
 	#define LIKELY GUIORGY_LIKELY_BEFORE
 	#undef GUIORGY_LIKELY_BEFORE
+#else
+	#ifdef LIKELY
+		#undef LIKELY
+	#endif
 #endif
 #ifdef GUIORGY_UNLIKELY_BEFORE
 	#undef UNLIKELY
 	#define UNLIKELY GUIORGY_UNLIKELY_BEFORE
 	#undef GUIORGY_UNLIKELY_BEFORE
+#else
+	#ifdef UNLIKELY
+		#undef UNLIKELY
+	#endif
 #endif
 
-// Restore nodiscard if it was already defined.
+// Restore nodiscard if it was already defined, otherwise undefine it.
 #ifdef GUIORGY_NODISCARD_BEFORE
 	#undef nodiscard
 	#define nodiscard GUIORGY_NODISCARD_BEFORE
 	#undef GUIORGY_NODISCARD_BEFORE
+#else
+	#ifdef nodiscard
+		#undef nodiscard
+	#endif
 #endif
 
 // Cleanup of GUIORGY_ATTRIBUTE_AVAILABLE.
