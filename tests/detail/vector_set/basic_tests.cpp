@@ -1,4 +1,4 @@
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 #include "guiorgy/lrucache.hpp"
 #include "math_utils.hpp"
 

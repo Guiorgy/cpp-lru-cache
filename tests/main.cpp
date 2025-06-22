@@ -1,4 +1,4 @@
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 int main(int argc, char **argv) {
 	static constexpr const char* reset_color = "\033[0m";
