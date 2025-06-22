@@ -1,5 +1,5 @@
 #ifndef SKIP_ALLOCATION_TESTS
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 #include "alloc_utils.hpp"
 
 #ifdef __clang__
