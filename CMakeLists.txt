@@ -361,52 +361,54 @@ endif()
 
 set(CMAKE_CXX_CPPCHECK "")
 
-find_program(VALGRIND_EXECUTABLE valgrind)
-if (VALGRIND_EXECUTABLE)
-    add_executable(cpp-lru-cache-test-sanitize EXCLUDE_FROM_ALL ${TESTS})
-    target_compile_options(cpp-lru-cache-test-sanitize PRIVATE "SHELL:${COMPILER_FLAGS}")
-    target_compile_definitions(cpp-lru-cache-test-sanitize PRIVATE SKIP_ALLOCATION_TESTS)
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    find_program(VALGRIND_EXECUTABLE valgrind)
+    if (VALGRIND_EXECUTABLE)
+        add_executable(cpp-lru-cache-test-sanitize EXCLUDE_FROM_ALL ${TESTS})
+        target_compile_options(cpp-lru-cache-test-sanitize PRIVATE "SHELL:${COMPILER_FLAGS}")
+        target_compile_definitions(cpp-lru-cache-test-sanitize PRIVATE SKIP_ALLOCATION_TESTS)
 
-    target_include_directories(
-        cpp-lru-cache-test-sanitize SYSTEM PRIVATE
-        ${HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES}
-    )
-    target_include_directories(
-        cpp-lru-cache-test-sanitize PRIVATE
-        ${PROJECT_SOURCE_DIR}/include
-        ${PROJECT_SOURCE_DIR}/tests/include
-    )
-    target_link_libraries(
-        cpp-lru-cache-test-sanitize PRIVATE
-        ${HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES}
-        gtest gtest_main
-    )
+        target_include_directories(
+            cpp-lru-cache-test-sanitize SYSTEM PRIVATE
+            ${HASH_MAP_IMPLEMENTATION_INCLUDE_DIRECTORIES}
+        )
+        target_include_directories(
+            cpp-lru-cache-test-sanitize PRIVATE
+            ${PROJECT_SOURCE_DIR}/include
+            ${PROJECT_SOURCE_DIR}/tests/include
+        )
+        target_link_libraries(
+            cpp-lru-cache-test-sanitize PRIVATE
+            ${HASH_MAP_IMPLEMENTATION_LINK_LIBRARIES}
+            gtest gtest_main
+        )
 
-    add_compile_options(
-        -fsanitize=address -fsanitize-address-use-after-scope
-        -fsanitize=leak
-        -fsanitize=memory -fsanitize-memory-track-origins -fno-optimize-sibling-calls
-        -fsanitize=undefined -fno-sanitize-recover=all
-    )
-    add_link_options(
-        -fsanitize=address -fsanitize-address-use-after-scope
-        -fsanitize=leak
-        -fsanitize=memory -fsanitize-memory-track-origins -fno-optimize-sibling-calls
-        -fsanitize=undefined -fno-sanitize-recover=all
-    )
-    if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-        add_compile_options(-static-libasan -static-libmsan -static-libubsan)
-        add_link_options(-static-libasan -static-libmsan -static-libubsan)
+        add_compile_options(
+            -fsanitize=address -fsanitize-address-use-after-scope
+            -fsanitize=leak
+            -fsanitize=memory -fsanitize-memory-track-origins -fno-optimize-sibling-calls
+            -fsanitize=undefined -fno-sanitize-recover=all
+        )
+        add_link_options(
+            -fsanitize=address -fsanitize-address-use-after-scope
+            -fsanitize=leak
+            -fsanitize=memory -fsanitize-memory-track-origins -fno-optimize-sibling-calls
+            -fsanitize=undefined -fno-sanitize-recover=all
+        )
+        if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+            add_compile_options(-static-libasan -static-libmsan -static-libubsan)
+            add_link_options(-static-libasan -static-libmsan -static-libubsan)
+        endif()
+
+        add_custom_target(
+            sanitize
+            COMMAND ${VALGRIND_EXECUTABLE} --verbose --tool=memcheck --leak-check=full --leak-resolution=high --show-leak-kinds=all --track-origins=yes --show-error-list=yes --error-exitcode=1 "$<TARGET_FILE:cpp-lru-cache-test-sanitize>" --verbose --gtest_color=yes
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            DEPENDS cpp-lru-cache-test-sanitize
+            USES_TERMINAL
+            VERBATIM
+        )
+    else()
+        message(WARNING "Valgrind not found. Disabling the 'sanitize' target")
     endif()
-
-    add_custom_target(
-        sanitize
-        COMMAND ${VALGRIND_EXECUTABLE} --verbose --tool=memcheck --leak-check=full --leak-resolution=high --show-leak-kinds=all --track-origins=yes --show-error-list=yes --error-exitcode=1 "$<TARGET_FILE:cpp-lru-cache-test-sanitize>" --verbose --gtest_color=yes
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        DEPENDS cpp-lru-cache-test-sanitize
-        USES_TERMINAL
-        VERBATIM
-    )
-else()
-    message(WARNING "Valgrind not found. Disabling the 'sanitize' target")
 endif()
