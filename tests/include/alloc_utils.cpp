@@ -14,7 +14,12 @@ void reset_allocation_count() noexcept {
 void* operator new(std::size_t size) {
 	++allocation_count;
 	allocated_bytes += size;
-	return std::malloc(size);
+
+	if (void* ptr = std::malloc(size)) {
+		return ptr;
+	} else {
+		throw std::bad_alloc{};
+	}
 }
 
 void operator delete(void* ptr) noexcept {
@@ -28,7 +33,12 @@ void operator delete(void* ptr, std::size_t) noexcept {
 void* operator new[](std::size_t size) {
 	++allocation_count;
 	allocated_bytes += size;
-	return std::malloc(size);
+
+	if (void* ptr = std::malloc(size)) {
+		return ptr;
+	} else {
+		throw std::bad_alloc{};
+	}
 }
 
 void operator delete[](void* ptr) noexcept {
