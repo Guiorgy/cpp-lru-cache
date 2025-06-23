@@ -123,7 +123,7 @@ public:
 		return value;
 	}
 
-	[[nodiscard]] const std::optional<value_t> get(const key_t& key) {
+	[[nodiscard("Use touch(const key_t& key) instead if all you want is to push the key to the bottom of the removal order")]] const std::optional<value_t> get(const key_t& key) {
 		map_iterator_t it = _cache_items_map.find(key);
 
 		if (it == _cache_items_map.end()) {
@@ -136,7 +136,7 @@ public:
 		}
 	}
 
-	[[nodiscard]] const std::optional<std::reference_wrapper<const value_t>> get_ref(const key_t& key) {
+	[[nodiscard("Use touch(const key_t& key) instead if all you want is to push the key to the bottom of the removal order")]] const std::optional<std::reference_wrapper<const value_t>> get_ref(const key_t& key) {
 		map_iterator_t it = _cache_items_map.find(key);
 
 		if (it == _cache_items_map.end()) {
@@ -149,7 +149,7 @@ public:
 		}
 	}
 
-	[[nodiscard]] bool try_get(const key_t& key, value_t& value_out) {
+	[[nodiscard("Use touch(const key_t& key) instead if all you want is to push the key to the bottom of the removal order")]] bool try_get(const key_t& key, value_t& value_out) {
 		map_iterator_t it = _cache_items_map.find(key);
 
 		if (it == _cache_items_map.end()) {
@@ -163,7 +163,7 @@ public:
 		}
 	}
 
-	[[nodiscard]] bool try_get_ref(const key_t& key, const value_t*& value_out) {
+	[[nodiscard("Use touch(const key_t& key) instead if all you want is to push the key to the bottom of the removal order")]] bool try_get_ref(const key_t& key, const value_t*& value_out) {
 		map_iterator_t it = _cache_items_map.find(key);
 
 		if (it == _cache_items_map.end()) {
@@ -174,6 +174,19 @@ public:
 				_cache_items_list.splice(_cache_items_list.begin(), _cache_items_list, it->second);
 			}
 			value_out = &(it->second->second);
+			return true;
+		}
+	}
+
+	bool touch(const key_t& key) {
+		map_iterator_t it = _cache_items_map.find(key);
+
+		if (it == _cache_items_map.end()) {
+			return false;
+		} else {
+			if (it->second != _cache_items_list.begin()) {
+				_cache_items_list.splice(_cache_items_list.begin(), _cache_items_list, it->second);
+			}
 			return true;
 		}
 	}
