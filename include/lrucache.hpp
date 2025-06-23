@@ -191,12 +191,15 @@ public:
 		}
 	}
 
-	void remove(const key_t& key) {
+	bool remove(const key_t& key) {
 		map_iterator_t it = _cache_items_map.find(key);
 
 		if (it != _cache_items_map.end()) {
 			_cache_items_list.erase(it->second);
 			_cache_items_map.erase(it);
+			return true;
+		} else {
+			return false;
 		}
 	}
 
