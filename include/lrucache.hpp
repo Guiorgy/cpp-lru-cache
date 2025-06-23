@@ -26,12 +26,20 @@
 		(__cplusplus >= cpp_version)
 #endif
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wreserved-attribute-identifier"
+#endif
 #if !GUIORGY_ATTRIBUTE_AVAILABLE(nodiscard, 201907L, 202002L)
 	#ifdef nodiscard
 		#define GUIORGY_nodiscard_BEFORE
 		#undef nodiscard
 	#endif
 	#define nodiscard(explanation) nodiscard
+#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
 #endif
 
 template<typename key_t, typename value_t, const std::size_t max_size>
@@ -226,6 +234,11 @@ public:
 };
 
 // Restore nodiscard if it was already defined, otherwise undefine it
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wreserved-attribute-identifier"
+#endif
 #ifdef GUIORGY_nodiscard_BEFORE
 	#undef nodiscard
 	#define nodiscard GUIORGY_nodiscard_BEFORE
@@ -234,6 +247,9 @@ public:
 	#ifdef nodiscard
 		#undef nodiscard
 	#endif
+#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
 #endif
 
 // Cleanup of internal macros.
