@@ -17,7 +17,16 @@
 #include <tuple>
 #include <list>
 
-#if __cplusplus < 202002L	// C++20
+// A helper macro that determines whether a specific attribute is supported by the current compiler. If __has_cpp_attribute is not defined, __cplusplus alone is used as a fallback.
+#ifdef __has_cpp_attribute
+	#define GUIORGY_ATTRIBUTE_AVAILABLE(attribute_token, test_value, cpp_version) \
+		(__has_cpp_attribute(attribute_token) >= test_value && __cplusplus >= cpp_version)
+#else
+	#define GUIORGY_ATTRIBUTE_AVAILABLE(attribute_token, test_value, cpp_version) \
+		(__cplusplus >= cpp_version)
+#endif
+
+#if !GUIORGY_ATTRIBUTE_AVAILABLE(nodiscard, 201907L, 202002L)
 	#ifdef nodiscard
 		#define GUIORGY_nodiscard_BEFORE
 		#undef nodiscard
@@ -216,9 +225,16 @@ public:
 	}
 };
 
-// Restore nodiscard if it was already defined.
+// Restore nodiscard if it was already defined, otherwise undefine it
 #ifdef GUIORGY_nodiscard_BEFORE
 	#undef nodiscard
 	#define nodiscard GUIORGY_nodiscard_BEFORE
 	#undef GUIORGY_nodiscard_BEFORE
+#else
+	#ifdef nodiscard
+		#undef nodiscard
+	#endif
 #endif
+
+// Cleanup of internal macros.
+#undef GUIORGY_ATTRIBUTE_AVAILABLE
