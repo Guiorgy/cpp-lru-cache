@@ -52,7 +52,9 @@ class lru_cache final {
 	typedef typename std::unordered_map<key_t, list_iterator_t>::iterator map_iterator_t;
 
 public:
+	typedef typename std::list<key_value_pair_t>::const_iterator iterator;
 	typedef typename std::list<key_value_pair_t>::const_iterator const_iterator;
+	typedef typename std::list<key_value_pair_t>::const_reverse_iterator reverse_iterator;
 	typedef typename std::list<key_value_pair_t>::const_reverse_iterator const_reverse_iterator;
 
 private:
