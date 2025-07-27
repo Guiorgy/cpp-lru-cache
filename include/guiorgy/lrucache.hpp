@@ -491,11 +491,15 @@ namespace guiorgy::detail {
 		inline constexpr void* voidify(T& obj) noexcept(noexcept(std::addressof(std::declval<T&>()))) {
 			return std::addressof(obj);
 		}
+		template<typename T>
+		inline constexpr const void* voidify(const T& obj) noexcept(noexcept(std::addressof(std::declval<T&>()))) {
+			return std::addressof(obj);
+		}
 
 		// Backport of std::construct_at.
 		// Based on cppreference.
 		template<typename T, typename... Args>
-		inline constexpr T* construct_at(T* location, Args&&... args)
+		inline constexpr T* construct_at(T* const location, Args&&... args)
 			noexcept(
 				noexcept(voidify(std::declval<T&>()))
 				&& noexcept(::new (std::declval<void*>()) T(std::declval<Args>()...))
@@ -510,9 +514,9 @@ namespace guiorgy::detail {
 		}
 	#else
 		template<typename T, typename... Args>
-		inline constexpr T* construct_at(T* location, Args&&... args)
+		inline constexpr T* construct_at(T* const location, Args&&... args)
 			noexcept(
-				noexcept(std::construct_at(std::declval<T*>(), std::forward<Args>(std::declval<Args>())...))
+				noexcept(std::construct_at(std::declval<T* const>(), std::forward<Args>(std::declval<Args>())...))
 			) {
 			return static_cast<T*>(std::construct_at(location, std::forward<Args>(args)...));
 		}
@@ -524,10 +528,10 @@ namespace guiorgy::detail {
 	//   - Calling emplace with an initialized object as the destination and
 	//     replace explicitly set to false results in undefined behaviour.
 	template<typename T, const bool replace = !std::is_trivially_destructible_v<T>, typename... Args>
-	inline T& emplace(T* destination, Args&&... args)
+	inline T& emplace(T* const destination, Args&&... args)
 		noexcept(
 			(!replace || std::is_nothrow_destructible_v<T>)
-			&& noexcept(construct_at(std::declval<T*>(), std::forward<Args>(std::declval<Args>())...))
+			&& noexcept(construct_at(std::declval<T* const>(), std::forward<Args>(std::declval<Args>())...))
 		) {
 		assert(destination != nullptr);
 
@@ -551,7 +555,7 @@ namespace guiorgy::detail {
 
 	// A helper for emplace that takes the argument pack as a std::tuple.
 	template<typename T, const bool replace = !std::is_trivially_destructible_v<T>, typename... Args>
-	inline T& emplace(T* destination, std::tuple<Args...>&& args_tuple)
+	inline T& emplace(T* const destination, std::tuple<Args...>&& args_tuple)
 		noexcept(std::is_nothrow_constructible_v<T, Args...>) {
 		return std::apply(
 			[destination](auto&&... args) -> T& {
@@ -573,8 +577,8 @@ namespace guiorgy::detail {
 #ifdef ENABLE_TEMPLATE_SUBPACK
 	// A helper for emplace to initialize the object with a specified subset of the given arguments.
 	template<typename T, const bool replace = !std::is_trivially_destructible_v<T>, typename... Args, std::size_t... I>
-	inline T& emplace(T* destination, Args&&... args, [[maybe_unused]] std::index_sequence<I...>)
-		noexcept(noexcept(emplace<T, replace>(std::declval<T*>(), std::get<I>(std::make_tuple(args...))...))) {
+	inline T& emplace(T* const destination, Args&&... args, [[maybe_unused]] std::index_sequence<I...>)
+		noexcept(noexcept(emplace<T, replace>(std::declval<T* const>(), std::get<I>(std::make_tuple(args...))...))) {
 		return emplace<T, replace>(destination, std::get<I>(std::make_tuple(args...))...);
 	}
 	// A helper for emplace that takes a reference instead of a pointer.
@@ -589,8 +593,8 @@ namespace guiorgy::detail {
 
 	// A helper for emplace to initialize the object with the first arg_count of the given arguments.
 	template<typename T, const std::size_t arg_count, const bool replace = !std::is_trivially_destructible_v<T>, typename... Args>
-	inline T& emplace(T* destination, Args&&... args)
-		noexcept(noexcept(emplace<T, replace, Args...>(std::declval<T*>(), std::forward<Args>(args)..., std::make_index_sequence<arg_count>{}))) {
+	inline T& emplace(T* const destination, Args&&... args)
+		noexcept(noexcept(emplace<T, replace, Args...>(std::declval<T* const>(), std::forward<Args>(args)..., std::make_index_sequence<arg_count>{}))) {
 		static_assert(arg_count <= sizeof...(Args), "Not enough arguments provided");
 
 		return emplace<T, replace, Args...>(destination, std::forward<Args>(args)..., std::make_index_sequence<arg_count>{});
@@ -607,8 +611,8 @@ namespace guiorgy::detail {
 
 	// A helper for emplace to initialize the object with the [arg_from, arg_to) subset of the given arguments.
 	template<typename T, const std::size_t arg_from, const std::size_t arg_to, const bool replace = !std::is_trivially_destructible_v<T>, typename... Args>
-	inline T& emplace(T* destination, Args&&... args)
-		noexcept(noexcept(emplace<T, replace, Args...>(std::declval<T*>(), std::forward<Args>(args)..., make_index_sequence_range<arg_from, arg_to>{}))) {
+	inline T& emplace(T* const destination, Args&&... args)
+		noexcept(noexcept(emplace<T, replace, Args...>(std::declval<T* const>(), std::forward<Args>(args)..., make_index_sequence_range<arg_from, arg_to>{}))) {
 		static_assert(arg_from <= arg_to, "The last argument index can't precede the first argument index");
 		static_assert(arg_from <= sizeof...(Args) && arg_to <= sizeof...(Args), "Not enough arguments provided");
 
@@ -630,8 +634,8 @@ namespace guiorgy::detail {
 	//   - This assumes the destination is uninitialized. Calling emplace_new with
 	//     an initialized object as the destination results in undefined behaviour.
 	template<typename T, typename... Args>
-	inline T& emplace_new(T* destination, Args&&... args)
-		noexcept(noexcept(emplace<T, false, Args...>(std::declval<T*>(), std::forward<Args>(std::declval<Args>())...))) {
+	inline T& emplace_new(T* const destination, Args&&... args)
+		noexcept(noexcept(emplace<T, false, Args...>(std::declval<T* const>(), std::forward<Args>(std::declval<Args>())...))) {
 		return emplace<T, false, Args...>(destination, std::forward<Args>(args)...);
 	}
 	template<typename T, typename... Args>
@@ -642,8 +646,8 @@ namespace guiorgy::detail {
 
 	// A helper for emplace_new that takes the argument pack as a std::tuple.
 	template<typename T, typename... Args>
-	inline T& emplace_new(T* destination, std::tuple<Args...>&& args_tuple)
-		noexcept(noexcept(emplace<T, false, Args...>(std::declval<T*>(), std::move(std::declval<std::tuple<Args...>>())))) {
+	inline T& emplace_new(T* const destination, std::tuple<Args...>&& args_tuple)
+		noexcept(noexcept(emplace<T, false, Args...>(std::declval<T* const>(), std::move(std::declval<std::tuple<Args...>>())))) {
 		return emplace<T, false, Args...>(destination, std::move(args_tuple));
 	}
 	template<typename T, typename... Args>
@@ -655,8 +659,8 @@ namespace guiorgy::detail {
 #ifdef ENABLE_TEMPLATE_SUBPACK
 	// A helper for emplace_new to initialize the object with a specified subset of the given arguments.
 	template<typename T, typename... Args, std::size_t... I>
-	inline T& emplace_new(T* destination, Args&&... args)
-		noexcept(noexcept(emplace<T, false, Args..., I...>(std::declval<T*>(), std::forward<Args>(std::declval<Args>())...))) {
+	inline T& emplace_new(T* const destination, Args&&... args)
+		noexcept(noexcept(emplace<T, false, Args..., I...>(std::declval<T* const>(), std::forward<Args>(std::declval<Args>())...))) {
 		return emplace<T, false, Args..., I...>(destination, std::forward<Args>(args)...);
 	}
 	template<typename T, typename... Args, std::size_t... I>
@@ -667,8 +671,8 @@ namespace guiorgy::detail {
 
 	// A helper for emplace_new to initialize the object with the first arg_count of the given arguments.
 	template<typename T, const std::size_t arg_count, typename... Args>
-	inline T& emplace_new(T* destination, Args&&... args)
-		noexcept(noexcept(emplace<T, arg_count, false, Args...>(std::declval<T*>(), std::forward<Args>(std::declval<Args>())...))) {
+	inline T& emplace_new(T* const destination, Args&&... args)
+		noexcept(noexcept(emplace<T, arg_count, false, Args...>(std::declval<T* const>(), std::forward<Args>(std::declval<Args>())...))) {
 		return emplace<T, arg_count, false, Args...>(destination, std::forward<Args>(args)...);
 	}
 	template<typename T, const std::size_t arg_count, typename... Args>
@@ -679,8 +683,8 @@ namespace guiorgy::detail {
 
 	// A helper for emplace_new to initialize the object with the [arg_from, arg_to) subset of the given arguments.
 	template<typename T, const std::size_t arg_from, const std::size_t arg_to, typename... Args>
-	inline T& emplace_new(T* destination, Args&&... args)
-		noexcept(noexcept(emplace<T, arg_from, arg_to, false, Args...>(std::declval<T*>(), std::forward<Args>(std::declval<Args>())...))) {
+	inline T& emplace_new(T* const destination, Args&&... args)
+		noexcept(noexcept(emplace<T, arg_from, arg_to, false, Args...>(std::declval<T* const>(), std::forward<Args>(std::declval<Args>())...))) {
 		return emplace<T, arg_from, arg_to, false, Args...>(destination, std::forward<Args>(args)...);
 	}
 	template<typename T, const std::size_t arg_from, const std::size_t arg_to, typename... Args>
