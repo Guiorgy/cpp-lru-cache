@@ -68,8 +68,8 @@ set(COMPILER_FLAGS "")
 set(COMPILER_FLAGS_DEBUG "")
 set(COMPILER_FLAGS_RELEASE "")
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    set(COMPILER_FLAGS "-Wall -Wextra -Wpedantic -Werror -fmax-errors=10")
-    set(COMPILER_FLAGS_DEBUG "-O0 -g3 -fno-omit-frame-pointer -D_GLIBCXX_DEBUG")
+    set(COMPILER_FLAGS "-Wall -Wextra -Wpedantic -Werror -fmax-errors=10 -D_FORTIFY_SOURCE=1")
+    set(COMPILER_FLAGS_DEBUG "-O0 -g3 -fno-omit-frame-pointer -D_GLIBCXX_DEBUG -D_GLIBCXX_ASSERTIONS")
     set(COMPILER_FLAGS_RELEASE "-O3 -g -DNDEBUG")
 
     set(MORE_WARNING_FLAGS "")
@@ -103,8 +103,8 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 
     set(COMPILER_FLAGS "${COMPILER_FLAGS} ${MORE_WARNING_FLAGS}")
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(COMPILER_FLAGS "-Weverything -Wpedantic -Werror")
-    set(COMPILER_FLAGS_DEBUG "-O0 -g3 -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -D_GLIBCXX_DEBUG")
+    set(COMPILER_FLAGS "-Weverything -Wpedantic -Werror -D_FORTIFY_SOURCE=1")
+    set(COMPILER_FLAGS_DEBUG "-O0 -g3 -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -D_GLIBCXX_DEBUG -D_GLIBCXX_ASSERTIONS")
     set(COMPILER_FLAGS_RELEASE "-O3 -g -DNDEBUG")
 
     # Suppress useless warnings.
