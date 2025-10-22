@@ -1,6 +1,6 @@
 #!/bin/sh
 
-PROJECT_PATH="$(dirname -- "$0")"
+PROJECT_PATH="$(realpath -- $(dirname -- "$0"))"
 
 if command -v -- unbuffer > /dev/null 2>&1; then
   UNBUFFER='unbuffer'
