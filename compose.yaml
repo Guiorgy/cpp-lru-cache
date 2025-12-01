@@ -1,0 +1,18 @@
+services:
+  fulltest:
+    container_name: cpp_lru_cache_full_test
+    image: cpp-lru-cache-full-test:latest
+    user: "${UID:-1000}"
+    build:
+      context: .
+      dockerfile: Dockerfile.fulltest
+      args:
+        UID: "${UID:-1000}"
+    working_dir: /test
+    volumes:
+      - ./full-test.sh:/test/full-test.sh:r
+      - ./CMakeLists.txt:/test/CMakeLists.txt:r
+      - ./include:/test/include:r
+      - ./tests:/test/tests:r
+      - ./build:/test/build:rw
+    entrypoint: ./full-test.sh

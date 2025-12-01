@@ -1,0 +1,20 @@
+FROM gcc:latest
+
+RUN apt-get -qq update \
+    && apt-get -qq upgrade \
+    && apt-get -qq install \
+        cmake \
+        clang \
+        lld \
+        valgrind \
+        cppcheck \
+        expect \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG UID=1000
+RUN useradd --non-unique --uid ${UID} --user-group --no-create-home --home /test --shell /sbin/nologin --comment Tester tester \
+    && mkdir /test \
+    && chown tester:tester /test
+
+USER tester:tester
+WORKDIR /test

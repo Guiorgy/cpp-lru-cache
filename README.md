@@ -71,4 +71,5 @@ cmake ..
 make test
 # make sanitize
 # ./full-test.sh
+# docker compose run --rm fulltest
 ```
