@@ -152,7 +152,7 @@ elseif (HASH_MAP_IMPLEMENTATION STREQUAL "ABSEIL")
     FetchContent_Declare(
         abseil
         GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
-        GIT_TAG 20250512.0
+        GIT_TAG 20250814.1
         GIT_SHALLOW 1
         SYSTEM
     )
@@ -164,7 +164,7 @@ elseif (HASH_MAP_IMPLEMENTATION STREQUAL "TESSIL_SPARSE")
     message(STATUS "Using tsl::sparse_map as the hashmap implementation")
 
     # False-positive on an iterator dereference which is guarded by a test against end().
-    # Tested by insering assertions before the reported line.
+    # Tested by insering assertions before the reported line. (v0.6.2)
     STRING(REPLACE "-Wnull-dereference" "" MORE_WARNING_FLAGS "${MORE_WARNING_FLAGS}")
 
     add_compile_definitions(LRU_CACHE_HASH_MAP_IMPLEMENTATION=TESSIL_SPARSE_MAP)
@@ -172,7 +172,7 @@ elseif (HASH_MAP_IMPLEMENTATION STREQUAL "TESSIL_SPARSE")
     FetchContent_Declare(
         tessil-sparse
         GIT_REPOSITORY https://github.com/Tessil/sparse-map.git
-        GIT_TAG v0.6.2
+        GIT_TAG v0.7.0
         GIT_SHALLOW 1
         SOURCE_SUBDIR "include"
         SYSTEM
@@ -192,7 +192,7 @@ elseif (HASH_MAP_IMPLEMENTATION STREQUAL "TESSIL_ROBIN")
     FetchContent_Declare(
         tessil-robin
         GIT_REPOSITORY https://github.com/Tessil/robin-map.git
-        GIT_TAG v1.4.0
+        GIT_TAG v1.4.1
         GIT_SHALLOW 1
         SOURCE_SUBDIR "include"
         SYSTEM
@@ -212,7 +212,7 @@ elseif (HASH_MAP_IMPLEMENTATION STREQUAL "TESSIL_HOP")
     FetchContent_Declare(
         tessil-hopscotch
         GIT_REPOSITORY https://github.com/Tessil/hopscotch-map.git
-        GIT_TAG v2.3.1
+        GIT_TAG v2.4.0
         GIT_SHALLOW 1
         SOURCE_SUBDIR "include"
         SYSTEM
@@ -238,7 +238,7 @@ elseif (HASH_MAP_IMPLEMENTATION STREQUAL "ANKERL" OR HASH_MAP_IMPLEMENTATION STR
     FetchContent_Declare(
         ankerl
         GIT_REPOSITORY https://github.com/martinus/unordered_dense.git
-        GIT_TAG v4.5.0
+        GIT_TAG v4.8.1
         GIT_SHALLOW 1
         SYSTEM
     )
