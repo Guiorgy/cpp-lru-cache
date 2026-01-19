@@ -45,10 +45,8 @@
 #pragma clang diagnostic ignored "-Wreserved-attribute-identifier"
 #endif
 #if !GUIORGY_ATTRIBUTE_AVAILABLE(nodiscard, 201907L, 202002L)
-	#ifdef nodiscard
-		#define GUIORGY_NODISCARD_BEFORE nodiscard
-		#undef nodiscard
-	#endif
+	#pragma push_macro("nodiscard")
+	#undef nodiscard
 	#define nodiscard(explanation) nodiscard
 #endif
 #ifdef __clang__
@@ -56,14 +54,10 @@
 #endif
 
 // Helper macros to drop the [[likely]] and [[unlikely]] attributes on compilers that don't support them.
-#ifdef LIKELY
-	#define GUIORGY_LIKELY_BEFORE LIKELY
-	#undef LIKELY
-#endif
-#ifdef UNLIKELY
-	#define GUIORGY_UNLIKELY_BEFORE UNLIKELY
-	#undef UNLIKELY
-#endif
+#pragma push_macro("LIKELY")
+#undef LIKELY
+#pragma push_macro("UNLIKELY")
+#undef UNLIKELY
 #if GUIORGY_ATTRIBUTE_AVAILABLE(likely, 201803L, 202002L) && GUIORGY_ATTRIBUTE_AVAILABLE(unlikely, 201803L, 202002L)
 	#define LIKELY [[likely]]
 	#define UNLIKELY [[unlikely]]
@@ -73,10 +67,8 @@
 #endif
 
 // A helper macro to drop the constexpr specifier on destructors in unsupported C++ versions.
-#ifdef CONSTEXPR_DESTRUCTOR
-	#define GUIORGY_CONSTEXPR_DESTRUCTOR_BEFORE CONSTEXPR_DESTRUCTOR
-	#undef CONSTEXPR_DESTRUCTOR
-#endif
+#pragma push_macro("CONSTEXPR_DESTRUCTOR")
+#undef CONSTEXPR_DESTRUCTOR
 #if __cplusplus >= 202002L
 	#define CONSTEXPR_DESTRUCTOR constexpr
 #else
@@ -91,10 +83,8 @@
 #endif
 #ifdef GUIORGY_FEATURE_UNAVAILABLE
 	#undef GUIORGY_FEATURE_UNAVAILABLE
-	#ifdef delete
-		#define GUIORGY_DELETE_BEFORE delete
-		#undef delete
-	#endif
+	#pragma push_macro("delete")
+	#undef delete
 	#define delete(explanation) delete
 #endif
 
@@ -3953,66 +3943,18 @@ namespace guiorgy {
 	#undef GUIORGY_SPACESHIP_OPERATOR_AVAILABLE
 #endif
 
-// Restore delete if it was already defined, otherwise undefine it.
-#ifdef GUIORGY_DELETE_BEFORE
-	#undef delete
-	#define delete GUIORGY_DELETE_BEFORE
-	#undef GUIORGY_DELETE_BEFORE
-#else
-	#ifdef delete
-		#undef delete
-	#endif
-#endif
+// Restore delete.
+#pragma pop_macro("delete")
 
-// Restore CONSTEXPR_DESTRUCTOR if they were already defined, otherwise undefine it.
-#ifdef GUIORGY_CONSTEXPR_DESTRUCTOR_BEFORE
-	#undef CONSTEXPR_DESTRUCTOR
-	#define CONSTEXPR_DESTRUCTOR GUIORGY_CONSTEXPR_DESTRUCTOR_BEFORE
-	#undef GUIORGY_CONSTEXPR_DESTRUCTOR_BEFORE
-#else
-	#ifdef CONSTEXPR_DESTRUCTOR
-		#undef CONSTEXPR_DESTRUCTOR
-	#endif
-#endif
+// Restore CONSTEXPR_DESTRUCTOR.
+#pragma pop_macro("CONSTEXPR_DESTRUCTOR")
 
-// Restore LIKELY and UNLIKELY if they were already defined, otherwise undefine them.
-#ifdef GUIORGY_LIKELY_BEFORE
-	#undef LIKELY
-	#define LIKELY GUIORGY_LIKELY_BEFORE
-	#undef GUIORGY_LIKELY_BEFORE
-#else
-	#ifdef LIKELY
-		#undef LIKELY
-	#endif
-#endif
-#ifdef GUIORGY_UNLIKELY_BEFORE
-	#undef UNLIKELY
-	#define UNLIKELY GUIORGY_UNLIKELY_BEFORE
-	#undef GUIORGY_UNLIKELY_BEFORE
-#else
-	#ifdef UNLIKELY
-		#undef UNLIKELY
-	#endif
-#endif
+// Restore LIKELY and UNLIKELY.
+#pragma pop_macro("LIKELY")
+#pragma pop_macro("UNLIKELY")
 
-// Restore nodiscard if it was already defined, otherwise undefine it.
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunknown-warning-option"
-#pragma clang diagnostic ignored "-Wreserved-attribute-identifier"
-#endif
-#ifdef GUIORGY_NODISCARD_BEFORE
-	#undef nodiscard
-	#define nodiscard GUIORGY_NODISCARD_BEFORE
-	#undef GUIORGY_NODISCARD_BEFORE
-#else
-	#ifdef nodiscard
-		#undef nodiscard
-	#endif
-#endif
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
+// Restore nodiscard.
+#pragma pop_macro("nodiscard")
 
 // Cleanup of GUIORGY_ATTRIBUTE_AVAILABLE.
 #undef GUIORGY_ATTRIBUTE_AVAILABLE
