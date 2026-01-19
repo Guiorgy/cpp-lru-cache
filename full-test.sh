@@ -2,12 +2,12 @@
 
 PROJECT_PATH="$(realpath -- $(dirname -- "$0"))"
 
-if command -v -- unbuffer > /dev/null 2>&1; then
+if command -v -- unbuffer >/dev/null 2>&1; then
   UNBUFFER='unbuffer'
 else
   echo 'Command "unbuffer" not found. Output may not be colored' >&2
 
-  if command -v -- apt > /dev/null 2>&1; then
+  if command -v -- apt >/dev/null 2>&1; then
     echo 'Try running "sudo apt install -y expect"' >&2
   fi
 
@@ -81,7 +81,7 @@ build_and_run_tests() {
 }
 
 for cxx_compiler in $CXX_COMPILERS; do
-  if !command -v -- "$cxx_compiler" > /dev/null 2>&1; then
+  if !command -v -- "$cxx_compiler" >/dev/null 2>&1; then
     echo "Skipping the missing compiler: $cxx_compiler" >&2
     continue
   fi
