@@ -45,6 +45,8 @@ build_and_run_tests() {
     echo "$cmake_output"
     echo "CMake configuration failed for the configuration: $config"
     exit 1
+  elif [ $DEV -eq 1 ]; then
+    echo "$cmake_output"
   fi
 
   echo "Compiling the configuration: $config"
