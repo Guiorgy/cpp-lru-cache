@@ -1,6 +1,8 @@
 # cpp-lru-cache
 
 > ⚠️ **This implementation is NOT thread safe!**
+> 
+> Further development migrated to [Codeberg](https://codeberg.org/Guiorgy/cpp-lru-cache/src/branch/std-only)
 
 Simple and reliable LRU (Least Recently Used) cache for c++ 17 based on hashmap and linkedlist. The library is header only, simple test and example are included.
 It includes standard components and very little own logics that guarantees reliability.
